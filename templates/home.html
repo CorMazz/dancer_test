@@ -1,0 +1,16 @@
+{% extends "root.html" %}
+
+{% block content %}
+
+<div class="container bg-gray-100 m-auto text-center text-xl mt-16 p-16 border-orange-700 border-4 rounded-lg">
+    <h1 class="text-3xl mb-8"> Hello from home page</h1>
+    <p class="my-5">here we will pass a value: <span class="text-orange-700">{{stringvalue}}</span> </p></p>
+    <p class="my-5">here we will pass a vector of strings and render then:</p>
+    <ul class="text-orange-700 font-bold">
+      {% for value in vec_strings %}  
+      <li>{{ value }}</li>    
+      {% endfor %}
+    </ul>
+  </div>
+
+{% endblock %}
