@@ -431,7 +431,9 @@ pub async fn get_me_handler(
     Ok(Json(json_response))
 }
 
-fn filter_user_record(user: &User) -> FilteredUser {
+
+
+pub fn filter_user_record(user: &User) -> FilteredUser {
     FilteredUser {
         id: user.id.to_string(),
         email: user.email.to_owned(),

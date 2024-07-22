@@ -7,6 +7,7 @@ use axum::{
 };
 
 use crate::{
+    views::{get_root},
     handler::{
         get_me_handler, health_checker_handler, login_user_handler, logout_handler,
         refresh_access_token_handler, register_user_handler,
@@ -17,6 +18,7 @@ use crate::{
 
 pub fn create_router(app_state: Arc<AppState>) -> Router {
     Router::new()
+        .route("/", get(get_root))
         .route("/api/healthchecker", get(health_checker_handler))
         .route("/api/auth/register", post(register_user_handler))
         .route("/api/auth/login", post(login_user_handler))
