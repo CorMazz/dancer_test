@@ -8,12 +8,14 @@ use axum::{
     Form,
     extract::State
 };
-use jsonwebtoken::crypto::sign;
+use axum_extra::extract::CookieJar;
 use serde::Deserialize;
 
 use crate::{
     auth::{
-        handlers::{login_user_handler, register_user_handler, LoginError, SignInSignUpError}, middleware::AuthStatus, model::User
+        handlers::{login_user_handler, logout_handler, register_user_handler}, 
+        middleware::{AuthStatus, AuthError},
+        model::User
     },
     AppState,
 };
@@ -101,8 +103,9 @@ pub async fn post_signup_form(
     match user_registered {
         Ok(_) => return Redirect::to("/login").into_response(),
         Err(e) => match e {
-            SignInSignUpError::DuplicateEmail => return (StatusCode::OK, Html("<h1>Duplicate Email</h1>")).into_response(),
-            SignInSignUpError::InternalServerError(ee) => return (StatusCode::OK, Html(format!("{:?}", ee))).into_response()
+            AuthError::DuplicateEmail => return (StatusCode::INTERNAL_SERVER_ERROR, Html("<h1>Duplicate Email</h1>")).into_response(),
+            AuthError::InternalServerError(ee) => return (StatusCode::INTERNAL_SERVER_ERROR, Html(format!("{:?}", ee))).into_response(),
+            _ => return (StatusCode::INTERNAL_SERVER_ERROR, Html("<h1>Unexpected error occurred, this should never happen.</h1>")).into_response() // This should never happen
         }
     }
 }
@@ -138,8 +141,36 @@ pub async fn post_login_form(
     match login_user_handler(data, login.email, login.password).await {
         Ok(response) => return response.into_response(),
         Err(e) => match e {
-            LoginError::InvalidEmailOrPassword => return (StatusCode::OK, Html("<h1>Invalid Email or Password</h1>")).into_response(),
-            LoginError::InternalServerError(ee) => return (StatusCode::OK, Html(format!("{:?}", ee))).into_response()
+            AuthError::InvalidEmailOrPassword => return (StatusCode::OK, Html("<h1>Invalid Email or Password</h1>")).into_response(),
+            AuthError::InternalServerError(ee) => return (StatusCode::INTERNAL_SERVER_ERROR, Html(format!("{:?}", ee))).into_response(),
+            _ => return (StatusCode::INTERNAL_SERVER_ERROR, Html("<h1>Unexpected error occurred</h1>")).into_response()
+        }
+    }
+}
+
+// #######################################################################################################################################################
+// logout endpoint
+// #######################################################################################################################################################
+
+/// Logout the user and return them to the home page
+pub async fn get_logout_page(
+    cookie_jar: CookieJar,
+    State(data): State<Arc<AppState>>,
+    Extension(auth_status): Extension<AuthStatus>
+) -> impl IntoResponse {
+
+    // To get to this page requires auth so we can expect an authorized user variant of auth status instaed of autherror
+    let authorized_user = match auth_status {
+        AuthStatus::Authorized(user) => user,
+        AuthStatus::Unauthorized(_) => panic!("If this happens, check your auth middleware application.")
+    };
+
+    match logout_handler(cookie_jar, authorized_user, data).await {
+        Ok(response) => return response.into_response(),
+        Err(e) => match e {
+            AuthError::NotLoggedIn => return Redirect::to("/").into_response(),
+            AuthError::InternalServerError(ee) => return (StatusCode::INTERNAL_SERVER_ERROR, Html(format!("{:?}", ee))).into_response(),
+            _ => return (StatusCode::INTERNAL_SERVER_ERROR, Html("<h1>Unexpected error occurred</h1>")).into_response()
         }
     }
 }

@@ -24,6 +24,8 @@ pub struct AuthorizedUser {
 
 #[derive(Debug, Clone)]
 pub enum AuthError {
+    DuplicateEmail,
+    InvalidEmailOrPassword,
     NotLoggedIn,
     InternalServerError(Option<String>),
     InvalidToken,
@@ -142,11 +144,15 @@ pub async fn check_auth_middleware(
 pub async fn require_auth_middleware(
     cookie_jar: CookieJar,
     State(data): State<Arc<AppState>>,
-    req: Request<Body>,
+    mut req: Request<Body>,
     next: Next,
 ) -> impl IntoResponse {
     match check_auth_utility(cookie_jar, data, req.headers()).await {
-        Ok(_) => return next.run(req).await,
+        Ok(auth_data) => {
+            req.extensions_mut().insert(AuthStatus::Authorized(auth_data));
+            return next.run(req).await
+        },
+        // Purposefully leaving auth_error here so that I can eventually handle the error itself
         Err(auth_error) => return Redirect::to("/login").into_response(),
     }
 }
