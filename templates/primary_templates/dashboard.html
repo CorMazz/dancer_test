@@ -1,0 +1,20 @@
+{% extends "../extensible_templates/nav_on_top.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+
+<div class="container bg-gray-100 m-auto text-center text-xl mt-16 p-16 border-orange-700 border-4 rounded-lg">
+    <h1 class="text-3xl mb-8"> Hello from the dashboard</h1>
+</div>
+
+<div class="container m-auto mt-16 p-16 rounded-lg">
+  <a href="/leader-test" class="block max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700">
+    <h5 class="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Administer Leader Test</h5>
+  </a>  
+
+  <a href="/follower-test" class="block max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700">
+    <h5 class="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Administer Follower Test</h5>
+  </a>  
+</div>
+{% endblock %}

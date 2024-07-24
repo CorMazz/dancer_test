@@ -2,6 +2,8 @@ mod config;
 mod router;
 mod auth;
 mod views;
+mod filters;
+mod exam;
 
 
 use config::Config;

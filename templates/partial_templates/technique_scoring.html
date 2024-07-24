@@ -1,0 +1,43 @@
+<table class="min-w-full bg-white">
+    <h2 class="text-2xl font-bold py-4 px-4 border-b-2 text-center">Technique Scoring</h2>
+
+    <!-- Add the labels for the % of the dance that each technique must be present -->
+    <thead>
+        <tr>
+            <!-- Blank header to properly align everything -->
+            <th></th>
+            {% for header in technique_headers %}
+                <th>{{ header }}</th>   
+            {% endfor %}
+        </tr>
+    </thead>
+    <!-- Add each of the individual techniques -->
+    <tbody>
+        {% for technique in techniques %}
+        <tr>
+            
+            <!-- Technique Name and Label On Left -->
+            <td class="py-2 px-4 border-b text-xl text-right">{{ technique.name }} {{ technique.subtext }}</td>
+
+            <!-- Technique Point Values: Can be a ragged array, so will be padded to match the length of headers -->
+            {% for point in technique.points %}
+            <td class="py-2 px-4 border-b text-center">
+                <input type="radio" name="{{ technique.name|lower|replace(" ", "_") }}" value="{{ point }}" id="{{ technique.name|lower|replace(" ", "_") }}_{{ point }}" class="hidden peer" required>
+                <label for="{{ technique.name|lower|replace(" ", "_") }}_{{ point }}" class="inline-flex items-center justify-center w-16 h-12 p-2 text-sm font-medium text-gray-900 bg-white border-2 border-gray-300 rounded-lg cursor-pointer peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-transparent">
+                    {{ point }}
+                </label>
+            </td>
+            {% endfor %}
+
+            <!-- Pad the radio items so that they match the headers -->
+            {% for _ in 0..(technique_headers.len() - technique.points.len()) %}
+                <td class="py-2 px-4 border-b text-center">
+                    <div class="inline-flex items-center justify-center w-16 h-12 p-2 text-sm font-medium text-gray-900 bg-white border-2 border-gray-300 rounded-lg"></div>
+                </td>
+            {% endfor %}
+
+            <td class="py-2 px-4 border-b text-xl text-right">{{ technique.antithesis }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>

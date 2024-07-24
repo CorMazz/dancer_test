@@ -12,26 +12,34 @@ use axum_extra::extract::CookieJar;
 use serde::Deserialize;
 
 use crate::{
+    filters,
     auth::{
         handlers::{login_user_handler, logout_handler, register_user_handler}, 
         middleware::{AuthStatus, AuthError},
         model::User
     },
+    exam::{
+        handlers::{BonusItem, Technique, PatternScoringCategory},
+    },
     AppState,
 };
 
 // #######################################################################################################################################################
-// root.html
+// home.html
 // #######################################################################################################################################################
 
-
-
 #[derive(Template)]
-#[template(path = "home.html")] 
-pub struct RootTemplate {}
+#[template(path = "./primary_templates/home.html")] 
+pub struct HomeTemplate {}
 
-pub async fn get_root_page() -> impl IntoResponse  {
-    let template: RootTemplate = RootTemplate {};
+// Block rendering functionality is currently not implemented in Askama. Instead of using server-side partial rendering,
+// I will just use hx-select to grab <div id="primary-content"> that is in my base template
+// #[derive(Template)]
+// #[template(path = "./primary_templates/home.html", block = "content")] 
+// pub struct HomeTemplateContent {}
+
+pub async fn get_home_page() -> impl IntoResponse  {
+    let template: HomeTemplate = HomeTemplate {};
 
     (StatusCode::OK, Html(template.render().unwrap()))
 }
@@ -41,7 +49,7 @@ pub async fn get_root_page() -> impl IntoResponse  {
 // #######################################################################################################################################################
 
 #[derive(Template)]
-#[template(path = "user_dropdown.html")] 
+#[template(path = "./partial_templates/user_dropdown.html")] 
 pub struct UserDropdownTemplate {
     user: Option<User>
 }
@@ -65,7 +73,7 @@ pub async fn get_user_dropdown(
 // #######################################################################################################################################################
 
 #[derive(Template)]
-#[template(path = "sign-up.html")] 
+#[template(path = "./auth_templates/sign-up.html")] 
 pub struct SignUpTemplate {
 }
 
@@ -117,7 +125,7 @@ pub async fn post_signup_form(
 
 
 #[derive(Template)]
-#[template(path = "login.html")] 
+#[template(path = "./auth_templates/login.html")] 
 pub struct LoginTemplate {}
 
 pub async fn get_login_page() -> impl IntoResponse  {
@@ -180,11 +188,129 @@ pub async fn get_logout_page(
 // #######################################################################################################################################################
 
 #[derive(Template)]
-#[template(path = "dashboard.html")] 
+#[template(path = "./primary_templates/dashboard.html")] 
 pub struct DashboardTemplate {}
 
 pub async fn get_dashboard_page() -> impl IntoResponse  {
     let template: DashboardTemplate = DashboardTemplate {};
+
+    (StatusCode::OK, Html(template.render().unwrap()))
+}
+
+
+// #######################################################################################################################################################
+// leader_test.html
+// #######################################################################################################################################################
+
+#[derive(Template)]
+#[template(path = "./primary_templates/leader_test.html")] 
+pub struct LeaderTestTemplate {
+    patterns: Vec<&'static str>,
+    pattern_scoring_categories: Vec<PatternScoringCategory>,
+    technique_headers: Vec<&'static str>,
+    techniques: Vec<Technique>,
+    bonus_items: Vec<BonusItem>,
+}
+
+pub async fn get_leader_test_page() -> impl IntoResponse  {
+    let template: LeaderTestTemplate = LeaderTestTemplate {
+        patterns:  vec![
+            "Starter Step",
+            "Left Side Pass from Closed",
+            "Sugar Tuck",
+            "Cutoff Whip",
+            "Left Side Pass",
+            "Whip",
+            "Sugar Push",
+            "Spinning Side Pass",
+            "Right Side Pass",
+            "Basket Whip",
+            "Free Spin",
+        ],
+        pattern_scoring_categories: vec![
+            PatternScoringCategory {
+                name: "Footwork",
+                points: vec![3, 2, 1, 0],
+            },
+            PatternScoringCategory {
+                name: "Timing",
+                points: vec![1, 0],
+            },
+        ],
+
+        technique_headers: vec![
+            "Consistent 90%>",
+            "Present 75%",
+            "Occasional 50%",
+            "Lacking 25%",
+            "Missing 0%",
+        ],
+        techniques: vec![
+            Technique {
+                name: "Body Lead",
+                subtext: "(Week 1)",
+                points: vec![8, 6, 0],
+                antithesis: "Arm Lead",
+            },
+            Technique {
+                name: "Post",
+                subtext: "(Week 1)",
+                points: vec![6, 4, 0],
+                antithesis: "Floating Anchor",
+            },
+            Technique {
+                name: "Strong Frame",
+                subtext: "(Week 2)",
+                points: vec![6, 4, 2, 0],
+                antithesis: "Weak Frame",
+            },
+            Technique {
+                name: "Closed Connection",
+                subtext: "(Week 3/4)",
+                points: vec![4, 3, 2, 0],
+                antithesis: "Free Hand Only",
+            },
+            Technique {
+                name: "Connection Transition",
+                subtext: "(Week 2 - Dimmer Switch)",
+                points: vec![4, 3, 2, 0],
+                antithesis: "Brick Wall (Toggle Switch)",
+            },
+            Technique {
+                name: "On Time",
+                subtext: "",
+                points: vec![8, 6, 0],
+                antithesis: "Off Time",
+            },
+            Technique {
+                name: "Move Off Slot",
+                subtext: "",
+                points: vec![4, 3, 0],
+                antithesis: "In the Way",
+            },
+            Technique {
+                name: "Safe",
+                subtext: "",
+                points: vec![8, 0],
+                antithesis: "Unsafe",
+            },
+        ],
+
+        bonus_items: vec![
+            BonusItem {
+                label: "No Thumbs",
+                points: 1,
+            },
+            BonusItem {
+                label: "Clear Turn Signal",
+                points: 1,
+            },
+            BonusItem {
+                label: "Swung Triple",
+                points: 4,
+            },
+        ],
+    };
 
     (StatusCode::OK, Html(template.render().unwrap()))
 }

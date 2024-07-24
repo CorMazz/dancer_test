@@ -1,0 +1,40 @@
+<table class="min-w-full bg-white">
+    <h2 class="text-2xl font-bold py-4 px-4 border-b-2 text-center">Pattern Scoring</h2>
+
+    <!-- Label the Scoring Categories -->
+    <thead>
+        <tr>
+            <!-- Empty Padding to Align Everything -->
+            <th></th>
+
+            {% for scoring_category in pattern_scoring_categories %}
+                <th colspan="{{ scoring_category.points.len() }}">
+                    {{ scoring_category.name }}
+                </th>
+            {% endfor %}
+        </tr>
+    </thead>
+
+    <!-- Add the Patterns -->
+    <tbody>
+        {% for pattern in patterns %}
+        <tr>
+            <!-- Add the Pattern Name to the Left Column -->
+            <td class="py-2 px-4 border-b text-xl text-right">{{ pattern }}</td>
+
+            <!-- Add radio buttons for each scoring category -->
+            {% for scoring_category in pattern_scoring_categories %}
+                {% for point in scoring_category.points %}
+                    <!-- Add a border between scoring catergories for comprehension -->
+                    <td class="py-2 px-4 border-b text-center {% if loop.last %}border-r border-gray-300 last:border-0{% else %}{% endif %}">
+                        <input type="radio" name="{{ pattern }}_{{ scoring_category.name|lower|replace(" ", "_") }}" value="{{ point }}" id="{{ pattern }}_{{ scoring_category.name|lower|replace(" ", "_") }}_{{ point }}" class="hidden peer" required>
+                        <label for="{{ pattern }}_{{ scoring_category.name|lower|replace(" ", "_") }}_{{ point }}" class="inline-flex items-center justify-center w-full h-12 p-2 text-sm font-medium text-gray-900 bg-white border-2 border-gray-300 rounded-lg cursor-pointer peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-transparent">
+                            {{ point }}
+                        </label>
+                    </td>
+                {% endfor %}
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
