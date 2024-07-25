@@ -27,8 +27,8 @@
                 {% for point in scoring_category.points %}
                     <!-- Add a border between scoring catergories for comprehension -->
                     <td class="py-2 px-4 border-b text-center {% if loop.last %}border-r border-gray-300 last:border-0{% else %}{% endif %}">
-                        <input type="radio" name="{{ pattern }}_{{ scoring_category.name|lower|replace(" ", "_") }}" value="{{ point }}" id="{{ pattern }}_{{ scoring_category.name|lower|replace(" ", "_") }}_{{ point }}" class="hidden peer" required>
-                        <label for="{{ pattern }}_{{ scoring_category.name|lower|replace(" ", "_") }}_{{ point }}" class="inline-flex items-center justify-center w-full h-12 p-2 text-sm font-medium text-gray-900 bg-white border-2 border-gray-300 rounded-lg cursor-pointer peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-transparent">
+                        <input type="radio" name="pattern--{{ pattern|lower|replace(" ", "_") }}--scoring_category--{{ scoring_category.name|lower|replace(" ", "_") }}" value="{{ point }}" id="pattern--{{ pattern|lower|replace(" ", "_") }}--scoring_category--{{ scoring_category.name|lower|replace(" ", "_") }}_{{ point }}" class="hidden peer" required>
+                        <label for="pattern--{{ pattern|lower|replace(" ", "_") }}--scoring_category--{{ scoring_category.name|lower|replace(" ", "_") }}_{{ point }}" class="inline-flex items-center justify-center w-full h-12 p-2 text-sm font-medium text-gray-900 bg-white border-2 border-gray-300 rounded-lg cursor-pointer peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-transparent">
                             {{ point }}
                         </label>
                     </td>

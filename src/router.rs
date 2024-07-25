@@ -10,7 +10,7 @@ use crate::{
     auth::middleware::{check_auth_middleware, require_auth_middleware}, 
     views::{get_dashboard_page, get_login_page, get_home_page, 
             get_signup_page, get_user_dropdown, post_login_form, 
-            post_signup_form, get_logout_page, get_leader_test_page},
+            post_signup_form, get_logout_page, get_leader_test_page, post_leader_test_form},
     AppState,
 };
 
@@ -20,7 +20,7 @@ pub fn create_router(app_state: Arc<AppState>) -> Router {
     Router::new()
     .route("/dashboard", get(get_dashboard_page))
     .route("/logout", get(get_logout_page))
-    .route("/leader-test", get(get_leader_test_page))
+    .route("/leader-test", get(get_leader_test_page).post(post_leader_test_form))
         .route_layer(middleware::from_fn_with_state(app_state.clone(), require_auth_middleware))
     .route("/", get(get_home_page))
     .route("/sign-up", get(get_signup_page).post(post_signup_form))

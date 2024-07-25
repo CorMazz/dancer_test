@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use askama_axum::Template; // bring trait in scope
 use axum::{
@@ -12,16 +12,11 @@ use axum_extra::extract::CookieJar;
 use serde::Deserialize;
 
 use crate::{
-    filters,
     auth::{
         handlers::{login_user_handler, logout_handler, register_user_handler}, 
-        middleware::{AuthStatus, AuthError},
+        middleware::{AuthError, AuthStatus},
         model::User
-    },
-    exam::{
-        handlers::{BonusItem, Technique, PatternScoringCategory},
-    },
-    AppState,
+    }, define_test_structs, exam::questions::{generate_leader_test, BonusItem, PatternScoringCategory, Technique}, filters, AppState
 };
 
 // #######################################################################################################################################################
@@ -213,104 +208,23 @@ pub struct LeaderTestTemplate {
 }
 
 pub async fn get_leader_test_page() -> impl IntoResponse  {
-    let template: LeaderTestTemplate = LeaderTestTemplate {
-        patterns:  vec![
-            "Starter Step",
-            "Left Side Pass from Closed",
-            "Sugar Tuck",
-            "Cutoff Whip",
-            "Left Side Pass",
-            "Whip",
-            "Sugar Push",
-            "Spinning Side Pass",
-            "Right Side Pass",
-            "Basket Whip",
-            "Free Spin",
-        ],
-        pattern_scoring_categories: vec![
-            PatternScoringCategory {
-                name: "Footwork",
-                points: vec![3, 2, 1, 0],
-            },
-            PatternScoringCategory {
-                name: "Timing",
-                points: vec![1, 0],
-            },
-        ],
+    let leader_test = generate_leader_test();
 
-        technique_headers: vec![
-            "Consistent 90%>",
-            "Present 75%",
-            "Occasional 50%",
-            "Lacking 25%",
-            "Missing 0%",
-        ],
-        techniques: vec![
-            Technique {
-                name: "Body Lead",
-                subtext: "(Week 1)",
-                points: vec![8, 6, 0],
-                antithesis: "Arm Lead",
-            },
-            Technique {
-                name: "Post",
-                subtext: "(Week 1)",
-                points: vec![6, 4, 0],
-                antithesis: "Floating Anchor",
-            },
-            Technique {
-                name: "Strong Frame",
-                subtext: "(Week 2)",
-                points: vec![6, 4, 2, 0],
-                antithesis: "Weak Frame",
-            },
-            Technique {
-                name: "Closed Connection",
-                subtext: "(Week 3/4)",
-                points: vec![4, 3, 2, 0],
-                antithesis: "Free Hand Only",
-            },
-            Technique {
-                name: "Connection Transition",
-                subtext: "(Week 2 - Dimmer Switch)",
-                points: vec![4, 3, 2, 0],
-                antithesis: "Brick Wall (Toggle Switch)",
-            },
-            Technique {
-                name: "On Time",
-                subtext: "",
-                points: vec![8, 6, 0],
-                antithesis: "Off Time",
-            },
-            Technique {
-                name: "Move Off Slot",
-                subtext: "",
-                points: vec![4, 3, 0],
-                antithesis: "In the Way",
-            },
-            Technique {
-                name: "Safe",
-                subtext: "",
-                points: vec![8, 0],
-                antithesis: "Unsafe",
-            },
-        ],
-
-        bonus_items: vec![
-            BonusItem {
-                label: "No Thumbs",
-                points: 1,
-            },
-            BonusItem {
-                label: "Clear Turn Signal",
-                points: 1,
-            },
-            BonusItem {
-                label: "Swung Triple",
-                points: 4,
-            },
-        ],
+    let template = LeaderTestTemplate {
+        patterns: leader_test.patterns,
+        pattern_scoring_categories: leader_test.pattern_scoring_categories,
+        technique_headers: leader_test.technique_headers,
+        techniques: leader_test.techniques,
+        bonus_items: leader_test.bonus_items,
     };
 
     (StatusCode::OK, Html(template.render().unwrap()))
+}
+
+pub async fn post_leader_test_form(
+    State(data): State<Arc<AppState>>,
+    Form(test) : Form<HashMap<String, String>>,
+) -> impl IntoResponse {
+    println!("{:?}", test);
+    StatusCode::OK
 }

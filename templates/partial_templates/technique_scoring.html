@@ -19,22 +19,22 @@
             <!-- Technique Name and Label On Left -->
             <td class="py-2 px-4 border-b text-xl text-right">{{ technique.name }} {{ technique.subtext }}</td>
 
-            <!-- Technique Point Values: Can be a ragged array, so will be padded to match the length of headers -->
+            <!-- Technique Point Values: Assumes that technique.points is always as long as technique headers -->
             {% for point in technique.points %}
             <td class="py-2 px-4 border-b text-center">
-                <input type="radio" name="{{ technique.name|lower|replace(" ", "_") }}" value="{{ point }}" id="{{ technique.name|lower|replace(" ", "_") }}_{{ point }}" class="hidden peer" required>
-                <label for="{{ technique.name|lower|replace(" ", "_") }}_{{ point }}" class="inline-flex items-center justify-center w-16 h-12 p-2 text-sm font-medium text-gray-900 bg-white border-2 border-gray-300 rounded-lg cursor-pointer peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-transparent">
+                <!-- 
+                name: for radio buttons have to all be the same (that is what lets the rendered know only one of each radio can be selected), this is what gets sent with the form as the key
+                id: must be unique for each element
+                value: this is the value that gets sent with the key    
+                -->
+                <input type="radio" name="technique--{{ technique.name|lower|replace(" ", "_") }}" value="{{ technique_headers[loop.index0] }}--{{ point }}" id="technique--{{ technique.name|lower|replace(" ", "_") }}--rating--{{ technique_headers[loop.index0] }}--points--{{ point }}" class="hidden peer" required>
+                <label for="technique--{{ technique.name|lower|replace(" ", "_") }}--rating--{{ technique_headers[loop.index0] }}--points--{{ point }}" class="inline-flex items-center justify-center w-16 h-12 p-2 text-sm font-medium text-gray-900 bg-white border-2 border-gray-300 rounded-lg cursor-pointer peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-transparent">
                     {{ point }}
                 </label>
             </td>
             {% endfor %}
 
-            <!-- Pad the radio items so that they match the headers -->
-            {% for _ in 0..(technique_headers.len() - technique.points.len()) %}
-                <td class="py-2 px-4 border-b text-center">
-                    <div class="inline-flex items-center justify-center w-16 h-12 p-2 text-sm font-medium text-gray-900 bg-white border-2 border-gray-300 rounded-lg"></div>
-                </td>
-            {% endfor %}
+
 
             <td class="py-2 px-4 border-b text-xl text-right">{{ technique.antithesis }}</td>
         </tr>
