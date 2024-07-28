@@ -1,7 +1,8 @@
 use std::{collections::HashMap, fmt, str::FromStr};
 use askama::Template;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
+use strum_macros::{Display, EnumString};
 use crate::filters;
 
 // #######################################################################################################################################################
@@ -19,35 +20,31 @@ use crate::filters;
 // Bonus Point Name
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
-#[derive(Debug)]
+#[derive(Debug, EnumString, Display)]
 pub enum BonusPointName {
-    // For Leads
-    NoThumbs,
-    ClearTurnSignal,
-    SwungTriple,
-}
-impl fmt::Display for BonusPointName {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let name = match self {
-            BonusPointName::ClearTurnSignal => "Clear Turn Signal",
-            BonusPointName::NoThumbs => "No Thumbs",
-            BonusPointName::SwungTriple => "Swung Triple",
-        };
-        write!(f, "{}", name)
-    }
-}
-impl FromStr for BonusPointName {
-    type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "clear_turn_signal" => Ok(BonusPointName::ClearTurnSignal),
-            "no_thumbs" => Ok(BonusPointName::NoThumbs),
-            "swung_triple" => Ok(BonusPointName::SwungTriple),
-            _ => Err(()),
-        }
-    }
+    // Leads
+    #[strum(serialize = "clear_turn_signal", to_string = "Clear Turn Signal")]
+    ClearTurnSignal,
+
+    #[strum(serialize = "no_thumbs", to_string = "No Thumbs")]
+    NoThumbs,
+
+    // Both
+    #[strum(serialize = "swung_triple", to_string = "Swung Triple")]
+    SwungTriple,
+
+    // Follows
+    #[strum(serialize = "no_biceps", to_string = "No Biceps")]
+    NoBiceps,
+
+    #[strum(serialize = "spotting", to_string = "Spotting")]
+    Spotting,
+
+    #[strum(serialize = "connection_in_motion", to_string = "Connection in Motion")]
+    ConnectionInMotion,
 }
+
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 // Test Definition Bonus Item
@@ -63,90 +60,87 @@ pub struct TestDefinitionBonusItem {
 // Technique Name
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
-#[derive(Debug)]
+#[derive(Debug, EnumString, Display)]
 pub enum TechniqueName {
-    // For Leads
+    // Leads
+    #[strum(serialize = "body_lead", to_string = "Body Lead")]
     BodyLead,
-    Post,
-    StrongFrame,
-    ClosedConnection,
-    ConnectionTransition,
-    OnTime,
-    MoveOffSlot,
-    Safe,
-}
-impl fmt::Display for TechniqueName {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let name = match self {
-            TechniqueName::BodyLead => "Body Lead",
-            TechniqueName::Post => "Post",
-            TechniqueName::StrongFrame => "Strong Frame",
-            TechniqueName::ClosedConnection => "Closed Connection",
-            TechniqueName::ConnectionTransition => "Connection Transition",
-            TechniqueName::OnTime => "On Time",
-            TechniqueName::MoveOffSlot => "Move Off Slot",
-            TechniqueName::Safe => "Safe",
-        };
-        write!(f, "{}", name)
-    }
-}
-impl FromStr for TechniqueName {
-    type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "body_lead" => Ok(TechniqueName::BodyLead),
-            "post" => Ok(TechniqueName::Post),
-            "strong_frame" => Ok(TechniqueName::StrongFrame),
-            "closed_connection" => Ok(TechniqueName::ClosedConnection),
-            "connection_transition" => Ok(TechniqueName::ConnectionTransition),
-            "on_time" => Ok(TechniqueName::OnTime),
-            "move_off_slot" => Ok(TechniqueName::MoveOffSlot),
-            "safe" => Ok(TechniqueName::Safe),
-            _ => Err(()),
-        }
-    }
+    #[strum(serialize = "closed_connection", to_string = "Closed Connection")]
+    ClosedConnection,
+
+    #[strum(serialize = "on_time", to_string = "On Time")]
+    OnTime,
+
+    #[strum(serialize = "move_off_slot", to_string = "Move Off Slot")]
+    MoveOffSlot,
+
+    #[strum(serialize = "safe", to_string = "Safe")]
+    Safe,
+
+    // Both
+
+    #[strum(serialize = "post", to_string = "Post")]
+    Post,
+
+    #[strum(serialize = "strong_frame", to_string = "Strong Frame")]
+    StrongFrame,
+
+    #[strum(serialize = "connection_transition", to_string = "Connection Transition")]
+    ConnectionTransition,
+
+    // Follows
+
+    #[strum(serialize = "anchor_in_3rd_position", to_string = "Anchor in 3rd Position")]
+    AnchorIn3rdPosition,
+
+    #[strum(serialize = "stretch", to_string = "Stretch")]
+    Stretch,
+
+    #[strum(serialize = "variable_speed", to_string = "Variable Speed")]
+    VariableSpeed,
+
+    #[strum(serialize = "connection_hierarchy", to_string = "Connection Hierarchy")]
+    ConnectionHierarchy,
+
+    #[strum(serialize = "directionality", to_string = "Directionality")]
+    Directionality,
+
+    #[strum(serialize = "kissing_connection", to_string = "Kissing Connection")]
+    KissingConnection,
+
+    #[strum(serialize = "spins", to_string = "Spins")]
+    Spins,
+
+    #[strum(serialize = "personal_safety", to_string = "Personal Safety")]
+    PersonalSafety,
+
+    #[strum(serialize = "partner_safety", to_string = "Partner Safety")]
+    PartnerSafety,
 }
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 // Technique Scoring Header Name
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
-#[derive(Debug)]
+/// This one doesn't get converted to snake case and isn't used as an html value so can have ><
+#[derive(Debug, EnumString, Display)]
 pub enum TechniqueScoringHeaderName {
+    #[strum(serialize = "Consistent >90%")]
     Consistent90,
+
+    #[strum(serialize = "Present 75%")]
     Present75,
+
+    #[strum(serialize = "Occasional 50%")]
     Occasional50,
+
+    #[strum(serialize = "Lacking 25%")]
     Lacking25,
-    Missing0,
-}
-impl fmt::Display for TechniqueScoringHeaderName {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let name = match self {
-            TechniqueScoringHeaderName::Consistent90 => "Consistent 90%",
-            TechniqueScoringHeaderName::Present75 => "Present 75%",
-            TechniqueScoringHeaderName::Occasional50 => "Occasional 50%",
-            TechniqueScoringHeaderName::Lacking25 => "Lacking 25%",
-            TechniqueScoringHeaderName::Missing0 => "Missing 0%",
-        };
-        write!(f, "{}", name)
-    }
-}
-impl FromStr for TechniqueScoringHeaderName {
-    type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "Consistent 90%" => Ok(TechniqueScoringHeaderName::Consistent90),
-            "Present 75%" => Ok(TechniqueScoringHeaderName::Present75),
-            "Occasional 50%" => Ok(TechniqueScoringHeaderName::Occasional50),
-            "Lacking 25%" => Ok(TechniqueScoringHeaderName::Lacking25),
-            "Missing 0%" => Ok(TechniqueScoringHeaderName::Missing0),
-            _ => Err(()),
-        }
-    }
+    #[strum(serialize = "Missing <10%")]
+    Missing10,
 }
-
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 // Test Definition Technique
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -162,30 +156,21 @@ pub struct TestDefinitionTechnique {
 // Scoring Category Name
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
-#[derive(Debug)]
+#[derive(Debug, EnumString, Display)]
 pub enum ScoringCategoryName {
-    Footwork,
-    Timing,
-}
-impl fmt::Display for ScoringCategoryName {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let name = match self {
-            ScoringCategoryName::Footwork => "Footwork",
-            ScoringCategoryName::Timing => "Timing",
-        };
-        write!(f, "{}", name)
-    }
-}
-impl FromStr for ScoringCategoryName {
-    type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "footwork" => Ok(ScoringCategoryName::Footwork),
-            "timing" => Ok(ScoringCategoryName::Timing),
-            _ => Err(()),
-        }
-    }
+    // Both
+
+    #[strum(serialize = "footwork", to_string = "Footwork")]
+    Footwork,
+
+    #[strum(serialize = "timing", to_string = "Timing")]
+    Timing,
+
+    // Follows
+
+    #[strum(serialize = "shaping", to_string = "Shaping")]
+    Shaping
 }
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -201,57 +186,46 @@ pub struct TestDefinitionPatternScoringCategory {
 // Pattern Name
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
-#[derive(Debug)]
+#[derive(Debug, EnumString, Display)]
 pub enum PatternName {
-    StarterStep,
-    LeftSidePassFromClosed,
-    SugarTuck,
-    CutoffWhip,
-    LeftSidePass,
-    Whip,
-    SugarPush,
-    SpinningSidePass,
-    RightSidePass,
-    BasketWhip,
-    FreeSpin,
-}
-impl fmt::Display for PatternName {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let name = match self {
-            PatternName::StarterStep => "Starter Step",
-            PatternName::LeftSidePassFromClosed => "Left Side Pass from Closed",
-            PatternName::SugarTuck => "Sugar Tuck",
-            PatternName::CutoffWhip => "Cutoff Whip",
-            PatternName::LeftSidePass => "Left Side Pass",
-            PatternName::Whip => "Whip",
-            PatternName::SugarPush => "Sugar Push",
-            PatternName::SpinningSidePass => "Spinning Side Pass",
-            PatternName::RightSidePass => "Right Side Pass",
-            PatternName::BasketWhip => "Basket Whip",
-            PatternName::FreeSpin => "Free Spin",
-        };
-        write!(f, "{}", name)
-    }
-}
-impl FromStr for PatternName {
-    type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "starter_step" => Ok(PatternName::StarterStep),
-            "left_side_pass_from_closed" => Ok(PatternName::LeftSidePassFromClosed),
-            "sugar_tuck" => Ok(PatternName::SugarTuck),
-            "cutoff_whip" => Ok(PatternName::CutoffWhip),
-            "left_side_pass" => Ok(PatternName::LeftSidePass),
-            "whip" => Ok(PatternName::Whip),
-            "sugar_push" => Ok(PatternName::SugarPush),
-            "spinning_side_pass" => Ok(PatternName::SpinningSidePass),
-            "right_side_pass" => Ok(PatternName::RightSidePass),
-            "basket_whip" => Ok(PatternName::BasketWhip),
-            "free_spin" => Ok(PatternName::FreeSpin),
-            _ => Err(()),
-        }
-    }
+    // Leads
+
+    #[strum(serialize = "starter_step", to_string = "Starter Step")]
+    StarterStep,
+
+    #[strum(serialize = "left_side_pass_from_closed", to_string = "Left Side Pass from Closed")]
+    LeftSidePassFromClosed,
+
+    #[strum(serialize = "sugar_tuck", to_string = "Sugar Tuck")]
+    SugarTuck,
+
+    #[strum(serialize = "cutoff_whip", to_string = "Cutoff Whip")]
+    CutoffWhip,
+
+    #[strum(serialize = "basket_whip", to_string = "Basket Whip")]
+    BasketWhip,
+
+    #[strum(serialize = "free_spin", to_string = "Free Spin")]
+    FreeSpin,
+
+    // Both
+
+    #[strum(serialize = "left_side_pass", to_string = "Left Side Pass")]
+    LeftSidePass,
+
+    #[strum(serialize = "right_side_pass", to_string = "Right Side Pass")]
+    RightSidePass,
+    
+    #[strum(serialize = "whip", to_string = "Whip")]
+    Whip,
+
+    #[strum(serialize = "spinning_side_pass", to_string = "Spinning Side Pass")]
+    SpinningSidePass,
+
+    #[strum(serialize = "sugar_push", to_string = "Sugar Push")]
+    SugarPush,
+
 }
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -261,6 +235,7 @@ impl FromStr for PatternName {
 #[derive(Template)]
 #[template(path = "./primary_templates/dancer_test.html")] 
 pub struct TestTemplate {
+    pub test_type: TestType,
     pub patterns: Vec<PatternName>,
     pub pattern_scoring_categories: Vec<TestDefinitionPatternScoringCategory>,
     pub technique_headers: Vec<TechniqueScoringHeaderName>,
@@ -324,11 +299,14 @@ impl From<HashMap<String, String>> for Testee {
     }
 }
 
-#[derive(Debug, Serialize)]
+// Didn't use SQLX custom types because they required hoops to jump through for compile time type checking to work
+#[derive(Debug, EnumString, Display)]
+#[strum(serialize_all = "snake_case")]
 pub enum TestType {
     Leader,
     Follower,
 }
+
 
 // #######################################################################################################################################################
 // #######################################################################################################################################################
@@ -342,6 +320,7 @@ pub enum TestType {
 
 pub fn generate_leader_test() -> TestTemplate {
     TestTemplate {
+        test_type: TestType::Leader,
         patterns:  vec![
             PatternName::StarterStep,
             PatternName::LeftSidePassFromClosed,
@@ -371,7 +350,7 @@ pub fn generate_leader_test() -> TestTemplate {
             TechniqueScoringHeaderName::Present75,
             TechniqueScoringHeaderName::Occasional50,
             TechniqueScoringHeaderName::Lacking25,
-            TechniqueScoringHeaderName::Missing0,
+            TechniqueScoringHeaderName::Missing10,
         ],
         techniques: vec![
             TestDefinitionTechnique {
@@ -440,6 +419,139 @@ pub fn generate_leader_test() -> TestTemplate {
         ],
     }
 }
+
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
+// Leader Test
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
+
+pub fn generate_follower_test() -> TestTemplate {
+    TestTemplate {
+        test_type: TestType::Follower,
+        patterns:  vec![
+            PatternName::LeftSidePass,
+            PatternName::RightSidePass,
+            PatternName::Whip,
+            PatternName::SpinningSidePass,
+            PatternName::SugarPush,
+        ],
+        pattern_scoring_categories: vec![
+            TestDefinitionPatternScoringCategory {
+                name: ScoringCategoryName::Footwork,
+                points: vec![2, 1, 0],
+            },
+            TestDefinitionPatternScoringCategory {
+                name: ScoringCategoryName::Timing,
+                points: vec![1, 0],
+            },
+            TestDefinitionPatternScoringCategory {
+                name: ScoringCategoryName::Shaping,
+                points: vec![1, 0],
+            },
+        ],
+
+        technique_headers: vec![
+            TechniqueScoringHeaderName::Consistent90,
+            TechniqueScoringHeaderName::Present75,
+            TechniqueScoringHeaderName::Occasional50,
+            TechniqueScoringHeaderName::Lacking25,
+            TechniqueScoringHeaderName::Missing10,
+        ],
+        techniques: vec![
+            TestDefinitionTechnique {
+                name: TechniqueName::StrongFrame,
+                subtext: "(Week 2)",
+                points: vec![8, 5, 0, 0, 0],
+                antithesis: "Weak Frame",
+            },
+            TestDefinitionTechnique {
+                name: TechniqueName::Post,
+                subtext: "(Week 2)",
+                points: vec![6, 4, 2, 0, 0],
+                antithesis: "Floating Anchor",
+            },
+            TestDefinitionTechnique {
+                name: TechniqueName::AnchorIn3rdPosition,
+                subtext: "(Week 2)",
+                points: vec![8, 0, 0, 0, 0],
+                antithesis: "Rock Step",
+            },
+            TestDefinitionTechnique {
+                name: TechniqueName::Stretch,
+                subtext: "(Week 1/2)",
+                points: vec![6, 4, 2, 0, 0],
+                antithesis: "Over Eager",
+            },
+            TestDefinitionTechnique {
+                name: TechniqueName::VariableSpeed,
+                subtext: "(Week 1)",
+                points: vec![4, 3, 2, 1, 0],
+                antithesis: "Monotonous",
+            },
+            TestDefinitionTechnique {
+                name: TechniqueName::ConnectionTransition,
+                subtext: "(Week 2 - Dimmer Switch)",
+                points: vec![8, 5, 0, 0, 0],
+                antithesis: "Brick Wall (Toggle Switch)",
+            },
+            TestDefinitionTechnique {
+                name: TechniqueName::ConnectionHierarchy,
+                subtext: "(Week 4)",
+                points: vec![6, 4, 2, 0, 0],
+                antithesis: "Panic",
+            },
+            TestDefinitionTechnique {
+                name: TechniqueName::Directionality,
+                subtext: "(Week 1/3)",
+                points: vec![6, 4, 0, 0, 0],
+                antithesis: "Directionless",
+            },
+            TestDefinitionTechnique {
+                name: TechniqueName::KissingConnection,
+                subtext: "(Week 3)",
+                points: vec![6, 4, 2, 0, 0],
+                antithesis: "Disconnected",
+            },
+            TestDefinitionTechnique {
+                name: TechniqueName::Spins,
+                subtext: "(Week 3)",
+                points: vec![4, 3, 0, 0, 0],
+                antithesis: "Unbalanced",
+            },
+            TestDefinitionTechnique {
+                name: TechniqueName::PersonalSafety,
+                subtext: "",
+                points: vec![8, 5, 0, 0, 0],
+                antithesis: "Masochist",
+            },
+            TestDefinitionTechnique {
+                name: TechniqueName::PartnerSafety,
+                subtext: "",
+                points: vec![8, 0, 0, 0, 0],
+                antithesis: "Abusive",
+            },
+        ],
+
+        bonus_items: vec![
+            TestDefinitionBonusItem {
+                label: BonusPointName::NoBiceps,
+                points: 1,
+            },
+            TestDefinitionBonusItem {
+                label: BonusPointName::Spotting,
+                points: 1,
+            },
+            TestDefinitionBonusItem {
+                label: BonusPointName::ConnectionInMotion,
+                points: 2,
+            },
+            TestDefinitionBonusItem {
+                label: BonusPointName::SwungTriple,
+                points: 4,
+            },
+        ],
+    }
+}
+
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 // Parse Test
@@ -628,13 +740,14 @@ pub async fn save_test_to_database(
         Err(e) => return Err(e),
     };
 
+
     // Insert a new test record
     let test_id = match sqlx::query!(
         "INSERT INTO tests (testee_id, role)
         VALUES ($1, $2)
         RETURNING id",
         testee_id,
-        test_type,
+        test_type.to_string(),
     )
     .fetch_one(pool)
     .await {
