@@ -1,10 +1,13 @@
-mod config;
-mod router;
-mod auth;
-mod views;
-mod filters;
-mod exam;
+/// https://codevoweb.com/rust-and-axum-jwt-access-and-refresh-tokens/
 
+mod config;
+mod handler;
+mod jwt_auth;
+mod model;
+mod response;
+mod route;
+mod token;
+mod views;
 
 use config::Config;
 use std::sync::Arc;
@@ -15,7 +18,7 @@ use axum::http::{
 };
 use dotenv::dotenv;
 use redis::Client;
-use router::create_router;
+use route::create_router;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use tower_http::cors::CorsLayer;
 
@@ -24,7 +27,6 @@ pub struct AppState {
     env: Config,
     redis_client: Client,
 }
-
 
 #[tokio::main]
 async fn main() {
@@ -38,7 +40,7 @@ async fn main() {
         .await
     {
         Ok(pool) => {
-            println!("✅ Connection to the database is successful!");
+            println!("✅Connection to the database is successful!");
             pool
         }
         Err(err) => {
@@ -49,7 +51,7 @@ async fn main() {
 
     let redis_client = match Client::open(config.redis_url.to_owned()) {
         Ok(client) => {
-            println!("✅ Connection to the redis server is successful!");
+            println!("✅Connection to the redis is successful!");
             client
         }
         Err(e) => {
