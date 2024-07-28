@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, str::FromStr, sync::Arc};
 
 use askama_axum::Template; // bring trait in scope
 use axum::{
@@ -16,7 +16,10 @@ use crate::{
         handlers::{login_user_handler, logout_handler, register_user_handler}, 
         middleware::{AuthError, AuthStatus},
         model::User
-    }, define_test_structs, exam::questions::{generate_leader_test, BonusItem, PatternScoringCategory, Technique}, filters, AppState
+    },
+    exam::models::{generate_leader_test, parse_test_form_data, save_test_to_database, BonusPointName, GradedBonusPoint, GradedPattern, GradedTechnique, PatternName, ScoringCategoryName, TechniqueName, TechniqueScoringHeaderName, Testee}, 
+    filters, 
+    AppState,
 };
 
 // #######################################################################################################################################################
@@ -197,34 +200,25 @@ pub async fn get_dashboard_page() -> impl IntoResponse  {
 // leader_test.html
 // #######################################################################################################################################################
 
-#[derive(Template)]
-#[template(path = "./primary_templates/leader_test.html")] 
-pub struct LeaderTestTemplate {
-    patterns: Vec<&'static str>,
-    pattern_scoring_categories: Vec<PatternScoringCategory>,
-    technique_headers: Vec<&'static str>,
-    techniques: Vec<Technique>,
-    bonus_items: Vec<BonusItem>,
-}
 
 pub async fn get_leader_test_page() -> impl IntoResponse  {
-    let leader_test = generate_leader_test();
-
-    let template = LeaderTestTemplate {
-        patterns: leader_test.patterns,
-        pattern_scoring_categories: leader_test.pattern_scoring_categories,
-        technique_headers: leader_test.technique_headers,
-        techniques: leader_test.techniques,
-        bonus_items: leader_test.bonus_items,
-    };
+    let template = generate_leader_test();
 
     (StatusCode::OK, Html(template.render().unwrap()))
 }
 
 pub async fn post_leader_test_form(
     State(data): State<Arc<AppState>>,
-    Form(test) : Form<HashMap<String, String>>,
+    Form(test): Form<HashMap<String, String>>,
 ) -> impl IntoResponse {
-    println!("{:?}", test);
+    let (pattern_scores, technique_scores, bonus_scores, testee) = parse_test_form_data(test);
+
+    save_test_to_database(&data.db, &testee, pattern_scores, technique_scores, bonus_scores)
+    // Print or process the parsed data
+    println!("Pattern Scores: {:?}", pattern_scores);
+    println!("Technique Scores: {:?}", technique_scores);
+    println!("Bonus Scores: {:?}", bonus_scores);
+    println!("Testee: {:?}", testee);
+
     StatusCode::OK
 }
