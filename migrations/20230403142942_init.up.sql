@@ -26,13 +26,11 @@ CREATE TABLE testees (
     email TEXT NOT NULL UNIQUE
 );
 
-CREATE TYPE role_type AS ENUM ('Leader', 'Follower');
-
 CREATE TABLE tests (
     id SERIAL PRIMARY KEY,
     testee_id INTEGER NOT NULL,
     FOREIGN KEY (testee_id) REFERENCES testees(id),
-    role role_type NOT NULL
+    role VARCHAR(10) CHECK (role IN ('leader', 'follower'))
 );
 
 CREATE TABLE patterns (

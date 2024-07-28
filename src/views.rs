@@ -17,7 +17,7 @@ use crate::{
         middleware::{AuthError, AuthStatus},
         model::User
     },
-    exam::models::{generate_leader_test, parse_test_form_data, save_test_to_database, BonusPointName, GradedBonusPoint, GradedPattern, GradedTechnique, PatternName, ScoringCategoryName, TechniqueName, TechniqueScoringHeaderName, Testee}, 
+    exam::models::{generate_leader_test, parse_test_form_data, save_test_to_database, BonusPointName, GradedBonusPoint, GradedPattern, GradedTechnique, PatternName, ScoringCategoryName, TechniqueName, TechniqueScoringHeaderName, TestType, Testee}, 
     filters, 
     AppState,
 };
@@ -213,12 +213,8 @@ pub async fn post_leader_test_form(
 ) -> impl IntoResponse {
     let (pattern_scores, technique_scores, bonus_scores, testee) = parse_test_form_data(test);
 
-    save_test_to_database(&data.db, &testee, pattern_scores, technique_scores, bonus_scores)
-    // Print or process the parsed data
-    println!("Pattern Scores: {:?}", pattern_scores);
-    println!("Technique Scores: {:?}", technique_scores);
-    println!("Bonus Scores: {:?}", bonus_scores);
-    println!("Testee: {:?}", testee);
-
-    StatusCode::OK
+    match save_test_to_database(&data.db, testee, TestType::Leader,pattern_scores, technique_scores, bonus_scores).await {
+        Ok(_) => Redirect::to("/dashboard").into_response(),
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Html(format!("{:?}", e))).into_response(),
+    }
 }

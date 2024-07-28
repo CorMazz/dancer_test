@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fmt, str::FromStr};
 use askama::Template;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use crate::filters;
 
@@ -324,11 +324,22 @@ impl From<HashMap<String, String>> for Testee {
     }
 }
 
-#[derive(Debug, Serialize)]
+// Didn't use SQLX custom types because they required hoops to jump through for compile time type checking to work
 pub enum TestType {
     Leader,
     Follower,
 }
+
+impl fmt::Display for TestType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let name = match self {
+            TestType::Leader => "leader",
+            TestType::Follower => "follower",
+        };
+        write!(f, "{}", name)
+    }
+}
+
 
 // #######################################################################################################################################################
 // #######################################################################################################################################################
@@ -628,13 +639,14 @@ pub async fn save_test_to_database(
         Err(e) => return Err(e),
     };
 
+
     // Insert a new test record
     let test_id = match sqlx::query!(
         "INSERT INTO tests (testee_id, role)
         VALUES ($1, $2)
         RETURNING id",
         testee_id,
-        test_type,
+        test_type.to_string(),
     )
     .fetch_one(pool)
     .await {
