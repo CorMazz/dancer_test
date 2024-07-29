@@ -78,6 +78,9 @@ pub enum TechniqueName {
     #[strum(serialize = "safe", to_string = "Safe")]
     Safe,
 
+    #[strum(serialize = "prep", to_string = "Prep")]
+    Prep,
+
     // Both
 
     #[strum(serialize = "post", to_string = "Post")]
@@ -88,6 +91,9 @@ pub enum TechniqueName {
 
     #[strum(serialize = "connection_transition", to_string = "Connection Transition")]
     ConnectionTransition,
+
+    #[strum(serialize = "body_angle", to_string = "Body Angle")]
+    BodyAngle,
 
     // Follows
 
@@ -126,6 +132,7 @@ pub enum TechniqueName {
 /// This one doesn't get converted to snake case and isn't used as an html value so can have ><
 #[derive(Debug, EnumString, Display)]
 pub enum TechniqueScoringHeaderName {
+    // For most techniques
     #[strum(serialize = "Consistent >90%")]
     Consistent90,
 
@@ -140,6 +147,41 @@ pub enum TechniqueScoringHeaderName {
 
     #[strum(serialize = "Missing <10%")]
     Missing10,
+
+    // For level of angle technique
+
+    #[strum(serialize = "Perpendicular")]
+    Perpendicular,
+
+    #[strum(serialize = "Over-Angled")]
+    OverAngled,
+
+    #[strum(serialize = "Angled")]
+    Angled,
+
+    #[strum(serialize = "Under-Angled")]
+    UnderAngled,
+
+    #[strum(serialize = "Flat")]
+    Flat,
+
+    // For level of prep technique
+
+    #[strum(serialize = "Overkill Prep")]
+    OverkillPrep,
+
+    #[strum(serialize = "Over-Prepped")]
+    Overprepped,
+
+    #[strum(serialize = "Prepped")]
+    Prepped,
+
+    #[strum(serialize = "Under-Prepped")]
+    UnderPrepped,
+
+    #[strum(serialize = "No Prep")]
+    NoPrep,
+
 }
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 // Test Definition Technique
@@ -150,6 +192,16 @@ pub struct TestDefinitionTechnique {
     pub subtext: &'static str,
     pub points: Vec<u32>,
     pub antithesis: &'static str,
+}
+
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
+// Test Definition Technique Group
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
+
+// Both vecs should have the same length 
+pub struct TestDefinitionTechniqueGroup {
+    pub technique_headers: Vec<TechniqueScoringHeaderName>,
+    pub techniques: Vec<TestDefinitionTechnique>,
 }
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -238,8 +290,7 @@ pub struct TestTemplate {
     pub test_type: TestType,
     pub patterns: Vec<PatternName>,
     pub pattern_scoring_categories: Vec<TestDefinitionPatternScoringCategory>,
-    pub technique_headers: Vec<TechniqueScoringHeaderName>,
-    pub techniques: Vec<TestDefinitionTechnique>,
+    pub technique_groups: Vec<TestDefinitionTechniqueGroup>,
     pub bonus_items: Vec<TestDefinitionBonusItem>,
 }
 
@@ -345,64 +396,101 @@ pub fn generate_leader_test() -> TestTemplate {
             },
         ],
 
-        technique_headers: vec![
-            TechniqueScoringHeaderName::Consistent90,
-            TechniqueScoringHeaderName::Present75,
-            TechniqueScoringHeaderName::Occasional50,
-            TechniqueScoringHeaderName::Lacking25,
-            TechniqueScoringHeaderName::Missing10,
+        technique_groups: vec![
+            TestDefinitionTechniqueGroup {
+                technique_headers: vec![
+                    TechniqueScoringHeaderName::Consistent90,
+                    TechniqueScoringHeaderName::Present75,
+                    TechniqueScoringHeaderName::Occasional50,
+                    TechniqueScoringHeaderName::Lacking25,
+                    TechniqueScoringHeaderName::Missing10,
+                ],
+                techniques: vec![
+                    TestDefinitionTechnique {
+                        name: TechniqueName::BodyLead,
+                        subtext: "(Week 1)",
+                        points: vec![8, 6, 0, 0, 0],
+                        antithesis: "Arm Lead",
+                    },
+                    TestDefinitionTechnique {
+                        name: TechniqueName::Post,
+                        subtext: "(Week 1)",
+                        points: vec![6, 4, 0, 0, 0],
+                        antithesis: "Floating Anchor",
+                    },
+                    TestDefinitionTechnique {
+                        name: TechniqueName::StrongFrame,
+                        subtext: "(Week 2)",
+                        points: vec![6, 4, 2, 0, 0],
+                        antithesis: "Weak Frame",
+                    },
+                    TestDefinitionTechnique {
+                        name: TechniqueName::ClosedConnection,
+                        subtext: "(Week 3/4)",
+                        points: vec![4, 3, 2, 0, 0],
+                        antithesis: "Free Hand Only",
+                    },
+                    TestDefinitionTechnique {
+                        name: TechniqueName::ConnectionTransition,
+                        subtext: "(Week 2 - Dimmer Switch)",
+                        points: vec![4, 3, 2, 0, 0],
+                        antithesis: "Brick Wall (Toggle Switch)",
+                    },
+                    TestDefinitionTechnique {
+                        name: TechniqueName::OnTime,
+                        subtext: "",
+                        points: vec![8, 6, 0, 0 ,0], 
+                        antithesis: "Off Time",
+                    },
+                    TestDefinitionTechnique {
+                        name: TechniqueName::MoveOffSlot,
+                        subtext: "",
+                        points: vec![4, 3, 0, 0, 0],
+                        antithesis: "In the Way",
+                    },
+                    TestDefinitionTechnique {
+                        name: TechniqueName::Safe,
+                        subtext: "",
+                        points: vec![8, 0, 0, 0, 0],
+                        antithesis: "Unsafe",
+                    },
+                ],
+            },
+            TestDefinitionTechniqueGroup {
+                technique_headers: vec![
+                    TechniqueScoringHeaderName::Perpendicular,
+                    TechniqueScoringHeaderName::OverAngled,
+                    TechniqueScoringHeaderName::Angled,
+                    TechniqueScoringHeaderName::UnderAngled,
+                    TechniqueScoringHeaderName::Flat,
+                ],
+                techniques: vec![
+                    TestDefinitionTechnique {
+                        name: TechniqueName::BodyAngle,
+                        subtext: "(Week 2)",
+                        points: vec![0, 2, 3, 2, 0],
+                        antithesis: "",
+                    },
+                ],
+            },
+            TestDefinitionTechniqueGroup {
+                technique_headers: vec![
+                    TechniqueScoringHeaderName::OverkillPrep,
+                    TechniqueScoringHeaderName::Overprepped,
+                    TechniqueScoringHeaderName::Prepped,
+                    TechniqueScoringHeaderName::UnderPrepped,
+                    TechniqueScoringHeaderName::NoPrep,
+                ],
+                techniques: vec![
+                    TestDefinitionTechnique {
+                        name: TechniqueName::Prep,
+                        subtext: "(Week 3)",
+                        points: vec![0, 2, 3, 0, 0],
+                        antithesis: "",
+                    },
+                ],
+            },
         ],
-        techniques: vec![
-            TestDefinitionTechnique {
-                name: TechniqueName::BodyLead,
-                subtext: "(Week 1)",
-                points: vec![8, 6, 0, 0, 0],
-                antithesis: "Arm Lead",
-            },
-            TestDefinitionTechnique {
-                name: TechniqueName::Post,
-                subtext: "(Week 1)",
-                points: vec![6, 4, 0, 0, 0],
-                antithesis: "Floating Anchor",
-            },
-            TestDefinitionTechnique {
-                name: TechniqueName::StrongFrame,
-                subtext: "(Week 2)",
-                points: vec![6, 4, 2, 0, 0],
-                antithesis: "Weak Frame",
-            },
-            TestDefinitionTechnique {
-                name: TechniqueName::ClosedConnection,
-                subtext: "(Week 3/4)",
-                points: vec![4, 3, 2, 0, 0],
-                antithesis: "Free Hand Only",
-            },
-            TestDefinitionTechnique {
-                name: TechniqueName::ConnectionTransition,
-                subtext: "(Week 2 - Dimmer Switch)",
-                points: vec![4, 3, 2, 0, 0],
-                antithesis: "Brick Wall (Toggle Switch)",
-            },
-            TestDefinitionTechnique {
-                name: TechniqueName::OnTime,
-                subtext: "",
-                points: vec![8, 6, 0, 0 ,0], 
-                antithesis: "Off Time",
-            },
-            TestDefinitionTechnique {
-                name: TechniqueName::MoveOffSlot,
-                subtext: "",
-                points: vec![4, 3, 0, 0, 0],
-                antithesis: "In the Way",
-            },
-            TestDefinitionTechnique {
-                name: TechniqueName::Safe,
-                subtext: "",
-                points: vec![8, 0, 0, 0, 0],
-                antithesis: "Unsafe",
-            },
-        ],
-
         bonus_items: vec![
             TestDefinitionBonusItem {
                 label: BonusPointName::NoThumbs,
@@ -448,89 +536,108 @@ pub fn generate_follower_test() -> TestTemplate {
                 points: vec![1, 0],
             },
         ],
-
-        technique_headers: vec![
-            TechniqueScoringHeaderName::Consistent90,
-            TechniqueScoringHeaderName::Present75,
-            TechniqueScoringHeaderName::Occasional50,
-            TechniqueScoringHeaderName::Lacking25,
-            TechniqueScoringHeaderName::Missing10,
+        technique_groups: vec![
+            TestDefinitionTechniqueGroup {
+                technique_headers: vec![
+                    TechniqueScoringHeaderName::Consistent90,
+                    TechniqueScoringHeaderName::Present75,
+                    TechniqueScoringHeaderName::Occasional50,
+                    TechniqueScoringHeaderName::Lacking25,
+                    TechniqueScoringHeaderName::Missing10,
+                ],
+                techniques: vec![
+                    TestDefinitionTechnique {
+                        name: TechniqueName::StrongFrame,
+                        subtext: "(Week 2)",
+                        points: vec![8, 5, 0, 0, 0],
+                        antithesis: "Weak Frame",
+                    },
+                    TestDefinitionTechnique {
+                        name: TechniqueName::Post,
+                        subtext: "(Week 2)",
+                        points: vec![6, 4, 2, 0, 0],
+                        antithesis: "Floating Anchor",
+                    },
+                    TestDefinitionTechnique {
+                        name: TechniqueName::AnchorIn3rdPosition,
+                        subtext: "(Week 2)",
+                        points: vec![8, 0, 0, 0, 0],
+                        antithesis: "Rock Step",
+                    },
+                    TestDefinitionTechnique {
+                        name: TechniqueName::Stretch,
+                        subtext: "(Week 1/2)",
+                        points: vec![6, 4, 2, 0, 0],
+                        antithesis: "Over Eager",
+                    },
+                    TestDefinitionTechnique {
+                        name: TechniqueName::VariableSpeed,
+                        subtext: "(Week 1)",
+                        points: vec![4, 3, 2, 1, 0],
+                        antithesis: "Monotonous",
+                    },
+                    TestDefinitionTechnique {
+                        name: TechniqueName::ConnectionTransition,
+                        subtext: "(Week 2 - Dimmer Switch)",
+                        points: vec![8, 5, 0, 0, 0],
+                        antithesis: "Brick Wall (Toggle Switch)",
+                    },
+                    TestDefinitionTechnique {
+                        name: TechniqueName::ConnectionHierarchy,
+                        subtext: "(Week 4)",
+                        points: vec![6, 4, 2, 0, 0],
+                        antithesis: "Panic",
+                    },
+                    TestDefinitionTechnique {
+                        name: TechniqueName::Directionality,
+                        subtext: "(Week 1/3)",
+                        points: vec![6, 4, 0, 0, 0],
+                        antithesis: "Directionless",
+                    },
+                    TestDefinitionTechnique {
+                        name: TechniqueName::KissingConnection,
+                        subtext: "(Week 3)",
+                        points: vec![6, 4, 2, 0, 0],
+                        antithesis: "Disconnected",
+                    },
+                    TestDefinitionTechnique {
+                        name: TechniqueName::Spins,
+                        subtext: "(Week 3)",
+                        points: vec![4, 3, 0, 0, 0],
+                        antithesis: "Unbalanced",
+                    },
+                    TestDefinitionTechnique {
+                        name: TechniqueName::PersonalSafety,
+                        subtext: "",
+                        points: vec![8, 5, 0, 0, 0],
+                        antithesis: "Masochist",
+                    },
+                    TestDefinitionTechnique {
+                        name: TechniqueName::PartnerSafety,
+                        subtext: "",
+                        points: vec![8, 0, 0, 0, 0],
+                        antithesis: "Abusive",
+                    },
+                ],
+            },
+            TestDefinitionTechniqueGroup {
+                technique_headers: vec![
+                    TechniqueScoringHeaderName::Perpendicular,
+                    TechniqueScoringHeaderName::OverAngled,
+                    TechniqueScoringHeaderName::Angled,
+                    TechniqueScoringHeaderName::UnderAngled,
+                    TechniqueScoringHeaderName::Flat,
+                ],
+                techniques: vec![
+                    TestDefinitionTechnique {
+                        name: TechniqueName::BodyAngle,
+                        subtext: "(Week 2)",
+                        points: vec![0, 2, 3, 2, 0],
+                        antithesis: "",
+                    },
+                ],
+            },
         ],
-        techniques: vec![
-            TestDefinitionTechnique {
-                name: TechniqueName::StrongFrame,
-                subtext: "(Week 2)",
-                points: vec![8, 5, 0, 0, 0],
-                antithesis: "Weak Frame",
-            },
-            TestDefinitionTechnique {
-                name: TechniqueName::Post,
-                subtext: "(Week 2)",
-                points: vec![6, 4, 2, 0, 0],
-                antithesis: "Floating Anchor",
-            },
-            TestDefinitionTechnique {
-                name: TechniqueName::AnchorIn3rdPosition,
-                subtext: "(Week 2)",
-                points: vec![8, 0, 0, 0, 0],
-                antithesis: "Rock Step",
-            },
-            TestDefinitionTechnique {
-                name: TechniqueName::Stretch,
-                subtext: "(Week 1/2)",
-                points: vec![6, 4, 2, 0, 0],
-                antithesis: "Over Eager",
-            },
-            TestDefinitionTechnique {
-                name: TechniqueName::VariableSpeed,
-                subtext: "(Week 1)",
-                points: vec![4, 3, 2, 1, 0],
-                antithesis: "Monotonous",
-            },
-            TestDefinitionTechnique {
-                name: TechniqueName::ConnectionTransition,
-                subtext: "(Week 2 - Dimmer Switch)",
-                points: vec![8, 5, 0, 0, 0],
-                antithesis: "Brick Wall (Toggle Switch)",
-            },
-            TestDefinitionTechnique {
-                name: TechniqueName::ConnectionHierarchy,
-                subtext: "(Week 4)",
-                points: vec![6, 4, 2, 0, 0],
-                antithesis: "Panic",
-            },
-            TestDefinitionTechnique {
-                name: TechniqueName::Directionality,
-                subtext: "(Week 1/3)",
-                points: vec![6, 4, 0, 0, 0],
-                antithesis: "Directionless",
-            },
-            TestDefinitionTechnique {
-                name: TechniqueName::KissingConnection,
-                subtext: "(Week 3)",
-                points: vec![6, 4, 2, 0, 0],
-                antithesis: "Disconnected",
-            },
-            TestDefinitionTechnique {
-                name: TechniqueName::Spins,
-                subtext: "(Week 3)",
-                points: vec![4, 3, 0, 0, 0],
-                antithesis: "Unbalanced",
-            },
-            TestDefinitionTechnique {
-                name: TechniqueName::PersonalSafety,
-                subtext: "",
-                points: vec![8, 5, 0, 0, 0],
-                antithesis: "Masochist",
-            },
-            TestDefinitionTechnique {
-                name: TechniqueName::PartnerSafety,
-                subtext: "",
-                points: vec![8, 0, 0, 0, 0],
-                antithesis: "Abusive",
-            },
-        ],
-
         bonus_items: vec![
             TestDefinitionBonusItem {
                 label: BonusPointName::NoBiceps,
