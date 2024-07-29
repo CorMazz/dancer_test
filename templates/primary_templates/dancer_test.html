@@ -19,9 +19,14 @@
             </div>
 
             <!-- Technique Scoring Table -->
+
             <div class="card shadow-md rounded border border-gray-300 mb-6 p-4">
-                {% include "../partial_templates/technique_scoring.html" %}
+                <h2 class="text-2xl font-bold py-4 px-4 border-b-2 text-center">Technique Scoring</h2>
+                {% for technique_group in technique_groups %}
+                    {% include "../partial_templates/technique_scoring.html" %}
+                {% endfor %}
             </div>
+
 
             <!-- Bonus Points Table -->
             <div class="card shadow-md rounded border border-gray-300 mb-6 p-4">

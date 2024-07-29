@@ -1,19 +1,17 @@
 <table class="min-w-full bg-white">
-    <h2 class="text-2xl font-bold py-4 px-4 border-b-2 text-center">Technique Scoring</h2>
-
     <!-- Add the labels for the % of the dance that each technique must be present -->
     <thead>
         <tr>
             <!-- Blank header to properly align everything -->
             <th></th>
-            {% for header in technique_headers %}
+            {% for header in technique_group.technique_headers %}
                 <th>{{ header }}</th>   
             {% endfor %}
         </tr>
     </thead>
     <!-- Add each of the individual techniques -->
     <tbody>
-        {% for technique in techniques %}
+        {% for technique in technique_group.techniques %}
         <tr>
             
             <!-- Technique Name and Label On Left -->
@@ -27,8 +25,8 @@
                 id: must be unique for each element
                 value: this is the value that gets sent with the key    
                 -->
-                <input type="radio" name="technique--{{ technique.name|lower|replace(" ", "_") }}" value="{{ technique_headers[loop.index0] }}--{{ point }}" id="technique--{{ technique.name|lower|replace(" ", "_") }}--rating--{{ technique_headers[loop.index0] }}--points--{{ point }}" class="hidden peer" required>
-                <label for="technique--{{ technique.name|lower|replace(" ", "_") }}--rating--{{ technique_headers[loop.index0] }}--points--{{ point }}" class="inline-flex items-center justify-center w-16 h-12 p-2 text-sm font-medium text-gray-900 bg-white border-2 border-gray-300 rounded-lg cursor-pointer peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-transparent">
+                <input type="radio" name="technique--{{ technique.name|lower|replace(" ", "_") }}" value="{{ technique_group.technique_headers[loop.index0] }}--{{ point }}" id="technique--{{ technique.name|lower|replace(" ", "_") }}--rating--{{ technique_group.technique_headers[loop.index0] }}--points--{{ point }}" class="hidden peer" required>
+                <label for="technique--{{ technique.name|lower|replace(" ", "_") }}--rating--{{ technique_group.technique_headers[loop.index0] }}--points--{{ point }}" class="inline-flex items-center justify-center w-16 h-12 p-2 text-sm font-medium text-gray-900 bg-white border-2 border-gray-300 rounded-lg cursor-pointer peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-transparent">
                     {{ point }}
                 </label>
             </td>
