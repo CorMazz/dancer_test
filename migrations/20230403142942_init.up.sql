@@ -30,7 +30,8 @@ CREATE TABLE tests (
     id SERIAL PRIMARY KEY,
     testee_id INTEGER NOT NULL,
     FOREIGN KEY (testee_id) REFERENCES testees(id),
-    role VARCHAR(10) CHECK (role IN ('leader', 'follower'))
+    role VARCHAR(10) CHECK (role IN ('leader', 'follower')) NOT NULL,
+    test_date TIMESTAMP NOT NULL
 );
 
 CREATE TABLE patterns (

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, str::FromStr, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 
 use askama_axum::Template; // bring trait in scope
 use axum::{
@@ -17,8 +17,10 @@ use crate::{
         middleware::{AuthError, AuthStatus},
         model::User
     },
-    exam::models::{generate_follower_test, generate_leader_test, parse_test_form_data, save_test_to_database, BonusPointName, GradedBonusPoint, GradedPattern, GradedTechnique, PatternName, ScoringCategoryName, TechniqueName, TechniqueScoringHeaderName, TestType, Testee}, 
-    filters, 
+    exam::{
+        models::{generate_follower_test, generate_leader_test, TestType}, 
+        handlers::{parse_test_form_data, save_test_to_database},
+    },
     AppState,
 };
 
@@ -111,7 +113,7 @@ pub async fn post_signup_form(
         Err(e) => match e {
             AuthError::DuplicateEmail => return (StatusCode::INTERNAL_SERVER_ERROR, Html("<h1>Duplicate Email</h1>")).into_response(),
             AuthError::InternalServerError(ee) => return (StatusCode::INTERNAL_SERVER_ERROR, Html(format!("{:?}", ee))).into_response(),
-            _ => return (StatusCode::INTERNAL_SERVER_ERROR, Html("<h1>Unexpected error occurred, this should never happen.</h1>")).into_response() // This should never happen
+            _ => return (StatusCode::INTERNAL_SERVER_ERROR, Html("<h1>Unexpected error occurred, this should be impossible.</h1>")).into_response() // This should never happen
         }
     }
 }
@@ -211,9 +213,9 @@ pub async fn post_leader_test_form(
     State(data): State<Arc<AppState>>,
     Form(test): Form<HashMap<String, String>>,
 ) -> impl IntoResponse {
-    let (pattern_scores, technique_scores, bonus_scores, testee) = parse_test_form_data(test);
+    let graded_test = parse_test_form_data(test, TestType::Leader);
 
-    match save_test_to_database(&data.db, testee, TestType::Leader, pattern_scores, technique_scores, bonus_scores).await {
+    match save_test_to_database(&data.db, graded_test).await {
         Ok(_) => Redirect::to("/dashboard").into_response(),
         Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Html(format!("{:?}", e))).into_response(),
     }
@@ -223,7 +225,7 @@ pub async fn post_leader_test_form(
 // follower_test.html
 // #######################################################################################################################################################
 
-/// This could've been refactored to avoid copy-pasting, but tbh this is a spot where it wasn't worth the effort
+/// This could've been refactored to avoid copy-pasting the leader functions, but tbh this is a spot where it wasn't worth the effort
 pub async fn get_follower_test_page() -> impl IntoResponse  {
     let template = generate_follower_test();
 
@@ -234,9 +236,9 @@ pub async fn post_follower_test_form(
     State(data): State<Arc<AppState>>,
     Form(test): Form<HashMap<String, String>>,
 ) -> impl IntoResponse {
-    let (pattern_scores, technique_scores, bonus_scores, testee) = parse_test_form_data(test);
+    let graded_test = parse_test_form_data(test, TestType::Follower);
 
-    match save_test_to_database(&data.db, testee, TestType::Follower, pattern_scores, technique_scores, bonus_scores).await {
+    match save_test_to_database(&data.db, graded_test).await {
         Ok(_) => Redirect::to("/dashboard").into_response(),
         Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Html(format!("{:?}", e))).into_response(),
     }
