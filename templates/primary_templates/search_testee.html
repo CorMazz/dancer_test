@@ -1,0 +1,34 @@
+{% extends "./extensible_templates/nav_on_top.html" %}
+
+{% block title %}Search Testees{% endblock %}
+
+{% block content %}
+
+<h1>Search Testees</h1>
+<form action="/search-testee" method="post">
+    <label for="query">Search:</label>
+    <input type="text" id="query" name="query">
+    <button type="submit">Search</button>
+</form>
+
+{% match search_results %}
+
+    {% when Some with (data) %}
+
+    <div id="search-results">
+        <h2>Results</h2>
+        <ul>
+            {% for testee in data %}
+                <a href="/test-summaries/{{ testee.id }}">
+                    {{ testee.first_name }} {{ testee.last_name }} - {{ testee.email }}
+                </a>
+            {% endfor %}
+        </ul>
+    </div>
+
+    {% when None %} 
+        <div id="search-results"></div>
+
+{% endmatch %}
+
+{% endblock %}

@@ -2,14 +2,11 @@ use std::{collections::HashMap, sync::Arc};
 
 use askama_axum::Template; // bring trait in scope
 use axum::{
-    http::StatusCode,
-    response::{Html, IntoResponse, Redirect},
-    Extension,
-    Form,
-    extract::State
+    extract::{Path, State}, http::StatusCode, response::{Html, IntoResponse, Redirect}, Extension, Form, Json
 };
 use axum_extra::extract::CookieJar;
 use serde::Deserialize;
+use serde_json::json;
 
 use crate::{
     auth::{
@@ -18,8 +15,7 @@ use crate::{
         model::User
     },
     exam::{
-        models::{generate_follower_test, generate_leader_test, TestType}, 
-        handlers::{parse_test_form_data, save_test_to_database},
+        handlers::{fetch_test_results_by_id, fetch_testee_by_id, fetch_testee_tests_by_id, parse_test_form_data, save_test_to_database, search_for_testee, TestError}, models::{generate_follower_test, generate_leader_test, GradedTest, TestSummary, TestType, Testee}
     },
     AppState,
 };
@@ -213,7 +209,7 @@ pub async fn post_leader_test_form(
     State(data): State<Arc<AppState>>,
     Form(test): Form<HashMap<String, String>>,
 ) -> impl IntoResponse {
-    let graded_test = parse_test_form_data(test, TestType::Leader);
+    let graded_test = parse_test_form_data(test, TestType::Leader, generate_leader_test());
 
     match save_test_to_database(&data.db, graded_test).await {
         Ok(_) => Redirect::to("/dashboard").into_response(),
@@ -236,10 +232,138 @@ pub async fn post_follower_test_form(
     State(data): State<Arc<AppState>>,
     Form(test): Form<HashMap<String, String>>,
 ) -> impl IntoResponse {
-    let graded_test = parse_test_form_data(test, TestType::Follower);
+    let graded_test = parse_test_form_data(test, TestType::Follower, generate_follower_test());
 
     match save_test_to_database(&data.db, graded_test).await {
         Ok(_) => Redirect::to("/dashboard").into_response(),
         Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Html(format!("{:?}", e))).into_response(),
     }
+}
+
+// #######################################################################################################################################################
+// Json Test Results API
+// #######################################################################################################################################################
+
+pub async fn get_json_test_results(
+    State(data): State<Arc<AppState>>,
+    Path(test_id): Path<i32>,
+) -> impl IntoResponse {
+    match fetch_test_results_by_id(&data.db, test_id).await {
+        Ok(test_result) => match test_result {
+            Some(graded_test) => (StatusCode::OK, Json(graded_test)).into_response(),
+            None => (StatusCode::NOT_FOUND, Json("No test with that ID found")).into_response(),
+        }
+        Err(TestError::InternalServerError(err)) => {
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": err }))).into_response()
+        }
+    }
+}
+
+// #######################################################################################################################################################
+// request_test.html
+// #######################################################################################################################################################
+
+#[derive(Template)]
+#[template(path = "./primary_templates/graded_test.html")] 
+pub struct GradedTestTemplate {
+    test: Option<GradedTest>,
+}
+
+pub async fn get_test_results(
+    State(data): State<Arc<AppState>>,
+    Path(test_id): Path<i32>,
+) -> impl IntoResponse {
+    match fetch_test_results_by_id(&data.db, test_id).await {
+        Ok(test_result) => {
+            let template = GradedTestTemplate {
+                test: test_result,
+            };
+            match template.render() {
+                Ok(rendered) => Html(rendered).into_response(),
+                Err(e) => {
+                    (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e.to_string() }))).into_response()
+                }
+            }
+        }
+        Err(TestError::InternalServerError(err)) => {
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": err }))).into_response()
+        }
+    }
+}
+
+// #######################################################################################################################################################
+// search_testee.html
+// #######################################################################################################################################################
+
+#[derive(Template)]
+#[template(path = "./primary_templates/search_testee.html")] 
+pub struct SearchTesteeTemplate {
+    search_results: Option<Vec<Testee>>,
+}
+
+#[derive(Deserialize)]
+pub struct SearchQuery {
+    query: String,
+}
+
+pub async fn get_search_testee_form() -> impl IntoResponse {
+    let template = SearchTesteeTemplate {search_results: None};
+    (StatusCode::OK, Html(template.render().unwrap())).into_response()
+}
+
+pub async fn post_search_testee_form(
+    State(data): State<Arc<AppState>>,
+    Form(search_query): Form<SearchQuery>,
+) -> impl IntoResponse {
+
+    let search_results = search_for_testee(search_query.query, &data.db).await;
+
+    match search_results {
+        Ok(option) => {
+            let template = SearchTesteeTemplate {search_results: option};
+            (StatusCode::OK, Html(template.render().unwrap())).into_response()
+        },
+        Err(e) => {
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e.to_string() }))).into_response()
+        }
+    }
+}
+
+// #######################################################################################################################################################
+// testee_test_summaries.html
+// #######################################################################################################################################################
+
+#[derive(Template)]
+#[template(path = "./primary_templates/testee_test_summaries.html")] 
+pub struct TestSummariesTemplate {
+    option_test_summaries: Option<Vec<TestSummary>>,
+    option_testee: Option<Testee>,
+}
+
+pub async fn get_test_summaries(
+    State(data): State<Arc<AppState>>,
+    Path(testee_id): Path<i32>,
+) -> impl IntoResponse {
+
+    let option_test_summaries = match fetch_testee_tests_by_id(&data.db, testee_id).await {
+        Ok(option) => option,
+        Err(e) => match e {
+            TestError::InternalServerError(msg) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": msg }))).into_response(),
+            _ => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": "Undefined behavior. This should never happen." }))).into_response()
+        }
+    };
+
+    let option_testee = match fetch_testee_by_id(&data.db, testee_id).await {
+        Ok(option) => option,
+        Err(e) => match e {
+            TestError::InternalServerError(msg) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": msg }))).into_response(),
+            _ => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": "Undefined behavior. This should never happen." }))).into_response()
+        }
+    };
+
+    let template = TestSummariesTemplate {
+        option_test_summaries,
+        option_testee,
+    };
+    (StatusCode::OK, Html(template.render().unwrap())).into_response()
 }

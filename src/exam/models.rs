@@ -1,6 +1,7 @@
-use std::collections::HashMap;
+use std::{collections::HashMap};
 use askama::Template;
-use chrono::{Date, DateTime, NaiveDateTime};
+use chrono::NaiveDateTime;
+use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString};
 use crate::filters;
 
@@ -19,7 +20,7 @@ use crate::filters;
 // Bonus Point Name
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
-#[derive(Debug, EnumString, Display)]
+#[derive(Debug, EnumString, Display, Serialize, Deserialize)]
 #[strum(ascii_case_insensitive)]
 pub enum BonusPointName {
 
@@ -62,7 +63,7 @@ pub struct TestDefinitionBonusItem {
 
 /// Old pattern names, technique names, and other enum variants CANNOT be retired so long 
 /// as they may exist within the database. 
-#[derive(Debug, EnumString, Display)]
+#[derive(Debug, EnumString, Display, Serialize, Deserialize)]
 pub enum TechniqueName {
     // Leads
     #[strum(serialize = "body_lead", to_string = "Body Lead")]
@@ -132,7 +133,7 @@ pub enum TechniqueName {
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
 /// This one doesn't get converted to snake case and isn't used as an html value so can have ><
-#[derive(Debug, EnumString, Display)]
+#[derive(Debug, EnumString, Display, Serialize, Deserialize)]
 pub enum TechniqueScoringHeaderName {
     // For most techniques
     #[strum(serialize = "Consistent >90%")]
@@ -194,6 +195,19 @@ pub struct TestDefinitionTechnique {
     pub subtext: &'static str,
     pub points: Vec<u32>,
     pub antithesis: &'static str,
+    pub max_score: u32,
+}
+impl TestDefinitionTechnique {
+    pub fn new(name: TechniqueName, subtext: &'static str, points: Vec<u32>, antithesis: &'static str) -> Self {
+        let max_score = points.iter().copied().max().unwrap_or(0);
+        Self {
+            name,
+            subtext,
+            points,
+            antithesis,
+            max_score,
+        }
+    }
 }
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -212,7 +226,7 @@ pub struct TestDefinitionTechniqueGroup {
 
 /// Old pattern names, technique names, and other enum variants CANNOT be retired so long 
 /// as they may exist within the database. 
-#[derive(Debug, EnumString, Display)]
+#[derive(Debug, EnumString, Display, Serialize, Deserialize)]
 pub enum ScoringCategoryName {
 
     // Both
@@ -236,6 +250,17 @@ pub enum ScoringCategoryName {
 pub struct TestDefinitionPatternScoringCategory {
     pub name: ScoringCategoryName,
     pub points: Vec<u32>,
+    pub max_score: u32
+}
+impl TestDefinitionPatternScoringCategory {
+    pub fn new(name: ScoringCategoryName, points: Vec<u32>) -> Self {
+        let max_score = points.iter().copied().max().unwrap_or(0);
+        Self {
+            name,
+            points,
+            max_score,
+        }
+    }
 }
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -244,7 +269,7 @@ pub struct TestDefinitionPatternScoringCategory {
 
 /// Old pattern names, technique names, and other enum variants CANNOT be retired so long 
 /// as they may exist within the database. 
-#[derive(Debug, EnumString, Display)]
+#[derive(Debug, EnumString, Display, Serialize, Deserialize)]
 pub enum PatternName {
 
     // Leads
@@ -294,6 +319,7 @@ pub enum PatternName {
 #[template(path = "./primary_templates/dancer_test.html")] 
 pub struct TestTemplate {
     pub test_type: TestType,
+    pub passing_score: u32,
     pub patterns: Vec<PatternName>,
     pub pattern_scoring_categories: Vec<TestDefinitionPatternScoringCategory>,
     pub technique_groups: Vec<TestDefinitionTechniqueGroup>,
@@ -307,25 +333,27 @@ pub struct TestTemplate {
 // #######################################################################################################################################################
 // Using structs/enums makes the compiler ensure that all future uses are spelled correctly, as opposed to just strings. 
 
-#[derive(Debug, sqlx::FromRow)]
+#[derive(Debug, sqlx::FromRow, Serialize, Deserialize)]
 pub struct GradedPattern {
     // pub id: Option<i32>,  // Optional ID field
     // pub test_id: Option<i32>,  // Optional test ID field
     pub pattern: PatternName,
     pub category: ScoringCategoryName,
     pub score: u32,
+    pub max_score: u32,
 }
 
-#[derive(Debug, sqlx::FromRow)]
+#[derive(Debug, sqlx::FromRow, Serialize, Deserialize)]
 pub struct GradedTechnique {
     // pub id: Option<i32>,  // Optional ID field
     // pub test_id: Option<i32>,  // Optional test ID field
     pub technique: TechniqueName,
     pub score: u32,
     pub score_header: TechniqueScoringHeaderName,
+    pub max_score: u32,
 }
 
-#[derive(Debug, sqlx::FromRow)]
+#[derive(Debug, sqlx::FromRow, Serialize, Deserialize)]
 pub struct GradedBonusPoint {
     // pub id: Option<i32>,  // Optional ID field
     // pub test_id: Option<i32>,  // Optional test ID field
@@ -333,9 +361,9 @@ pub struct GradedBonusPoint {
     pub score: u32,
 }
 
-#[derive(Debug, sqlx::FromRow)]
+#[derive(Debug, sqlx::FromRow, Serialize, Deserialize)]
 pub struct Testee {
-    pub id: Option<i32>,  // Optional ID field
+    pub id: i32,  
     pub first_name: String,
     pub last_name: String,
     pub email: String,
@@ -348,7 +376,7 @@ impl From<HashMap<String, String>> for Testee {
         let email = map.remove("email").unwrap_or_default();
 
         Testee {
-            id: None,  // ID is None when parsed from form data
+            id: -1,  // ID is None when parsed from form data
             first_name,
             last_name,
             email,
@@ -357,20 +385,76 @@ impl From<HashMap<String, String>> for Testee {
 }
 
 // Didn't use SQLX custom types because they required hoops to jump through for compile time type checking to work
-#[derive(Debug, EnumString, Display)]
+#[derive(Debug, EnumString, Display, Serialize, Deserialize)]
 #[strum(serialize_all = "snake_case")]
 pub enum TestType {
     Leader,
     Follower,
 }
 
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct GradedTest {
     pub testee: Testee,
     pub test_date: NaiveDateTime,
     pub test_type: TestType,
+    pub score: u32,
+    pub max_score: u32,
+    pub passing_score: u32,
     pub patterns: Vec<GradedPattern>,
     pub techniques: Vec<GradedTechnique>,
     pub bonuses: Vec<GradedBonusPoint>,
+}
+
+impl GradedTest {
+    pub fn new(
+        testee: Testee,
+        test_date: NaiveDateTime,
+        test_type: TestType,
+        passing_score: u32,
+        patterns: Vec<GradedPattern>,
+        techniques: Vec<GradedTechnique>,
+        bonuses: Vec<GradedBonusPoint>,
+    ) -> Self {
+        let mut score = 0;
+        let mut max_score = 0;
+
+        for pattern in &patterns {
+            score += pattern.score;
+            max_score += pattern.max_score;
+        }
+
+        for technique in &techniques {
+            score += technique.score;
+            max_score += technique.max_score;
+        }
+
+        for bonus in &bonuses {
+            score += bonus.score;
+        }
+
+        Self {
+            testee,
+            test_date,
+            test_type,
+            score,
+            max_score,
+            passing_score,
+            patterns,
+            techniques,
+            bonuses,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TestSummary {
+    pub id: i32,
+    pub test_date: NaiveDateTime,
+    pub role: String,  // This probably should've been labeled test_type, but I'm lazy here...
+    pub score: i32,
+    pub max_score: i32,
+    pub passing_score: i32,
 }
 
 // #######################################################################################################################################################
@@ -386,6 +470,7 @@ pub struct GradedTest {
 pub fn generate_leader_test() -> TestTemplate {
     TestTemplate {
         test_type: TestType::Leader,
+        passing_score: 60,
         patterns:  vec![
             PatternName::StarterStep,
             PatternName::LeftSidePassFromClosed,
@@ -400,14 +485,14 @@ pub fn generate_leader_test() -> TestTemplate {
             PatternName::FreeSpin,
         ],
         pattern_scoring_categories: vec![
-            TestDefinitionPatternScoringCategory {
-                name: ScoringCategoryName::Footwork,
-                points: vec![3, 2, 1, 0],
-            },
-            TestDefinitionPatternScoringCategory {
-                name: ScoringCategoryName::Timing,
-                points: vec![1, 0],
-            },
+            TestDefinitionPatternScoringCategory::new(
+                ScoringCategoryName::Footwork,
+                vec![3, 2, 1, 0],
+            ),
+            TestDefinitionPatternScoringCategory::new(
+                ScoringCategoryName::Timing,
+                vec![1, 0],
+            ),
         ],
 
         technique_groups: vec![
@@ -420,54 +505,54 @@ pub fn generate_leader_test() -> TestTemplate {
                     TechniqueScoringHeaderName::Missing10,
                 ],
                 techniques: vec![
-                    TestDefinitionTechnique {
-                        name: TechniqueName::BodyLead,
-                        subtext: "(Week 1)",
-                        points: vec![8, 6, 0, 0, 0],
-                        antithesis: "Arm Lead",
-                    },
-                    TestDefinitionTechnique {
-                        name: TechniqueName::Post,
-                        subtext: "(Week 1)",
-                        points: vec![6, 4, 0, 0, 0],
-                        antithesis: "Floating Anchor",
-                    },
-                    TestDefinitionTechnique {
-                        name: TechniqueName::StrongFrame,
-                        subtext: "(Week 2)",
-                        points: vec![6, 4, 2, 0, 0],
-                        antithesis: "Weak Frame",
-                    },
-                    TestDefinitionTechnique {
-                        name: TechniqueName::ClosedConnection,
-                        subtext: "(Week 3/4)",
-                        points: vec![4, 3, 2, 0, 0],
-                        antithesis: "Free Hand Only",
-                    },
-                    TestDefinitionTechnique {
-                        name: TechniqueName::ConnectionTransition,
-                        subtext: "(Week 2 - Dimmer Switch)",
-                        points: vec![4, 3, 2, 0, 0],
-                        antithesis: "Brick Wall (Toggle Switch)",
-                    },
-                    TestDefinitionTechnique {
-                        name: TechniqueName::OnTime,
-                        subtext: "",
-                        points: vec![8, 6, 0, 0 ,0], 
-                        antithesis: "Off Time",
-                    },
-                    TestDefinitionTechnique {
-                        name: TechniqueName::MoveOffSlot,
-                        subtext: "",
-                        points: vec![4, 3, 0, 0, 0],
-                        antithesis: "In the Way",
-                    },
-                    TestDefinitionTechnique {
-                        name: TechniqueName::Safe,
-                        subtext: "",
-                        points: vec![8, 0, 0, 0, 0],
-                        antithesis: "Unsafe",
-                    },
+                    TestDefinitionTechnique::new(
+                        TechniqueName::BodyLead,
+                        "(Week 1)",
+                        vec![8, 6, 0, 0, 0],
+                        "Arm Lead",
+                    ),
+                    TestDefinitionTechnique::new(
+                        TechniqueName::Post,
+                        "(Week 1)",
+                        vec![6, 4, 0, 0, 0],
+                        "Floating Anchor",
+                    ),
+                    TestDefinitionTechnique::new(
+                        TechniqueName::StrongFrame,
+                        "(Week 2)",
+                        vec![6, 4, 2, 0, 0],
+                        "Weak Frame",
+                    ),
+                    TestDefinitionTechnique::new(
+                        TechniqueName::ClosedConnection,
+                        "(Week 3/4)",
+                        vec![4, 3, 2, 0, 0],
+                        "Free Hand Only",
+                    ),
+                    TestDefinitionTechnique::new(
+                        TechniqueName::ConnectionTransition,
+                        "(Week 2 - Dimmer Switch)",
+                        vec![4, 3, 2, 0, 0],
+                        "Brick Wall (Toggle Switch)",
+                    ),
+                    TestDefinitionTechnique::new(
+                        TechniqueName::OnTime,
+                        "",
+                        vec![8, 6, 0, 0 ,0], 
+                        "Off Time",
+                    ),
+                    TestDefinitionTechnique::new(
+                        TechniqueName::MoveOffSlot,
+                        "",
+                        vec![4, 3, 0, 0, 0],
+                        "In the Way",
+                    ),
+                    TestDefinitionTechnique::new(
+                        TechniqueName::Safe,
+                        "",
+                        vec![8, 0, 0, 0, 0],
+                        "Unsafe",
+                    ),
                 ],
             },
             TestDefinitionTechniqueGroup {
@@ -479,12 +564,12 @@ pub fn generate_leader_test() -> TestTemplate {
                     TechniqueScoringHeaderName::Flat,
                 ],
                 techniques: vec![
-                    TestDefinitionTechnique {
-                        name: TechniqueName::BodyAngle,
-                        subtext: "(Week 2)",
-                        points: vec![0, 2, 3, 2, 0],
-                        antithesis: "",
-                    },
+                    TestDefinitionTechnique::new(
+                        TechniqueName::BodyAngle,
+                        "(Week 2)",
+                        vec![0, 2, 3, 2, 0],
+                        "",
+                    ),
                 ],
             },
             TestDefinitionTechniqueGroup {
@@ -496,12 +581,12 @@ pub fn generate_leader_test() -> TestTemplate {
                     TechniqueScoringHeaderName::NoPrep,
                 ],
                 techniques: vec![
-                    TestDefinitionTechnique {
-                        name: TechniqueName::Prep,
-                        subtext: "(Week 3)",
-                        points: vec![0, 2, 3, 0, 0],
-                        antithesis: "",
-                    },
+                    TestDefinitionTechnique::new(
+                        TechniqueName::Prep,
+                        "(Week 3)",
+                        vec![0, 2, 3, 0, 0],
+                        "",
+                    ),
                 ],
             },
         ],
@@ -529,6 +614,7 @@ pub fn generate_leader_test() -> TestTemplate {
 pub fn generate_follower_test() -> TestTemplate {
     TestTemplate {
         test_type: TestType::Follower,
+        passing_score: 60,
         patterns:  vec![
             PatternName::LeftSidePass,
             PatternName::RightSidePass,
@@ -537,18 +623,18 @@ pub fn generate_follower_test() -> TestTemplate {
             PatternName::SugarPush,
         ],
         pattern_scoring_categories: vec![
-            TestDefinitionPatternScoringCategory {
-                name: ScoringCategoryName::Footwork,
-                points: vec![2, 1, 0],
-            },
-            TestDefinitionPatternScoringCategory {
-                name: ScoringCategoryName::Timing,
-                points: vec![1, 0],
-            },
-            TestDefinitionPatternScoringCategory {
-                name: ScoringCategoryName::Shaping,
-                points: vec![1, 0],
-            },
+            TestDefinitionPatternScoringCategory::new(
+                ScoringCategoryName::Footwork,
+                vec![2, 1, 0],
+            ),
+            TestDefinitionPatternScoringCategory::new(
+                ScoringCategoryName::Timing,
+                vec![1, 0],
+            ),
+            TestDefinitionPatternScoringCategory::new(
+                ScoringCategoryName::Shaping,
+                vec![1, 0],
+            ),
         ],
         technique_groups: vec![
             TestDefinitionTechniqueGroup {
@@ -560,78 +646,78 @@ pub fn generate_follower_test() -> TestTemplate {
                     TechniqueScoringHeaderName::Missing10,
                 ],
                 techniques: vec![
-                    TestDefinitionTechnique {
-                        name: TechniqueName::StrongFrame,
-                        subtext: "(Week 2)",
-                        points: vec![8, 5, 0, 0, 0],
-                        antithesis: "Weak Frame",
-                    },
-                    TestDefinitionTechnique {
-                        name: TechniqueName::Post,
-                        subtext: "(Week 2)",
-                        points: vec![6, 4, 2, 0, 0],
-                        antithesis: "Floating Anchor",
-                    },
-                    TestDefinitionTechnique {
-                        name: TechniqueName::AnchorIn3rdPosition,
-                        subtext: "(Week 2)",
-                        points: vec![8, 0, 0, 0, 0],
-                        antithesis: "Rock Step",
-                    },
-                    TestDefinitionTechnique {
-                        name: TechniqueName::Stretch,
-                        subtext: "(Week 1/2)",
-                        points: vec![6, 4, 2, 0, 0],
-                        antithesis: "Over Eager",
-                    },
-                    TestDefinitionTechnique {
-                        name: TechniqueName::VariableSpeed,
-                        subtext: "(Week 1)",
-                        points: vec![4, 3, 2, 1, 0],
-                        antithesis: "Monotonous",
-                    },
-                    TestDefinitionTechnique {
-                        name: TechniqueName::ConnectionTransition,
-                        subtext: "(Week 2 - Dimmer Switch)",
-                        points: vec![8, 5, 0, 0, 0],
-                        antithesis: "Brick Wall (Toggle Switch)",
-                    },
-                    TestDefinitionTechnique {
-                        name: TechniqueName::ConnectionHierarchy,
-                        subtext: "(Week 4)",
-                        points: vec![6, 4, 2, 0, 0],
-                        antithesis: "Panic",
-                    },
-                    TestDefinitionTechnique {
-                        name: TechniqueName::Directionality,
-                        subtext: "(Week 1/3)",
-                        points: vec![6, 4, 0, 0, 0],
-                        antithesis: "Directionless",
-                    },
-                    TestDefinitionTechnique {
-                        name: TechniqueName::KissingConnection,
-                        subtext: "(Week 3)",
-                        points: vec![6, 4, 2, 0, 0],
-                        antithesis: "Disconnected",
-                    },
-                    TestDefinitionTechnique {
-                        name: TechniqueName::Spins,
-                        subtext: "(Week 3)",
-                        points: vec![4, 3, 0, 0, 0],
-                        antithesis: "Unbalanced",
-                    },
-                    TestDefinitionTechnique {
-                        name: TechniqueName::PersonalSafety,
-                        subtext: "",
-                        points: vec![8, 5, 0, 0, 0],
-                        antithesis: "Masochist",
-                    },
-                    TestDefinitionTechnique {
-                        name: TechniqueName::PartnerSafety,
-                        subtext: "",
-                        points: vec![8, 0, 0, 0, 0],
-                        antithesis: "Abusive",
-                    },
+                    TestDefinitionTechnique::new(
+                        TechniqueName::StrongFrame,
+                        "(Week 2)",
+                        vec![8, 5, 0, 0, 0],
+                        "Weak Frame",
+                    ),
+                    TestDefinitionTechnique::new(
+                        TechniqueName::Post,
+                        "(Week 2)",
+                        vec![6, 4, 2, 0, 0],
+                        "Floating Anchor",
+                    ),
+                    TestDefinitionTechnique::new(
+                        TechniqueName::AnchorIn3rdPosition,
+                        "(Week 2)",
+                        vec![8, 0, 0, 0, 0],
+                        "Rock Step",
+                    ),
+                    TestDefinitionTechnique::new(
+                        TechniqueName::Stretch,
+                        "Week 1/2)",
+                        vec![6, 4, 2, 0, 0],
+                        "Over Eager",
+                    ),
+                    TestDefinitionTechnique::new(
+                        TechniqueName::VariableSpeed,
+                        "(Week 1)",
+                        vec![4, 3, 2, 1, 0],
+                        "Monotonous",
+                    ),
+                    TestDefinitionTechnique::new(
+                        TechniqueName::ConnectionTransition,
+                        "(Week 2 - Dimmer Switch)",
+                        vec![8, 5, 0, 0, 0],
+                        "Brick Wall (Toggle Switch)",
+                    ),
+                    TestDefinitionTechnique::new(
+                        TechniqueName::ConnectionHierarchy,
+                        "(Week 4)",
+                        vec![6, 4, 2, 0, 0],
+                        "Panic",
+                    ),
+                    TestDefinitionTechnique::new(
+                        TechniqueName::Directionality,
+                        "(Week 1/3)",
+                        vec![6, 4, 0, 0, 0],
+                        "Directionless",
+                    ),
+                    TestDefinitionTechnique::new(
+                        TechniqueName::KissingConnection,
+                        "(Week 3)",
+                        vec![6, 4, 2, 0, 0],
+                        "Disconnected",
+                    ),
+                    TestDefinitionTechnique::new(
+                        TechniqueName::Spins,
+                        "(Week 3)",
+                        vec![4, 3, 0, 0, 0],
+                        "Unbalanced",
+                    ),
+                    TestDefinitionTechnique::new(
+                        TechniqueName::PersonalSafety,
+                        "",
+                        vec![8, 5, 0, 0, 0],
+                        "Masochist",
+                    ),
+                    TestDefinitionTechnique::new(
+                        TechniqueName::PartnerSafety,
+                        "",
+                        vec![8, 0, 0, 0, 0],
+                        "Abusive",
+                    ),
                 ],
             },
             TestDefinitionTechniqueGroup {
@@ -643,12 +729,12 @@ pub fn generate_follower_test() -> TestTemplate {
                     TechniqueScoringHeaderName::Flat,
                 ],
                 techniques: vec![
-                    TestDefinitionTechnique {
-                        name: TechniqueName::BodyAngle,
-                        subtext: "(Week 2)",
-                        points: vec![0, 2, 3, 2, 0],
-                        antithesis: "",
-                    },
+                    TestDefinitionTechnique::new(
+                        TechniqueName::BodyAngle,
+                        "(Week 2)",
+                        vec![0, 2, 3, 2, 0],
+                        "",
+                    ),
                 ],
             },
         ],
