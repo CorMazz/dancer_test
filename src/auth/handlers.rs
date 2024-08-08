@@ -2,21 +2,18 @@ use std::sync::Arc;
 
 use argon2::{password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use axum::{
-    extract::State,
-    http::{header, HeaderMap, Response, StatusCode},
+    http::{header, HeaderMap},
     response::{IntoResponse, Redirect},
-    Extension, Json,
 };
 use axum_extra::extract::{
     cookie::{Cookie, SameSite},
     CookieJar,
 };
 use rand_core::OsRng;
-use serde_json::json;
 
 use crate::{
     auth::{
-        model::{User},
+        model::User,
         token::{TokenDetails, generate_jwt_token, verify_jwt_token},
         middleware::{AuthorizedUser, AuthError}
     },

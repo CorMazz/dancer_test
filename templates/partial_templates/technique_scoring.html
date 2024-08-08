@@ -25,8 +25,17 @@
                 id: must be unique for each element
                 value: this is the value that gets sent with the key    
                 -->
-                <input type="radio" name="technique--{{ technique.name|lower|replace(" ", "_") }}" value="{{ technique_group.technique_headers[loop.index0] }}--{{ point }}" id="technique--{{ technique.name|lower|replace(" ", "_") }}--rating--{{ technique_group.technique_headers[loop.index0] }}--points--{{ point }}" class="hidden peer" required>
-                <label for="technique--{{ technique.name|lower|replace(" ", "_") }}--rating--{{ technique_group.technique_headers[loop.index0] }}--points--{{ point }}" class="inline-flex items-center justify-center w-16 h-12 p-2 text-sm font-medium text-gray-900 bg-white border-2 border-gray-300 rounded-lg cursor-pointer peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-transparent">
+                <input type="radio" 
+                    name="technique--{{ technique.name|lower|replace(" ", "_") }}--max_score--{{ technique.max_score}}" 
+                    id="technique--{{ technique.name|lower|replace(" ", "_") }}--rating--{{ technique_group.technique_headers[loop.index0] }}--points--{{ point }}"
+                    value="{{ technique_group.technique_headers[loop.index0] }}--{{ point }}" 
+                    class="hidden peer" 
+                    required
+                >
+                <label 
+                    for="technique--{{ technique.name|lower|replace(" ", "_") }}--rating--{{ technique_group.technique_headers[loop.index0] }}--points--{{ point }}"
+                    class="inline-flex items-center justify-center w-16 h-12 p-2 text-sm font-medium text-gray-900 bg-white border-2 border-gray-300 rounded-lg cursor-pointer peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-transparent"
+                >
                     {{ point }}
                 </label>
             </td>

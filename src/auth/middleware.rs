@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use axum::{
-    body::Body, extract::State, http::{header, HeaderMap, Request, StatusCode}, middleware::Next, response::{IntoResponse, Redirect}, Json
+    body::Body, extract::State, http::{header, HeaderMap, Request}, middleware::Next, response::{IntoResponse, Redirect},
 };
 
-use axum_extra::extract::cookie::{Cookie, CookieJar};
+use axum_extra::extract::cookie::CookieJar;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -98,7 +98,7 @@ pub async fn check_auth_utility(
         .redis_client
         .get_multiplexed_async_connection()
         .await
-        .map_err(|e| AuthError::InternalServerError((Some(format!("Redis error (this shouldn't happen, try again or contact the server administrator): {}", e)))))?;
+        .map_err(|e| AuthError::InternalServerError(Some(format!("Redis error (this shouldn't happen, try again or contact the server administrator): {}", e))))?;
 
         let redis_token_user_id = redis_client
         .get::<_, String>(access_token_uuid.clone().to_string())
@@ -152,7 +152,7 @@ pub async fn require_auth_middleware(
             req.extensions_mut().insert(AuthStatus::Authorized(auth_data));
             return next.run(req).await
         },
-        // Purposefully leaving auth_error here so that I can eventually handle the error itself
+        // Purposefully leaving auth_error here so that I can remember to eventually handle the error itself
         Err(auth_error) => return Redirect::to("/login").into_response(),
     }
 }

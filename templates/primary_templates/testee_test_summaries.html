@@ -1,0 +1,64 @@
+{% extends "./extensible_templates/nav_on_top.html" %}
+
+{% block title %}View Tests{% endblock %}
+
+{% block content %}
+
+<div class="container mx-auto bg-white p-6 rounded shadow-md">
+
+{% match option_testee %}
+
+    {% when Some with (testee) %}
+
+        <h1 class="text-2xl font-bold my-4">Test Summaries</h1>
+        <h2 class="text-xl font-bold my-4">For {{testee.first_name}} {{testee.last_name}}</h2>
+    
+    {% when None %}
+
+        <div>Testee not found.</div>
+
+    {% endmatch %}
+
+{% match option_test_summaries %}
+
+    {% when Some with (test_summaries) %}
+
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full bg-white border border-gray-200">
+                <thead>
+                    <tr class="bg-gray-100 border-b">
+                        <th class="py-2 px-4 text-left">Test Date</th>
+                        <th class="py-2 px-4 text-left">Role</th>
+                        <th class="py-2 px-4 text-left">Score</th>
+                        <th class="py-2 px-4 text-left">Max Score</th>
+                        <th class="py-2 px-4 text-left">Passing Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for summary in test_summaries %}
+                        <tr class="border-b hover:bg-gray-50">
+                            <td colspan="5">
+                                <a href="/test-results/{{ summary.id }}" class="block py-2 px-4 text-blue-600 hover:underline">
+                                    <div class="flex justify-between">
+                                        <span>{{ summary.test_date }}</span>
+                                        <span>{{ summary.role|capitalize }}</span>
+                                        <span>{{ summary.score }}</span>
+                                        <span>{{ summary.max_score }}</span>
+                                        <span>{{ summary.passing_score }}</span>
+                                    </div>
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% when None %}
+        
+    {% endmatch %}
+
+</div>
+
+{% endblock %}

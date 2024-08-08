@@ -1,0 +1,170 @@
+{% extends "./extensible_templates/nav_on_top.html" %}
+
+{% block title %}Test Results{% endblock %}
+
+{% block content %}
+
+{% match test %}
+
+{% when Some with (data) %}
+
+        <div class="container mx-auto bg-white p-6 rounded shadow-md">
+            <h1 class="text-3xl font-bold mb-6">Graded Test Results</h1>
+
+            <div class="card shadow-md rounded border border-gray-300 mb-6 p-4">
+                <h2 class="text-2xl font-semibold">Testee Information</h2>
+                <p><strong>Name:</strong> {{ data.testee.first_name }} {{ data.testee.last_name }}</p>
+                <p><strong>Email:</strong> {{ data.testee.email }}</p>
+                <p><strong>Test Date:</strong> {{ data.test_date }}</p>
+                <p><strong>Test Type:</strong> {{ data.test_type|capitalize }}</p>
+            </div>
+
+            <div class="card shadow-md rounded border border-gray-300 mb-6 p-4">
+                <h2 class="text-2xl font-semibold">Scores</h2>
+                <p><strong>Score:</strong> {{ data.score }}</p>
+                <p><strong>Passing Score:</strong> {{ data.passing_score }}</p>
+                <p><strong>Max Score:</strong> {{ data.max_score }}</p>
+            </div>
+
+            <div class="card shadow-md rounded border border-gray-300 mb-6 p-4">
+                <h2 class="text-2xl font-semibold">Patterns</h2>
+                <table id="patterns-table" class="min-w-full bg-white">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="px-6 py-3" onclick="sortTable('patterns-table', 0)">
+                                <div class="flex items-center text-center">
+                                    Pattern
+                                    <a href="#">
+                                        <svg class="w-3 h-3 ms-1.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M8.574 11.024h6.852a2.075 2.075 0 0 0 1.847-1.086 1.9 1.9 0 0 0-.11-1.986L13.736 2.9a2.122 2.122 0 0 0-3.472 0L6.837 7.952a1.9 1.9 0 0 0-.11 1.986 2.074 2.074 0 0 0 1.847 1.086Zm6.852 1.952H8.574a2.072 2.072 0 0 0-1.847 1.087 1.9 1.9 0 0 0 .11 1.985l3.426 5.05a2.123 2.123 0 0 0 3.472 0l3.427-5.05a1.9 1.9 0 0 0 .11-1.985 2.074 2.074 0 0 0-1.846-1.087Z"/>
+                                        </svg>
+                                    </a>
+                                </div>
+                            </th>
+                            <th scope="col" class="px-6 py-3" onclick="sortTable('patterns-table', 1)">
+                                <div class="flex items-center text-center">
+                                    Category
+                                    <a href="#">
+                                        <svg class="w-3 h-3 ms-1.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M8.574 11.024h6.852a2.075 2.075 0 0 0 1.847-1.086 1.9 1.9 0 0 0-.11-1.986L13.736 2.9a2.122 2.122 0 0 0-3.472 0L6.837 7.952a1.9 1.9 0 0 0-.11 1.986 2.074 2.074 0 0 0 1.847 1.086Zm6.852 1.952H8.574a2.072 2.072 0 0 0-1.847 1.087 1.9 1.9 0 0 0 .11 1.985l3.426 5.05a2.123 2.123 0 0 0 3.472 0l3.427-5.05a1.9 1.9 0 0 0 .11-1.985 2.074 2.074 0 0 0-1.846-1.087Z"/>
+                                        </svg>
+                                    </a>
+                                </div>
+                            </th>
+                            <th scope="col" class="px-6 py-3" onclick="sortTable('patterns-table', 2)">
+                                <div class="flex items-center text-center">
+                                    Score
+                                    <a href="#">
+                                        <svg class="w-3 h-3 ms-1.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M8.574 11.024h6.852a2.075 2.075 0 0 0 1.847-1.086 1.9 1.9 0 0 0-.11-1.986L13.736 2.9a2.122 2.122 0 0 0-3.472 0L6.837 7.952a1.9 1.9 0 0 0-.11 1.986 2.074 2.074 0 0 0 1.847 1.086Zm6.852 1.952H8.574a2.072 2.072 0 0 0-1.847 1.087 1.9 1.9 0 0 0 .11 1.985l3.426 5.05a2.123 2.123 0 0 0 3.472 0l3.427-5.05a1.9 1.9 0 0 0 .11-1.985 2.074 2.074 0 0 0-1.846-1.087Z"/>
+                                        </svg>
+                                    </a>
+                                </div>
+                            </th>
+                            <th scope="col" class="px-6 py-3" onclick="sortTable('patterns-table', 3)">
+                                <div class="flex items-center text-center">
+                                    Max Score
+                                    <a href="#">
+                                        <svg class="w-3 h-3 ms-1.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M8.574 11.024h6.852a2.075 2.075 0 0 0 1.847-1.086 1.9 1.9 0 0 0-.11-1.986L13.736 2.9a2.122 2.122 0 0 0-3.472 0L6.837 7.952a1.9 1.9 0 0 0-.11 1.986 2.074 2.074 0 0 0 1.847 1.086Zm6.852 1.952H8.574a2.072 2.072 0 0 0-1.847 1.087 1.9 1.9 0 0 0 .11 1.985l3.426 5.05a2.123 2.123 0 0 0 3.472 0l3.427-5.05a1.9 1.9 0 0 0 .11-1.985 2.074 2.074 0 0 0-1.846-1.087Z"/>
+                                        </svg>
+                                    </a>
+                                </div>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pattern in data.patterns %}
+                        <tr>
+                            <td class="py-2 px-4 border-b text-center">{{ pattern.pattern }}</td>
+                            <td class="py-2 px-4 border-b text-center">{{ pattern.category }}</td>
+                            <td class="py-2 px-4 border-b text-center">{{ pattern.score }}</td>
+                            <td class="py-2 px-4 border-b text-center">{{ pattern.max_score }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card shadow-md rounded border border-gray-300 mb-6 p-4">
+                <h2 class="text-2xl font-semibold">Techniques</h2>
+                <table id="techniques-table" class="min-w-full bg-white">
+                    <thead>
+                        <tr>
+                            <th class="py-2 px-4 border-b text-center" onclick="sortTable('techniques-table', 0)">Technique</th>
+                            <th class="py-2 px-4 border-b text-center" onclick="sortTable('techniques-table', 1)">Score</th>
+                            <th class="py-2 px-4 border-b text-center" onclick="sortTable('techniques-table', 2)">Score Header</th>
+                            <th class="py-2 px-4 border-b text-center" onclick="sortTable('techniques-table', 3)">Max Score</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for technique in data.techniques %}
+                        <tr>
+                            <td class="py-2 px-4 border-b text-center">{{ technique.technique }}</td>
+                            <td class="py-2 px-4 border-b text-center">{{ technique.score }}</td>
+                            <td class="py-2 px-4 border-b text-center">{{ technique.score_header }}</td>
+                            <td class="py-2 px-4 border-b text-center">{{ technique.max_score }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card shadow-md rounded border border-gray-300 mb-6 p-4">
+                <h2 class="text-2xl font-semibold">Bonus Points</h2>
+                <table id="bonuses-table" class="min-w-full bg-white">
+                    <thead>
+                        <tr>
+                            <th class="py-2 px-4 border-b text-center" onclick="sortTable('bonuses-table', 0)">Bonus Point</th>
+                            <th class="py-2 px-4 border-b text-center" onclick="sortTable('bonuses-table', 1)">Score</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for bonus in data.bonuses %}
+                        <tr>
+                            <td class="py-2 px-4 border-b text-center">{{ bonus.name }}</td>
+                            <td class="py-2 px-4 border-b text-center">{{ bonus.score }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <script>
+            const sortDirections = {
+                'patterns-table': [],
+                'techniques-table': [],
+                'bonuses-table': []
+            };
+
+            function sortTable(tableId, columnIndex) {
+                const table = document.getElementById(tableId);
+                const tbody = table.querySelector('tbody');
+                const rows = Array.from(tbody.rows);
+                const currentDirection = sortDirections[tableId][columnIndex] || 'asc';
+
+                const sortedRows = rows.sort((a, b) => {
+                    const cellA = a.cells[columnIndex].innerText;
+                    const cellB = b.cells[columnIndex].innerText;
+
+                    if (!isNaN(cellA) && !isNaN(cellB)) {
+                        return (currentDirection === 'asc' ? 1 : -1) * (Number(cellA) - Number(cellB));
+                    }
+                    return (currentDirection === 'asc' ? 1 : -1) * cellA.localeCompare(cellB);
+                });
+
+                // Toggle sorting direction for next click
+                sortDirections[tableId][columnIndex] = currentDirection === 'asc' ? 'desc' : 'asc';
+
+                sortedRows.forEach(row => tbody.appendChild(row));
+            }
+        </script>
+
+{% when None %}
+
+<p>No test with this ID found.</p>
+
+{% endmatch %}
+
+{% endblock %}
+
