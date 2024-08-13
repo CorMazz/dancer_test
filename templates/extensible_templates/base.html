@@ -12,6 +12,40 @@
      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
      <link href="https://cdn.jsdelivr.net/npm/flowbite@2.4.1/dist/flowbite.min.css"  rel="stylesheet" />
      <script src="https://cdn.tailwindcss.com"></script>
+     <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              "primary": {
+                "50": "#e9fbf5",
+                "100": "#d4f6ea",
+                "200": "#a8edd5",
+                "300": "#7de4c0",
+                "400": "#51dbab",
+                "500": "#26d296",
+                "600": "#1ea878",
+                "700": "#177e5a",
+                "800": "#0f543c",
+                "900": "#082a1e"
+              },
+              "secondary": {
+                "50": "#fbeaf0",
+                "100": "#f7d5e1",
+                "200": "#f0abc3",
+                "300": "#e881a5",
+                "400": "#e15787",
+                "500": "#d92d69",
+                "600": "#ae2454",
+                "700": "#821b3f",
+                "800": "#57122a",
+                "900": "#2b0915"
+              }
+            }
+          }
+        }
+      }
+    </script>
      <script src="https://unpkg.com/htmx.org@2.0.0" integrity="sha384-wS5l5IKJBvK6sPTKa2WZ1js3d947pvWXbPJ1OmWfEuxLgeHcEbjUUA5i9V5ZkpCw" crossorigin="anonymous"></script>
      <script>
       htmx.onLoad(function(content) {
