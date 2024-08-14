@@ -6,7 +6,7 @@
 
 <div id="search-testee-widget" class="text-center mt-2 mx-2 border-gray-100 bg-gray-300 shadow-lg rounded-lg overflow-hidden md:p-2">
     <h1 class="py-2 text-2xl font-bold">Search Testees</h1>
-    <form action="/search-testee" method="GET">
+    <form action="/search-testee" method="GET" hx-boost="true" hx-select="#search-results" hx-target="#search-results" hx-swap="outerHTML" >
         <label for="query" class="sr-only">Search:</label>
         <input 
           type="text" 
