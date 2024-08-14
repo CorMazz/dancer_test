@@ -5,7 +5,6 @@
 {% block content %}
 
 
-
 <div class="text-center mt-2 mx-2 border-gray-100 bg-gray-300 shadow-lg rounded-lg overflow-hidden md:p-2">
   <h1 class="py-2 text-2xl font-bold">Test Administration</h1>
   <div class="md:flex md:mb-2">
@@ -18,9 +17,9 @@
   </div> 
 </div>
 
-<div class="text-center mt-2 mx-2 border-gray-100 bg-gray-300 shadow-lg rounded-lg overflow-hidden md:p-2">
-  <h1 class="py-2 text-2xl font-bold">Search Users</h1>
-</div>
+<div hx-get="/search-testee" hx-select="#search-testee-widget" hx-swap="outerHTML" hx-trigger="load"></div>
+
+
 
 
 {% endblock %}

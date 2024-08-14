@@ -52,6 +52,22 @@
           initFlowbite();
       });
     </script>
+      <!-- Close Nav Dropdown When Clicking Nav Links Script -->
+      <script>
+        document.addEventListener('DOMContentLoaded', function() {
+           function closeUserDropdown() {
+              const dropdown = document.getElementById('user-dropdown');
+              if (dropdown && !dropdown.classList.contains('hidden')) {
+                 dropdown.classList.add('hidden');
+              }
+           }
+
+           // Close the dropdown after HTMX request
+           document.body.addEventListener('htmx:afterSwap', function(evt) {
+              closeUserDropdown();
+           });
+        });
+     </script>
    </head>
 
    <body>
