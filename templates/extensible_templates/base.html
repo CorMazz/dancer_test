@@ -10,18 +10,34 @@
 
      <meta charset="UTF-8" />
      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-     <link href="https://cdn.jsdelivr.net/npm/flowbite@2.4.1/dist/flowbite.min.css"  rel="stylesheet" />
-     <script src="https://cdn.tailwindcss.com"></script>
-     <script src="https://unpkg.com/htmx.org@2.0.0" integrity="sha384-wS5l5IKJBvK6sPTKa2WZ1js3d947pvWXbPJ1OmWfEuxLgeHcEbjUUA5i9V5ZkpCw" crossorigin="anonymous"></script>
+     <link href="/static/css/output.css" rel="stylesheet">
+     <link href="/static/css/flowbite.v251.min.css"  rel="stylesheet" />
+     <script src="/static/js/htmx.v202.min.js"></script>
      <script>
       htmx.onLoad(function(content) {
           initFlowbite();
       });
     </script>
+      <!-- Close Nav Dropdown When Clicking Nav Links Script -->
+      <script>
+        document.addEventListener('DOMContentLoaded', function() {
+           function closeUserDropdown() {
+              const dropdown = document.getElementById('user-dropdown');
+              if (dropdown && !dropdown.classList.contains('hidden')) {
+                 dropdown.classList.add('hidden');
+              }
+           }
+
+           // Close the dropdown after HTMX request
+           document.body.addEventListener('htmx:afterSwap', function(evt) {
+              closeUserDropdown();
+           });
+        });
+     </script>
    </head>
 
    <body>
-      <script src="https://cdn.jsdelivr.net/npm/flowbite@2.4.1/dist/flowbite.min.js"></script>
+      <script src="/static/js/flowbite.v251.min.js"></script>
 
       <!-- Navbar Block -->
       {% block navbar %}

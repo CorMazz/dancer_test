@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use askama_axum::Template; // bring trait in scope
 use axum::{
-    extract::{Path, State}, http::StatusCode, response::{Html, IntoResponse, Redirect}, Extension, Form, Json
+    extract::{Path, State, Query}, http::StatusCode, response::{Html, IntoResponse, Redirect}, Extension, Form, Json
 };
 use axum_extra::extract::CookieJar;
 use serde::Deserialize;
@@ -303,30 +303,22 @@ pub struct SearchTesteeTemplate {
 
 #[derive(Deserialize)]
 pub struct SearchQuery {
-    query: String,
+    query: Option<String>,
 }
 
-pub async fn get_search_testee_form() -> impl IntoResponse {
-    let template = SearchTesteeTemplate {search_results: None};
-    (StatusCode::OK, Html(template.render().unwrap())).into_response()
-}
-
-pub async fn post_search_testee_form(
+pub async fn get_search_testee_form(
     State(data): State<Arc<AppState>>,
-    Form(search_query): Form<SearchQuery>,
+    Query(search_query): Query<SearchQuery>,
 ) -> impl IntoResponse {
 
-    let search_results = search_for_testee(search_query.query, &data.db).await;
+    let search_results = if let Some(query) = search_query.query {
+        search_for_testee(query, &data.db).await.ok().flatten()
+    } else {
+        None
+    };
 
-    match search_results {
-        Ok(option) => {
-            let template = SearchTesteeTemplate {search_results: option};
-            (StatusCode::OK, Html(template.render().unwrap())).into_response()
-        },
-        Err(e) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e.to_string() }))).into_response()
-        }
-    }
+    let template = SearchTesteeTemplate { search_results };
+    (StatusCode::OK, Html(template.render().unwrap())).into_response()
 }
 
 // #######################################################################################################################################################

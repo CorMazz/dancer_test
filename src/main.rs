@@ -5,7 +5,6 @@ mod views;
 mod filters;
 mod exam;
 
-
 use config::Config;
 use std::sync::Arc;
 
@@ -72,6 +71,6 @@ async fn main() {
     .layer(cors);
 
     println!("🚀 Server started successfully");
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
+    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", config.server_port)).await.unwrap();
     axum::serve(listener, app).await.unwrap()
 }
