@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT technique, score, score_header, max_score FROM techniques WHERE test_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "technique",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "score",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "score_header",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "max_score",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "9b9bdd65486cac0570f5d46e78633d47357f77e63a27ffd10c8642a7028321e2"
+}

@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT pattern, category, score, max_score FROM patterns WHERE test_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "pattern",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "category",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "score",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "max_score",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "403028c7ccd0f8db7bdf9524688c3dbd101721e6fe5660130cc98cc9a444357a"
+}

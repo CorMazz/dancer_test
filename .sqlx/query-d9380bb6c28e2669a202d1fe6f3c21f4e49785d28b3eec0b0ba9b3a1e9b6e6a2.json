@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO testees (first_name, last_name, email)\n        VALUES ($1, $2, $3)\n        ON CONFLICT (email) DO UPDATE SET first_name = $1, last_name = $2\n        RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "d9380bb6c28e2669a202d1fe6f3c21f4e49785d28b3eec0b0ba9b3a1e9b6e6a2"
+}

@@ -14,6 +14,7 @@ use crate::{
     AppState
 };
 
+use tower_http::services::ServeDir;
 
 
 pub fn create_router(app_state: Arc<AppState>) -> Router {
@@ -32,5 +33,8 @@ pub fn create_router(app_state: Arc<AppState>) -> Router {
     .route("/login", get(get_login_page).post(post_login_form))
     .route("/private/user-dropdown", get(get_user_dropdown)) 
         .route_layer(middleware::from_fn_with_state(app_state.clone(), check_auth_middleware))
+    .nest_service("/static", ServeDir::new("static/"))
+    // .nest_service("/static/css", ServeDir::new("static/css"))
+    // .nest_service("/static/js", ServeDir::new("static/js"))
     .with_state(app_state)
 }
