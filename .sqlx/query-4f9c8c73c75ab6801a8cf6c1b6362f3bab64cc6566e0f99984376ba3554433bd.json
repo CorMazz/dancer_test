@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO bonus_points (test_id, name, score)\n            VALUES ($1, $2, $3)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4f9c8c73c75ab6801a8cf6c1b6362f3bab64cc6566e0f99984376ba3554433bd"
+}

@@ -7,7 +7,7 @@
 # Want to help us make this template better? Share your feedback here: https://forms.gle/ybq9Krt8jtBL3iCk7
 
 ARG RUST_VERSION=1.79.0
-ARG APP_NAME=
+ARG APP_NAME=dancer_test
 
 ################################################################################
 # Create a stage for building the application.
@@ -27,14 +27,22 @@ RUN apk add --no-cache clang lld musl-dev git
 # Leverage a bind mount to the src directory to avoid having to copy the
 # source code into the container. Once built, copy the executable to an
 # output directory before the cache mounted /app/target is unmounted.
+
+ENV SQLX_OFFLINE=true
+
+RUN cargo install sqlx-cli --version 0.8.0 --no-default-features --features postgres
+
 RUN --mount=type=bind,source=src,target=src \
+    --mount=type=bind,source=templates,target=templates \
+    --mount=type=bind,source=.sqlx,target=.sqlx \
     --mount=type=bind,source=Cargo.toml,target=Cargo.toml \
     --mount=type=bind,source=Cargo.lock,target=Cargo.lock \
     --mount=type=cache,target=/app/target/ \
     --mount=type=cache,target=/usr/local/cargo/git/db \
-    --mount=type=cache,target=/usr/local/cargo/registry/ \
-cargo build --locked --release && \
-cp ./target/release/$APP_NAME /bin/server
+    --mount=type=cache,target=/usr/local/cargo/registry/ \ 
+    cargo build --locked --release && \
+    cp ./target/release/$APP_NAME /bin/server
+    
 
 ################################################################################
 # Create a new stage for running the application that contains the minimal
@@ -59,13 +67,14 @@ RUN adduser \
     --no-create-home \
     --uid "${UID}" \
     appuser
+
 USER appuser
 
 # Copy the executable from the "build" stage.
-COPY --from=build /bin/server /bin/
-
-# Expose the port that the application listens on.
-EXPOSE 5000
+COPY --from=build /bin/server /bin
+COPY --from=build /usr/local/cargo/bin/sqlx /usr/local/bin/sqlx 
+COPY static/ static/
+COPY migrations/ migrations/
 
 # What the container should run when it is started.
-CMD ["/bin/server"]
+CMD ["sh", "-c", "sqlx migrate run && /bin/server"]

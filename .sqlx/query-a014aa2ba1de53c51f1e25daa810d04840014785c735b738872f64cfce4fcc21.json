@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT role, test_date, score, max_score, passing_score FROM tests WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "role",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "test_date",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 2,
+        "name": "score",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "max_score",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "passing_score",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "a014aa2ba1de53c51f1e25daa810d04840014785c735b738872f64cfce4fcc21"
+}
