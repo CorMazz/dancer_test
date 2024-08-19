@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
     env_file:
-      - .env
+      - ../.env
     volumes:
       - ../..:/workspaces:cached
     command: sleep infinity
@@ -25,7 +25,7 @@ services:
   pgAdmin:
     image: dpage/pgadmin4
     env_file:
-      - .env
+      - ../.env
     ports:
       - "5050:80"
     depends_on:

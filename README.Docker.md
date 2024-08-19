@@ -3,7 +3,13 @@
 When you're ready, start your application by running:
 `docker compose up --build`.
 
-Your application will be available at http://localhost:5000.
+Your application will be available at http://localhost:(port) where port is specified in the compose.yaml file.
+
+
+### Note from Cory
+
+This application is containerized, and was also developed in a dev container. Everything within the .devcontainer folder defines the configuration
+for the dev container, and the other docker files out here define how to create the production containers. 
 
 ### Deploying your application to the cloud
 
