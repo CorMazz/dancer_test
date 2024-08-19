@@ -1,0 +1,31 @@
+name: Deploy to Linode
+
+on:
+  workflow_run:
+    workflows: ["Build and Push Docker Image"] # Replace with the name of your first workflow
+    types:
+      - completed
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install SSH client
+        run: sudo apt-get install -y ssh
+
+      - name: Deploy to Linode
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          REMOTE_HOST: your.linode.server.ip
+          REMOTE_USER: your-username
+        run: |
+          echo "$SSH_PRIVATE_KEY" > private_key
+          chmod 600 private_key
+          ssh -i private_key -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << 'EOF'
+            cd /path/to/your/docker-compose/directory
+            docker-compose pull
+            docker-compose down
+            docker-compose up -d
+          EOF
+        continue-on-error: false
