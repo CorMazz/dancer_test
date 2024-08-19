@@ -24,7 +24,7 @@ jobs:
           echo "$SSH_PRIVATE_KEY" > private_key
           chmod 600 private_key
           ssh -i private_key -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << 'EOF'
-            cd /apps/dancexam-webapp
+            cd apps/dancexam-webapp
             docker compose pull
             docker compose down
             docker compose up -d
