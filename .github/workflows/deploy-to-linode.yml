@@ -16,9 +16,9 @@ jobs:
 
       - name: Deploy to Linode
         env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          REMOTE_HOST: your.linode.server.ip
-          REMOTE_USER: your-username
+          SSH_PRIVATE_KEY: ${{ secrets.LINODE_SSH_PRIVATE_KEY }}
+          REMOTE_HOST: ${{ secrets.LINODE_SERVER_IP}}
+          REMOTE_USER: ${{ secrets.LINODE_SERVER_USER }}
         run: |
           echo "$SSH_PRIVATE_KEY" > private_key
           chmod 600 private_key
