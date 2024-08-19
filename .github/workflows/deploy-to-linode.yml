@@ -23,9 +23,9 @@ jobs:
           echo "$SSH_PRIVATE_KEY" > private_key
           chmod 600 private_key
           ssh -i private_key -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << 'EOF'
-            cd /path/to/your/docker-compose/directory
-            docker-compose pull
-            docker-compose down
-            docker-compose up -d
+            cd /apps/dancexam-webapp
+            docker compose pull
+            docker compose down
+            docker compose up -d
           EOF
         continue-on-error: false
