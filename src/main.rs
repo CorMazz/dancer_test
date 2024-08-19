@@ -70,7 +70,7 @@ async fn main() {
     }))
     .layer(cors);
 
-    println!("🚀 Server started successfully");
+    println!("🚀 Server started successfully on port {}", config.server_port);
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", config.server_port)).await.unwrap();
     axum::serve(listener, app).await.unwrap()
 }
