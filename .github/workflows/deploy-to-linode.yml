@@ -5,6 +5,7 @@ on:
     workflows: ["Build and Push Docker Image"] # Replace with the name of your first workflow
     types:
       - completed
+  workflow_dispatch:
 
 jobs:
   deploy:
