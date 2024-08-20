@@ -28,9 +28,14 @@
     </div>
 
 {% when None %}
-    <div class="flex items-center md:order-2 space-x-3 md:space-x-0 rtl:space-x-reverse">
+    <div class="flex items-center">
         <a href="/login" hx-boost="true" hx-select="#primary-content" hx-target="#primary-content" hx-swap="outerHTML show:none">
-        <button type="button" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Sign In/Sign Up</button>
+
+            <!-- For really tiny screens, just say login so that it fits in the navbar -->
+            <button type="button" class="sm:hidden text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Login</button>
+            
+            <!-- Otherwise say sign in/sign up  -->
+            <button type="button" class="hidden sm:block text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Sign In/Sign Up</button>
         </a>    
     </div>
 
