@@ -19,7 +19,7 @@ Tailwind must be rebuilt everytime you make changes to the html classes. That ca
 
 If you want to automagically recompile your Rust executable and rebuild your css everytime you save a file, you can run this command.
 
-cargo watch -s './tailwind/tailwindcss -i ./static/css/input.css -o ./static/css/output.css -c ./tailwind/tailwind.config.js && cargo run' --ignore *css*
+cargo watch -s './tailwind/tailwindcss -i ./static/css/input.css -o ./static/css/output.css -c ./tailwind/tailwind.config.js && cargo sqlx prepare && cargo run' --ignore *css* --ignore .sqlx --ignore main.rs --why
 
 ### Deploying your application to the cloud
 
