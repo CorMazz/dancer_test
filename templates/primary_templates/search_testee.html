@@ -4,24 +4,32 @@
 
 {% block content %}
 
-<div id="search-testee-widget" class="text-center mt-2 mx-2 border-gray-100 bg-gray-300 shadow-lg rounded-lg overflow-hidden md:p-2">
+<div id="search-testee-widget" class="text-center mt-4 mx-4 border-gray-100 bg-gray-50 shadow-lg rounded-lg p-6 hover:bg-gray-100 hover:shadow-xl transition duration-300">
     <h1 class="py-2 text-2xl font-bold">Search Testees</h1>
-    <form action="/search-testee" method="GET" hx-boost="true" hx-select="#search-results" hx-target="#search-results" hx-swap="outerHTML" >
-        <label for="query" class="sr-only">Search:</label>
-        <input 
-          type="text" 
-          id="query" 
-          name="query" 
-          class="border rounded px-2 py-1"
-          placeholder="Enter search term"
-        >
-        <button 
-          type="submit" 
-          class="bg-blue-500 text-white px-4 py-2 rounded ml-2"
-        >
-          Search
-        </button>
+    <form 
+        action="/search-testee" method="GET" hx-boost="true" hx-select="#search-results" hx-target="#search-results" hx-swap="outerHTML" 
+        class="flex flex-col sm:flex-row items-center justify-center"
+    >
+        <div class="mt-1 mx-1">
+            <label for="query" class="sr-only">Search:</label>
+            <input 
+                type="text" 
+                id="query" 
+                name="query" 
+                class="border rounded px-2 py-1"
+                placeholder="Enter search term"
+            >
+        </div>
+        <div class="mt-1 mx-1">
+            <button 
+                type="submit" 
+                class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700 transition duration-300"
+            >
+                Search
+            </button>
+        </div>
     </form>
+
 
 
 
@@ -32,13 +40,13 @@
 
     <div id="search-results">
         <h2 class="py-2 text-xl font-bold">Results</h2>
-        <ul>
-            {% for testee in data %}
+        {% for testee in data %}
+            <ul class="bg-gray-100 border rounded hover:bg-gray-200 transition duration-300 mt-1 py-1">
                 <a href="/test-summaries/{{ testee.id }}">
                     {{ testee.first_name }} {{ testee.last_name }} - {{ testee.email }}
                 </a>
-            {% endfor %}
-        </ul>
+            </ul>
+        {% endfor %}
     </div>
 
     {% when None %} 

@@ -5,3 +5,14 @@ pub fn replace<T: std::fmt::Display>(s: T, from: &str, to: &str) -> ::askama::Re
     let s = s.to_string();
     Ok(s.replace(from, to))
 }
+
+/// Trims off the last `n` characters from the string.
+pub fn trim_end_chars<T: std::fmt::Display>(s: T, n: usize) -> ::askama::Result<String> {
+    let s = s.to_string();
+    let trimmed = if s.len() > n {
+        s[..s.len() - n].to_string()
+    } else {
+        s // If `n` is larger than the length of the string, return the string as is
+    };
+    Ok(trimmed)
+}

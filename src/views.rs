@@ -18,6 +18,7 @@ use crate::{
         handlers::{fetch_test_results_by_id, fetch_testee_by_id, fetch_testee_tests_by_id, parse_test_form_data, save_test_to_database, search_for_testee, TestError}, models::{generate_follower_test, generate_leader_test, GradedTest, TestSummary, TestType, Testee}
     },
     AppState,
+    filters,
 };
 
 // #######################################################################################################################################################
@@ -36,6 +37,20 @@ pub struct HomeTemplate {}
 
 pub async fn get_home_page() -> impl IntoResponse  {
     let template: HomeTemplate = HomeTemplate {};
+
+    (StatusCode::OK, Html(template.render().unwrap()))
+}
+
+// #######################################################################################################################################################
+// contact.html
+// #######################################################################################################################################################
+
+#[derive(Template)]
+#[template(path = "./primary_templates/contact.html")] 
+pub struct ContactTemplate {}
+
+pub async fn get_contact_page() -> impl IntoResponse  {
+    let template: ContactTemplate = ContactTemplate {};
 
     (StatusCode::OK, Html(template.render().unwrap()))
 }

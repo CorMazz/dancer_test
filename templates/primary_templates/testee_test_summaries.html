@@ -4,7 +4,7 @@
 
 {% block content %}
 
-<div class="container mx-auto bg-white p-6 rounded shadow-md">
+<div class="text-center mt-4 mx-4 bg-gray-50 shadow-lg rounded-lg p-6 hover:bg-gray-100 hover:shadow-xl transition duration-300">
 
 {% match option_testee %}
 
@@ -24,31 +24,27 @@
     {% when Some with (test_summaries) %}
 
 
-        <div class="overflow-x-auto">
-            <table class="min-w-full bg-white border border-gray-200">
+        <div class="overflow-x-auto border-gray-200 border rounded-lg">
+            <table class="min-w-full bg-gray-50 hover:bg-gray-100 hover:shadow-xl transition duration-300 rounded-lg overflow-hidden shadow-md">
                 <thead>
-                    <tr class="bg-gray-100 border-b">
-                        <th class="py-2 px-4 text-left">Test Date</th>
-                        <th class="py-2 px-4 text-left">Role</th>
-                        <th class="py-2 px-4 text-left">Score</th>
-                        <th class="py-2 px-4 text-left">Max Score</th>
-                        <th class="py-2 px-4 text-left">Passing Score</th>
+                    <tr class="bg-gray-100 border-b hover:bg-gray-200 transition duration-300">
+                        <th class="py-2 px-4">Test Date</th>
+                        <th class="py-2 px-4">Role</th>
+                        <th class="py-2 px-4">Score</th>
+                        <th class="py-2 px-4">Passing Score</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for summary in test_summaries %}
-                        <tr class="border-b hover:bg-gray-50">
-                            <td colspan="5">
-                                <a href="/test-results/{{ summary.id }}" class="block py-2 px-4 text-blue-600 hover:underline">
-                                    <div class="flex justify-between">
-                                        <span>{{ summary.test_date }}</span>
-                                        <span>{{ summary.role|capitalize }}</span>
-                                        <span>{{ summary.score }}</span>
-                                        <span>{{ summary.max_score }}</span>
-                                        <span>{{ summary.passing_score }}</span>
-                                    </div>
-                                </a>
-                            </td>
+                        {% if summary.score > summary.passing_score %}
+                            <tr class="border-b bg-green-100 hover:bg-green-200">
+                        {% else %}
+                            <tr class="border-b bg-red-100 hover:bg-red-200">
+                        {% endif %}
+                            <td class="py-2 px-4"><a href="/test-results/{{ summary.id }}" class="block py-2 px-4 hover:underline">{{ summary.test_date|trim_end_chars(10) }}</a></td>
+                            <td class="py-2 px-4"><a href="/test-results/{{ summary.id }}" class="block py-2 px-4 hover:underline">{{ summary.role|capitalize }}</a></td>
+                            <td class="py-2 px-4"><a href="/test-results/{{ summary.id }}" class="block py-2 px-4 hover:underline">{{ summary.score }} / {{ summary.max_score }}</a></td>
+                            <td class="py-2 px-4"><a href="/test-results/{{ summary.id }}" class="block py-2 px-4 hover:underline">{{ summary.passing_score }}</a></td>
                         </tr>
                     {% endfor %}
                 </tbody>
@@ -57,6 +53,8 @@
 
         {% when None %}
         
+        <p>This shouldn't be possible. Every testee that exists should have at least one test.</p>
+
     {% endmatch %}
 
 </div>

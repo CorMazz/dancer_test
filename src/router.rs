@@ -9,7 +9,7 @@ use axum::{
 use crate::{
     auth::middleware::{check_auth_middleware, require_auth_middleware}, 
     views::{
-        get_dashboard_page, get_follower_test_page, get_home_page, get_json_test_results, get_leader_test_page, get_login_page, get_logout_page, get_search_testee_form, get_signup_page, get_test_results, get_test_summaries, get_user_dropdown, post_follower_test_form, post_leader_test_form, post_login_form, post_signup_form
+        get_dashboard_page, get_follower_test_page, get_home_page, get_contact_page, get_json_test_results, get_leader_test_page, get_login_page, get_logout_page, get_search_testee_form, get_signup_page, get_test_results, get_test_summaries, get_user_dropdown, post_follower_test_form, post_leader_test_form, post_login_form, post_signup_form
     },
     AppState
 };
@@ -29,6 +29,7 @@ pub fn create_router(app_state: Arc<AppState>) -> Router {
     .route("/test-summaries/:testee_id", get(get_test_summaries))
         .route_layer(middleware::from_fn_with_state(app_state.clone(), require_auth_middleware))
     .route("/", get(get_home_page))
+    .route("/contact", get(get_contact_page))
     .route("/sign-up", get(get_signup_page).post(post_signup_form))
     .route("/login", get(get_login_page).post(post_login_form))
     .route("/private/user-dropdown", get(get_user_dropdown)) 
