@@ -139,10 +139,12 @@ pub async fn post_signup_form(
 
 #[derive(Template)]
 #[template(path = "./auth_templates/login.html")] 
-pub struct LoginTemplate {}
+pub struct LoginTemplate {
+    is_demo_mode: bool
+}
 
-pub async fn get_login_page() -> impl IntoResponse  {
-    let template: LoginTemplate = LoginTemplate {};
+pub async fn get_login_page(State(data): State<Arc<AppState>>) -> impl IntoResponse  {
+    let template: LoginTemplate = LoginTemplate {is_demo_mode: data.env.is_demo_mode};
 
     (StatusCode::OK, Html(template.render().unwrap()))
 }
@@ -153,6 +155,8 @@ pub struct LoginForm {
     password: String,
 }
 
+/// Login form doesn't use HTMX to force reload of the navbar (to get the user in the top right)
+/// so the html can return error status codes and the id of the outer element does not matter (unlike signup)
 pub async fn post_login_form(
     State(data): State<Arc<AppState>>,
     Form(login) : Form<LoginForm>,
@@ -216,8 +220,8 @@ pub async fn get_dashboard_page() -> impl IntoResponse  {
 // #######################################################################################################################################################
 
 
-pub async fn get_leader_test_page() -> impl IntoResponse  {
-    let template = generate_leader_test();
+pub async fn get_leader_test_page(State(data): State<Arc<AppState>>) -> impl IntoResponse  {
+    let template = generate_leader_test(data.env.is_demo_mode);
 
     (StatusCode::OK, Html(template.render().unwrap()))
 }
@@ -226,7 +230,7 @@ pub async fn post_leader_test_form(
     State(data): State<Arc<AppState>>,
     Form(test): Form<HashMap<String, String>>,
 ) -> impl IntoResponse {
-    let graded_test = parse_test_form_data(test, TestType::Leader, generate_leader_test());
+    let graded_test = parse_test_form_data(test, TestType::Leader, generate_leader_test(data.env.is_demo_mode));
 
     match save_test_to_database(&data.db, graded_test).await {
         Ok(_) => Redirect::to("/dashboard").into_response(),
@@ -239,8 +243,8 @@ pub async fn post_leader_test_form(
 // #######################################################################################################################################################
 
 /// This could've been refactored to avoid copy-pasting the leader functions, but tbh this is a spot where it wasn't worth the effort
-pub async fn get_follower_test_page() -> impl IntoResponse  {
-    let template = generate_follower_test();
+pub async fn get_follower_test_page(State(data): State<Arc<AppState>>) -> impl IntoResponse  {
+    let template = generate_follower_test(data.env.is_demo_mode);
 
     (StatusCode::OK, Html(template.render().unwrap()))
 }
@@ -249,7 +253,7 @@ pub async fn post_follower_test_form(
     State(data): State<Arc<AppState>>,
     Form(test): Form<HashMap<String, String>>,
 ) -> impl IntoResponse {
-    let graded_test = parse_test_form_data(test, TestType::Follower, generate_follower_test());
+    let graded_test = parse_test_form_data(test, TestType::Follower, generate_follower_test(data.env.is_demo_mode));
 
     match save_test_to_database(&data.db, graded_test).await {
         Ok(_) => Redirect::to("/dashboard").into_response(),

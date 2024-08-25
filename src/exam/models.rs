@@ -324,6 +324,7 @@ pub struct TestTemplate {
     pub pattern_scoring_categories: Vec<TestDefinitionPatternScoringCategory>,
     pub technique_groups: Vec<TestDefinitionTechniqueGroup>,
     pub bonus_items: Vec<TestDefinitionBonusItem>,
+    pub is_demo_mode: bool,
 }
 
 // #######################################################################################################################################################
@@ -467,8 +468,9 @@ pub struct TestSummary {
 // Leader Test
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
-pub fn generate_leader_test() -> TestTemplate {
+pub fn generate_leader_test(is_demo_mode: bool) -> TestTemplate {
     TestTemplate {
+        is_demo_mode: is_demo_mode,
         test_type: TestType::Leader,
         passing_score: 60,
         patterns:  vec![
@@ -611,8 +613,9 @@ pub fn generate_leader_test() -> TestTemplate {
 // Leader Test
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
-pub fn generate_follower_test() -> TestTemplate {
+pub fn generate_follower_test(is_demo_mode: bool) -> TestTemplate {
     TestTemplate {
+        is_demo_mode: is_demo_mode,
         test_type: TestType::Follower,
         passing_score: 60,
         patterns:  vec![
