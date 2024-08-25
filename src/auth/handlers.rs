@@ -37,7 +37,13 @@ pub async fn register_user_handler(
     last_name: String,
     email: String,
     password: String,
+    licensing_key: String,
 ) -> Result<(), AuthError> {
+
+    if licensing_key != data.env.signup_licensing_key {
+        return Err(AuthError::InvalidLicensingKey)
+    }
+
     let user_exists: Option<bool> =
         sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)")
             .bind(email.to_ascii_lowercase())

@@ -101,30 +101,32 @@ pub struct SignUpForm {
     email: String,
     password: String,
     confirm_password: String,
+    licensing_key: String,
 }
 
+/// All the errors must return the OK status code for HTMX. Also, they must have an outer element with an id of primary-content
 pub async fn post_signup_form(
     State(data): State<Arc<AppState>>,
     Form(sign_up) : Form<SignUpForm>,
 ) -> impl IntoResponse {
-    println!("{:?}", sign_up);
 
     // Validate form data
     if sign_up.password != sign_up.confirm_password {
         return (
-            StatusCode::BAD_REQUEST,
-            Html("<h1>Passwords do not match</h1>"),
+            StatusCode::OK,
+            Html("<h1 id=\"primary-content\">Error: Passwords do not match</h1>"),
         ).into_response();
     }
 
-    let user_registered = register_user_handler(data, sign_up.first_name, sign_up.last_name, sign_up.email, sign_up.password).await;
+    let user_registered = register_user_handler(data, sign_up.first_name, sign_up.last_name, sign_up.email, sign_up.password, sign_up.licensing_key).await;
 
     match user_registered {
         Ok(_) => return Redirect::to("/login").into_response(),
         Err(e) => match e {
-            AuthError::DuplicateEmail => return (StatusCode::INTERNAL_SERVER_ERROR, Html("<h1>Duplicate Email</h1>")).into_response(),
-            AuthError::InternalServerError(ee) => return (StatusCode::INTERNAL_SERVER_ERROR, Html(format!("{:?}", ee))).into_response(),
-            _ => return (StatusCode::INTERNAL_SERVER_ERROR, Html("<h1>Unexpected error occurred, this should be impossible.</h1>")).into_response() // This should never happen
+            AuthError::DuplicateEmail => return (StatusCode::OK, Html("<h1 id=\"primary-content\">Error: Duplicate Email</h1>")).into_response(),
+            AuthError::InvalidLicensingKey => return (StatusCode::OK, Html("<h1 id=\"primary-content\">Error: Invalid Licensing Key</h1>")).into_response(),
+            AuthError::InternalServerError(ee) => return (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error: {:?}</h1>", ee))).into_response(),
+            _ => return (StatusCode::INTERNAL_SERVER_ERROR, Html("<h1 id=\"primary-content\">Unexpected error occurred, this should be impossible.</h1>")).into_response() // This should never happen
         }
     }
 }
@@ -161,8 +163,8 @@ pub async fn post_login_form(
         Ok(response) => return response.into_response(),
         Err(e) => match e {
             AuthError::InvalidEmailOrPassword => return (StatusCode::OK, Html("<h1>Invalid Email or Password</h1>")).into_response(),
-            AuthError::InternalServerError(ee) => return (StatusCode::INTERNAL_SERVER_ERROR, Html(format!("{:?}", ee))).into_response(),
-            _ => return (StatusCode::INTERNAL_SERVER_ERROR, Html("<h1>Unexpected error occurred</h1>")).into_response()
+            AuthError::InternalServerError(ee) => return (StatusCode::OK, Html(format!("Error: {:?}", ee))).into_response(),
+            _ => return (StatusCode::OK, Html("<h1>Error: Unexpected error occurred</h1>")).into_response()
         }
     }
 }
@@ -188,8 +190,8 @@ pub async fn get_logout_page(
         Ok(response) => return response.into_response(),
         Err(e) => match e {
             AuthError::NotLoggedIn => return Redirect::to("/").into_response(),
-            AuthError::InternalServerError(ee) => return (StatusCode::INTERNAL_SERVER_ERROR, Html(format!("{:?}", ee))).into_response(),
-            _ => return (StatusCode::INTERNAL_SERVER_ERROR, Html("<h1>Unexpected error occurred</h1>")).into_response()
+            AuthError::InternalServerError(ee) => return (StatusCode::OK, Html(format!("Error: {:?}", ee))).into_response(),
+            _ => return (StatusCode::OK, Html("<h1>Error: Unexpected error occurred</h1>")).into_response()
         }
     }
 }
@@ -228,7 +230,7 @@ pub async fn post_leader_test_form(
 
     match save_test_to_database(&data.db, graded_test).await {
         Ok(_) => Redirect::to("/dashboard").into_response(),
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Html(format!("{:?}", e))).into_response(),
+        Err(e) => return (StatusCode::OK, Html(format!("Error: {:?}", e))).into_response(),
     }
 }
 
@@ -251,7 +253,7 @@ pub async fn post_follower_test_form(
 
     match save_test_to_database(&data.db, graded_test).await {
         Ok(_) => Redirect::to("/dashboard").into_response(),
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Html(format!("{:?}", e))).into_response(),
+        Err(e) => return (StatusCode::OK, Html(format!("Error: {:?}", e))).into_response(),
     }
 }
 
@@ -269,7 +271,7 @@ pub async fn get_json_test_results(
             None => (StatusCode::NOT_FOUND, Json("No test with that ID found")).into_response(),
         }
         Err(TestError::InternalServerError(err)) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": err }))).into_response()
+            (StatusCode::OK, Html(format!("Error: {:?}", err))).into_response()
         }
     }
 }
@@ -296,12 +298,12 @@ pub async fn get_test_results(
             match template.render() {
                 Ok(rendered) => Html(rendered).into_response(),
                 Err(e) => {
-                    (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": e.to_string() }))).into_response()
+                    (StatusCode::OK, Html(format!("Error: {:?}", e))).into_response()
                 }
             }
         }
         Err(TestError::InternalServerError(err)) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": err }))).into_response()
+            (StatusCode::OK, Html(format!("Error: {:?}", err))).into_response()
         }
     }
 }
@@ -355,7 +357,7 @@ pub async fn get_test_summaries(
     let option_test_summaries = match fetch_testee_tests_by_id(&data.db, testee_id).await {
         Ok(option) => option,
         Err(e) => match e {
-            TestError::InternalServerError(msg) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": msg }))).into_response(),
+            TestError::InternalServerError(msg) => return (StatusCode::OK, Html(format!("Error: {:?}", msg))).into_response(),
             _ => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": "Undefined behavior. This should never happen." }))).into_response()
         }
     };
@@ -363,7 +365,7 @@ pub async fn get_test_summaries(
     let option_testee = match fetch_testee_by_id(&data.db, testee_id).await {
         Ok(option) => option,
         Err(e) => match e {
-            TestError::InternalServerError(msg) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": msg }))).into_response(),
+            TestError::InternalServerError(msg) => return (StatusCode::OK, Html(format!("Error: {:?}", msg))).into_response(),
             _ => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": "Undefined behavior. This should never happen." }))).into_response()
         }
     };

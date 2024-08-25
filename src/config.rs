@@ -4,6 +4,7 @@ fn get_env_var(var_name: &str) -> String {
 
 #[derive(Debug, Clone)]
 pub struct Config {
+    pub signup_licensing_key: String,
     pub server_port: i64,
     pub database_url: String,
     pub redis_url: String,
@@ -22,6 +23,7 @@ pub struct Config {
 
 impl Config {
     pub fn init() -> Config {
+        let signup_licensing_key = get_env_var("SIGNUP_LICENSING_KEY");
         let server_port = get_env_var("PORT").parse::<i64>().expect("Server port (ENV_VAR=PORT) should be an integer.");
         let database_url = get_env_var("DATABASE_URL");
         let redis_url = get_env_var("REDIS_URL");
@@ -38,6 +40,7 @@ impl Config {
         let refresh_token_max_age = get_env_var("REFRESH_TOKEN_MAXAGE");
 
         Config {
+            signup_licensing_key,
             server_port,
             database_url,
             redis_url,
