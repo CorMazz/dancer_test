@@ -25,8 +25,11 @@ jobs:
           chmod 600 private_key
           ssh -i private_key -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST << 'EOF'
             cd apps/dancexam-webapp
-            docker compose pull
-            docker compose down
-            docker compose up -d
+            ENV_FILE=.env_prod DOCKER_PORT_MAPPING=7000 SERVER_PORT=8000 PG_ADMIN_DOCKER_PORT_MAPPING=7001 docker compose -p dancexam-prod pull
+            ENV_FILE=.env_prod DOCKER_PORT_MAPPING=7000 SERVER_PORT=8000 PG_ADMIN_DOCKER_PORT_MAPPING=7001 docker compose -p dancexam-prod down
+            ENV_FILE=.env_prod DOCKER_PORT_MAPPING=7000 SERVER_PORT=8000 PG_ADMIN_DOCKER_PORT_MAPPING=7001 docker compose -p dancexam-prod up -d
+            ENV_FILE=.env_demo DOCKER_PORT_MAPPING=7002 SERVER_PORT=8000 PG_ADMIN_DOCKER_PORT_MAPPING=7003 docker compose -p dancexam-demo pull
+            ENV_FILE=.env_demo DOCKER_PORT_MAPPING=7002 SERVER_PORT=8000 PG_ADMIN_DOCKER_PORT_MAPPING=7003 docker compose -p dancexam-demo down
+            ENV_FILE=.env_demo DOCKER_PORT_MAPPING=7002 SERVER_PORT=8000 PG_ADMIN_DOCKER_PORT_MAPPING=7003 docker compose -p dancexam-demo up -d
           EOF
         continue-on-error: false
