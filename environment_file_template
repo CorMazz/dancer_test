@@ -1,3 +1,7 @@
+
+DEMO_MODE_ACTIVE=false
+SIGNUP_LICENSING_KEY=coryisthebest
+
 POSTGRES_HOST=127.0.0.1
 POSTGRES_PORT=6500
 POSTGRES_USER=
@@ -9,7 +13,8 @@ PGADMIN_DEFAULT_PASSWORD=
 
 DATABASE_URL=postgresql://user:pw@postgres:5432/dancertest_db?schema=public
 
-PORT=8000
+SERVER_PORT=8000  # The port on which the server will start within the docker container
+DOCKER_PORT_MAPPING=7000  # the externally available port which will be mapped inside the server container to the server port
 CLIENT_ORIGIN=http://localhost:3000
 
 REDIS_URL=redis://redis:6379/

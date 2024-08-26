@@ -31,6 +31,7 @@ pub enum AuthError {
     InvalidToken,
     ExpiredSession,
     InvalidUser,
+    InvalidLicensingKey,
 }
 
 // impl AuthError {
