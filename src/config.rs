@@ -26,7 +26,7 @@ impl Config {
     pub fn init() -> Config {
         let is_demo_mode = get_env_var("DEMO_MODE_ACTIVE").to_lowercase().trim().parse().expect("DEMO_MODE_ACTIVE should be TRUE or FALSE.");
         let signup_licensing_key = get_env_var("SIGNUP_LICENSING_KEY");
-        let server_port = get_env_var("PORT").parse::<i64>().expect("Server port (ENV_VAR=PORT) should be an integer.");
+        let server_port = get_env_var("SERVER_PORT").parse::<i64>().expect("Server port (ENV_VAR=SERVER_PORT) should be an integer.");
         let database_url = get_env_var("DATABASE_URL");
         let redis_url = get_env_var("REDIS_URL");
         let client_origin = get_env_var("CLIENT_ORIGIN");
