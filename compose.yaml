@@ -7,15 +7,18 @@
 # You can add other services your application may depend on here, such as a
 # database or a cache. For examples, see the Awesome Compose repository:
 # https://github.com/docker/awesome-compose
+
+name: ${COMPOSE_PROJECT_NAME:?error}
+
 services:
   server:
     build:
       context: .
       target: final
     ports:
-      - 7000:8000
+      - ${DOCKER_PORT_MAPPING:?error}:${SERVER_PORT:?error}
     env_file:
-      - .env
+      - ${ENV_FILE:?error}
     depends_on:
       postgres:
         condition: service_healthy
@@ -25,25 +28,25 @@ services:
     image: postgres:14.1
     restart: unless-stopped
     # ports:
-      # - "6500:5432"
+    #   - "6500:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     env_file:
-      - .env
+      - ${ENV_FILE:?error}
     healthcheck:
       test: [ "CMD", "pg_isready" ]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # pgAdmin:
-  #   image: dpage/pgadmin4
-  #   env_file:
-  #     - .env
-  #   # ports:
-  #   #   - "5050:80"
-  #   depends_on:
-  #     - postgres
+  pgAdmin:
+    image: dpage/pgadmin4
+    env_file:
+      - ${ENV_FILE:?error}
+    ports:
+      - "${PG_ADMIN_DOCKER_PORT_MAPPING:?error}:80"
+    depends_on:
+      - postgres
 
   redis:
     image: redis:alpine

@@ -4,6 +4,8 @@ fn get_env_var(var_name: &str) -> String {
 
 #[derive(Debug, Clone)]
 pub struct Config {
+    pub is_demo_mode: bool,
+    pub signup_licensing_key: String,
     pub server_port: i64,
     pub database_url: String,
     pub redis_url: String,
@@ -22,7 +24,9 @@ pub struct Config {
 
 impl Config {
     pub fn init() -> Config {
-        let server_port = get_env_var("PORT").parse::<i64>().expect("Server port (ENV_VAR=PORT) should be an integer.");
+        let is_demo_mode = get_env_var("DEMO_MODE_ACTIVE").to_lowercase().trim().parse().expect("DEMO_MODE_ACTIVE should be TRUE or FALSE.");
+        let signup_licensing_key = get_env_var("SIGNUP_LICENSING_KEY");
+        let server_port = get_env_var("SERVER_PORT").parse::<i64>().expect("Server port (ENV_VAR=SERVER_PORT) should be an integer.");
         let database_url = get_env_var("DATABASE_URL");
         let redis_url = get_env_var("REDIS_URL");
         let client_origin = get_env_var("CLIENT_ORIGIN");
@@ -38,6 +42,8 @@ impl Config {
         let refresh_token_max_age = get_env_var("REFRESH_TOKEN_MAXAGE");
 
         Config {
+            is_demo_mode,
+            signup_licensing_key,
             server_port,
             database_url,
             redis_url,

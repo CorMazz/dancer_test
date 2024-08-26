@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
     env_file:
-      - ../.env
+      - ../.env_prod
     volumes:
       - ../..:/workspaces:cached
     command: sleep infinity
@@ -20,12 +20,12 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     env_file:
-      - ../.env
+      - ../.env_prod
 
   pgAdmin:
     image: dpage/pgadmin4
     env_file:
-      - ../.env
+      - ../.env_prod
     ports:
       - "5050:80"
     depends_on:
