@@ -2,14 +2,14 @@ use std::sync::Arc;
 
 use axum::{
     middleware,
-    routing::get,
+    routing::{get, post},
     Router,
 };
 
 use crate::{
     auth::middleware::{check_auth_middleware, require_auth_middleware}, 
     views::{
-        get_dashboard_page, get_follower_test_page, get_home_page, get_contact_page, get_json_test_results, get_leader_test_page, get_login_page, get_logout_page, get_search_testee_form, get_signup_page, get_test_results, get_test_summaries, get_user_dropdown, post_follower_test_form, post_leader_test_form, post_login_form, post_signup_form
+        get_dashboard_page, get_follower_test_page, get_home_page, get_contact_page, get_json_test_results, get_leader_test_page, get_login_page, get_logout_page, get_search_testee_form, get_signup_page, get_test_results, get_test_summaries, get_user_dropdown, post_follower_test_form, post_leader_test_form, post_grade_test, post_login_form, post_signup_form
     },
     AppState
 };
@@ -23,6 +23,7 @@ pub fn create_router(app_state: Arc<AppState>) -> Router {
     .route("/logout", get(get_logout_page))
     .route("/leader-test", get(get_leader_test_page).post(post_leader_test_form))
     .route("/follower-test", get(get_follower_test_page).post(post_follower_test_form))
+    .route("/private/grade-test", post(post_grade_test))
     .route("/api/v1/test-results/:test_id", get(get_json_test_results))
     .route("/test-results/:test_id", get(get_test_results))
     .route("/search-testee", get(get_search_testee_form))

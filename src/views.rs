@@ -262,6 +262,35 @@ pub async fn post_follower_test_form(
 }
 
 // #######################################################################################################################################################
+// test_grade.html
+// #######################################################################################################################################################
+
+#[derive(Template)]
+#[template(path = "./partial_templates/test_grade.html")] 
+pub struct GradeTestTemplate {
+    score: u32,
+    passing_score: u32,
+    max_score: u32,
+}
+
+pub async fn post_grade_test(
+    State(data): State<Arc<AppState>>,
+    Form(test): Form<HashMap<String, String>>,
+) -> impl IntoResponse {
+    let graded_test = parse_test_form_data(test, TestType::Leader, generate_leader_test(data.env.is_demo_mode));
+
+    let template = GradeTestTemplate {
+        score: graded_test.score,
+        passing_score: graded_test.passing_score,
+        max_score: graded_test.max_score
+    };
+    
+    (StatusCode::OK, Html(template.render().unwrap()))
+}
+
+
+
+// #######################################################################################################################################################
 // Json Test Results API
 // #######################################################################################################################################################
 
