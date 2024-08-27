@@ -3,10 +3,7 @@
 ## Required TODO
 - Add HTMX functionality to everything
 - Send emails to testees once their tests are graded
-- Add a demo (next step is to add dummy demo data and add licensing key information to the contact page)
-    - Add a homepage card which tells the user "this is a demo" or "see the demo"
-    - Change the user search page to tell the user what last name to search for the demo
-    - Add information to the contact page about the licensing key
+- Add a demo (next step is to add dummy demo data)
 
 
 ## Additional Possible Functionality

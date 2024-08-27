@@ -6,6 +6,7 @@
 
 <div id="search-testee-widget" class="text-center mt-4 mx-4 border-gray-100 bg-gray-50 shadow-lg rounded-lg p-6 hover:bg-gray-100 hover:shadow-xl transition duration-300">
     <h1 class="py-2 text-2xl font-bold">Search Testees</h1>
+    {% if is_demo_mode %}<p class="text-gray-600">In the demo you should search for Mazzarelli</p>{% else %}{% endif %}
     <form 
         action="/search-testee" method="GET" hx-boost="true" hx-select="#search-results" hx-target="#search-results" hx-swap="outerHTML" 
         class="flex flex-col sm:flex-row items-center justify-center"
