@@ -14,8 +14,10 @@
                 <h1 class="mb-4 text-3xl text-center">Login</h1>
 
                 <!-- To be shown only for a demo -->
-                <h2 class="mb-4 text-2xl text-center text-gray-600 {% if is_demo_mode %} {% else %} hidden {% endif %}">Use the placeholder values to sign in to the demo.</h2>
-                
+                {% if is_demo_mode %}
+                  <h2 class="mb-4 text-2xl text-center text-gray-600">Use the placeholder values to sign in to the demo.</h2>
+                {% else %}{% endif %}
+
                 <form method="post" >
                     <input 
                         type="text"

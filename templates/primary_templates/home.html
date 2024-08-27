@@ -12,7 +12,7 @@
             <div class="p-6">
                 <h2 class="text-2xl font-semibold text-gray-800 mb-4 lg:text-4xl">Welcome to Dancexam</h2>
                 <p class="text-gray-600 lg:text-xl">
-                    Dancexam is your go-to digital platform for grading dance professionals. Originally built for the Greenville Westies, our website provides an efficient way for instructors to input and manage scores during advancement tests.
+                    Dancexam was originally built for the Greenville Westies to provide a digital workflow for grading our community members as they tried to pass the advancement test to move from the beginner+ lesson to the advanced lesson.
                 </p>
             </div>
         </div>
@@ -21,12 +21,41 @@
         <div class="bg-gray-50 shadow-md rounded-lg overflow-hidden hover:bg-gray-100 hover:shadow-xl transition duration-300">
             <img src="/static/images/dancexam_thumbnail_2.webp" class="w-full h-64 xl:h-96 object-cover rounded-t-lg" alt="Dancexam Logo" />
             <div class="p-6">
-                <h2 class="text-2xl font-semibold text-gray-800 mb-4 lg:text-4xl">How It Works</h2>
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4 lg:text-4xl">What it Does</h2>
                 <p class="text-gray-600 lg:text-xl">
                     Dancexam simplifies the grading process. Instructors can easily log in, select the testee, and digitally input scores for each dance level. The platform automatically calculates final grades and provides instant feedback, making it easier to track progress and ensure consistent evaluation.
                 </p>
             </div>
         </div>
+
+        <!-- Card 3: See the demo -->
+        <div class="bg-gray-50 shadow-md rounded-lg overflow-hidden hover:bg-gray-100 hover:shadow-xl transition duration-300">
+            <img src="/static/images/dancexam_thumbnail_3.webp" class="w-full h-64 xl:h-96 object-cover rounded-t-lg" alt="Dancexam Logo" />
+            <div class="p-6">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4 lg:text-4xl">{% if is_demo_mode %}This is a Demo{% else %}Checkout Our Demo{% endif %}</h2>
+                <p class="text-gray-600 lg:text-xl">
+                    {% if is_demo_mode %} This is the demo of Dancexam. Test submission is disabled, and there's only one administrator account. To access the production environment, visit <a href="https://dancexam.corradomazzarelli.com" class="underline hover:text-gray-800">dancexam.corradomazzarelli.com</a> {% else %} This is the production version of Dancexam, and it can only be accessed by authorized users. To check out the demo, visit <a href="https://dancexam-demo.corradomazzarelli.com" class="underline hover:text-gray-800">dancexam-demo.corradomazzarelli.com</a>{% endif %}
+                </p>
+            </div>
+        </div>
+
+        <!-- Card 4: Architecture -->
+        <div class="bg-gray-50 shadow-md rounded-lg overflow-hidden hover:bg-gray-100 hover:shadow-xl transition duration-300">
+            <img src="/static/images/dancexam_thumbnail_4.webp" class="w-full h-64 xl:h-96 object-cover rounded-t-lg" alt="Dancexam Logo" />
+            <div class="p-6">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4 lg:text-4xl">Architecture</h2>
+                <p class="text-gray-600 lg:text-xl">
+                    This application is:
+                    <ul class="text-gray-600 lg:text-xl"> 
+                        <li> - Hosted on Linode</li>
+                        <li> - Containerized</li>
+                        <li> - Built on an Askama, Axum, HTMX stack in Rust</li>
+                        <li> - <a href="https://github.com/CorMazz/dancer_test" class="underline hover:text-gray-800">Open Source</a></li>
+                    </ul>
+                </p>
+            </div>
+        </div>
+        
 
     </div>
 </div>
