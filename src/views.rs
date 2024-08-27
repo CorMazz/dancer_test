@@ -319,6 +319,7 @@ pub async fn get_test_results(
 #[derive(Template)]
 #[template(path = "./primary_templates/search_testee.html")] 
 pub struct SearchTesteeTemplate {
+    is_demo_mode: bool,
     search_results: Option<Vec<Testee>>,
 }
 
@@ -338,7 +339,10 @@ pub async fn get_search_testee_form(
         None
     };
 
-    let template = SearchTesteeTemplate { search_results };
+    let template = SearchTesteeTemplate { 
+        is_demo_mode: data.env.is_demo_mode, 
+        search_results: search_results
+    };
     (StatusCode::OK, Html(template.render().unwrap())).into_response()
 }
 

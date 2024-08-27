@@ -17,7 +17,8 @@
                 id="query" 
                 name="query" 
                 class="border rounded px-2 py-1"
-                placeholder="Enter search term"
+                placeholder={% if is_demo_mode %}"Search for Mazzarelli"{% else %}"Enter search term"{% endif %}
+                {% if is_demo_mode %}value="Mazzarelli"{% else %}{% endif %}
             >
         </div>
         <div class="mt-1 mx-1">
