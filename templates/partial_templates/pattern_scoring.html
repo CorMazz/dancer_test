@@ -34,6 +34,7 @@
                             value="{{ point }}" 
                             class="hidden peer" 
                             required
+                            {% if loop.last %}checked{% else %}{% endif %}
                         >
                         <label 
                             for="pattern--{{ pattern|lower|replace(" ", "_") }}--scoring_category--{{ scoring_category.name|lower|replace(" ", "_") }}--max_score--{{ scoring_category.max_score }}--{{ point }}" 
