@@ -27,7 +27,7 @@ use crate::{
 
 #[derive(Template)]
 #[template(path = "./primary_templates/home.html")] 
-pub struct HomeTemplate {}
+pub struct HomeTemplate { is_demo_mode: bool }
 
 // Block rendering functionality is currently not implemented in Askama. Instead of using server-side partial rendering,
 // I will just use hx-select to grab <div id="primary-content"> that is in my base template
@@ -35,8 +35,8 @@ pub struct HomeTemplate {}
 // #[template(path = "./primary_templates/home.html", block = "content")] 
 // pub struct HomeTemplateContent {}
 
-pub async fn get_home_page() -> impl IntoResponse  {
-    let template: HomeTemplate = HomeTemplate {};
+pub async fn get_home_page(    State(data): State<Arc<AppState>>) -> impl IntoResponse  {
+    let template: HomeTemplate = HomeTemplate { is_demo_mode: data.env.is_demo_mode };
 
     (StatusCode::OK, Html(template.render().unwrap()))
 }
