@@ -32,6 +32,7 @@
                     value="{{ technique_group.technique_headers[loop.index0] }}--{{ point }}" 
                     class="hidden peer" 
                     required
+                    {% if loop.last %}checked{% else %}{% endif %}
                 >
                 <label 
                     for="technique--{{ technique.name|lower|replace(" ", "_") }}--rating--{{ technique_group.technique_headers[loop.index0] }}--points--{{ point }}"

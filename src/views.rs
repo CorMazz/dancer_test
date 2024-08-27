@@ -27,7 +27,7 @@ use crate::{
 
 #[derive(Template)]
 #[template(path = "./primary_templates/home.html")] 
-pub struct HomeTemplate {}
+pub struct HomeTemplate { is_demo_mode: bool }
 
 // Block rendering functionality is currently not implemented in Askama. Instead of using server-side partial rendering,
 // I will just use hx-select to grab <div id="primary-content"> that is in my base template
@@ -35,8 +35,8 @@ pub struct HomeTemplate {}
 // #[template(path = "./primary_templates/home.html", block = "content")] 
 // pub struct HomeTemplateContent {}
 
-pub async fn get_home_page() -> impl IntoResponse  {
-    let template: HomeTemplate = HomeTemplate {};
+pub async fn get_home_page(    State(data): State<Arc<AppState>>) -> impl IntoResponse  {
+    let template: HomeTemplate = HomeTemplate { is_demo_mode: data.env.is_demo_mode };
 
     (StatusCode::OK, Html(template.render().unwrap()))
 }
@@ -262,6 +262,35 @@ pub async fn post_follower_test_form(
 }
 
 // #######################################################################################################################################################
+// test_grade.html
+// #######################################################################################################################################################
+
+#[derive(Template)]
+#[template(path = "./partial_templates/test_grade.html")] 
+pub struct GradeTestTemplate {
+    score: u32,
+    passing_score: u32,
+    max_score: u32,
+}
+
+pub async fn post_grade_test(
+    State(data): State<Arc<AppState>>,
+    Form(test): Form<HashMap<String, String>>,
+) -> impl IntoResponse {
+    let graded_test = parse_test_form_data(test, TestType::Leader, generate_leader_test(data.env.is_demo_mode));
+
+    let template = GradeTestTemplate {
+        score: graded_test.score,
+        passing_score: graded_test.passing_score,
+        max_score: graded_test.max_score
+    };
+    
+    (StatusCode::OK, Html(template.render().unwrap()))
+}
+
+
+
+// #######################################################################################################################################################
 // Json Test Results API
 // #######################################################################################################################################################
 
@@ -319,6 +348,7 @@ pub async fn get_test_results(
 #[derive(Template)]
 #[template(path = "./primary_templates/search_testee.html")] 
 pub struct SearchTesteeTemplate {
+    is_demo_mode: bool,
     search_results: Option<Vec<Testee>>,
 }
 
@@ -338,7 +368,10 @@ pub async fn get_search_testee_form(
         None
     };
 
-    let template = SearchTesteeTemplate { search_results };
+    let template = SearchTesteeTemplate { 
+        is_demo_mode: data.env.is_demo_mode, 
+        search_results: search_results
+    };
     (StatusCode::OK, Html(template.render().unwrap())).into_response()
 }
 

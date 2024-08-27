@@ -21,6 +21,16 @@ If you want to automagically recompile your Rust executable and rebuild your css
 
 cargo watch -s './tailwind/tailwindcss -i ./static/css/input.css -o ./static/css/output.css -c ./tailwind/tailwind.config.js && cargo sqlx prepare && cargo run' --ignore *css* --ignore .sqlx --ignore main.rs --why
 
+For some reason the cargo sqlx prepare command changes the permissions on the main.rs file, which was causing cargo watch to fire repeatedly.
+The cargo sqlx prepare command allows sqlx to compile even when the database is offline. 
+
+To build the two environments locally:
+
+ENV_FILE=.env_prod DOCKER_PORT_MAPPING=7000 SERVER_PORT=8000 PG_ADMIN_DOCKER_PORT_MAPPING=7001 docker-compose -p dancexam-prod up
+ENV_FILE=.env_demo DOCKER_PORT_MAPPING=7002 SERVER_PORT=8000 PG_ADMIN_DOCKER_PORT_MAPPING=7003 docker-compose -p dancexam-demo up
+
+=======
+
 ### Deploying your application to the cloud
 
 First, build your image, e.g.: `docker build -t myapp .`.
