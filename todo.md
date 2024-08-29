@@ -21,4 +21,3 @@
     - Frontend the submit button can be re-enabled by the user and used to submit forms. This is a security vulnerability.
 
 
-

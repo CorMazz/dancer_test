@@ -6,7 +6,7 @@
 
 # Want to help us make this template better? Share your feedback here: https://forms.gle/ybq9Krt8jtBL3iCk7
 
-ARG RUST_VERSION=1.79.0
+ARG RUST_VERSION=1.80.1
 ARG APP_NAME=dancer_test
 
 ################################################################################
@@ -30,7 +30,7 @@ RUN apk add --no-cache clang lld musl-dev git
 
 ENV SQLX_OFFLINE=true
 
-RUN cargo install sqlx-cli --version 0.8.0 --no-default-features --features postgres
+RUN cargo install sqlx-cli --version 0.8.1 --no-default-features --features postgres
 
 RUN --mount=type=bind,source=src,target=src \
     --mount=type=bind,source=templates,target=templates \
