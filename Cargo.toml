@@ -17,7 +17,7 @@ rand_core = { version = "0.6.4", features = ["getrandom"] }
 redis = { version = "0.25.4", features = ["aio", "tokio-comp"] }
 serde = { version = "1.0.204", features = ["derive"] }
 serde_json = "1.0.120"
-sqlx = { version = "0.7.4", features = ["chrono", "postgres", "runtime-tokio", "time", "uuid"] }
+sqlx = { version = "0.8.1", features = ["chrono", "postgres", "runtime-tokio", "uuid"] }
 strum = "0.26.3"
 strum_macros = "0.26.4"
 time = "0.3.36"
