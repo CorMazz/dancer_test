@@ -256,6 +256,7 @@ pub struct TestDefinitionPatternScoringCategory {
 impl TestDefinitionPatternScoringCategory {
     pub fn new(name: ScoringCategoryName, headers: Vec<&'static str>, points: Vec<u32>) -> Self {
         let max_score = points.iter().copied().max().unwrap_or(0);
+
         Self {
             name,
             headers,
@@ -632,7 +633,7 @@ pub fn generate_follower_test(is_demo_mode: bool) -> TestTemplate {
         pattern_scoring_categories: vec![
             TestDefinitionPatternScoringCategory::new(
                 ScoringCategoryName::Footwork,
-                vec!["Perfect", "Variation?", "Right Concept", "Nope"],
+                vec!["Perfect", "Right Concept", "Nope"],
                 vec![2, 1, 0],
             ),
             TestDefinitionPatternScoringCategory::new(

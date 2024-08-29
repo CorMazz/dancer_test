@@ -19,6 +19,5 @@
 ## Security TODO
 - Serverside disable form submission for the demo mode
     - Frontend the submit button can be re-enabled by the user and used to submit forms. This is a security vulnerability.
-- UPGRADE SQLX TO VERSION 0.8.1 TO FIX A SQL INJECTION VULNERABILITY
 
 
