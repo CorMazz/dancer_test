@@ -161,7 +161,6 @@ pub async fn post_login_form(
     State(data): State<Arc<AppState>>,
     Form(login) : Form<LoginForm>,
 ) -> impl IntoResponse {
-    println!("{:?}", login);
 
     match login_user_handler(data, login.email, login.password).await {
         Ok(response) => return response.into_response(),

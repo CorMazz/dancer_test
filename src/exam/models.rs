@@ -249,14 +249,16 @@ pub enum ScoringCategoryName {
 
 pub struct TestDefinitionPatternScoringCategory {
     pub name: ScoringCategoryName,
+    pub headers: Vec<&'static str>,
     pub points: Vec<u32>,
     pub max_score: u32
 }
 impl TestDefinitionPatternScoringCategory {
-    pub fn new(name: ScoringCategoryName, points: Vec<u32>) -> Self {
+    pub fn new(name: ScoringCategoryName, headers: Vec<&'static str>, points: Vec<u32>) -> Self {
         let max_score = points.iter().copied().max().unwrap_or(0);
         Self {
             name,
+            headers,
             points,
             max_score,
         }
@@ -489,10 +491,12 @@ pub fn generate_leader_test(is_demo_mode: bool) -> TestTemplate {
         pattern_scoring_categories: vec![
             TestDefinitionPatternScoringCategory::new(
                 ScoringCategoryName::Footwork,
+                vec!["Perfect", "Variation?", "Right Concept", "Nope"],
                 vec![3, 2, 1, 0],
             ),
             TestDefinitionPatternScoringCategory::new(
                 ScoringCategoryName::Timing,
+                vec!["On", "Off"],
                 vec![1, 0],
             ),
         ],
@@ -628,14 +632,17 @@ pub fn generate_follower_test(is_demo_mode: bool) -> TestTemplate {
         pattern_scoring_categories: vec![
             TestDefinitionPatternScoringCategory::new(
                 ScoringCategoryName::Footwork,
+                vec!["Perfect", "Variation?", "Right Concept", "Nope"],
                 vec![2, 1, 0],
             ),
             TestDefinitionPatternScoringCategory::new(
                 ScoringCategoryName::Timing,
+                vec!["On", "Off"],
                 vec![1, 0],
             ),
             TestDefinitionPatternScoringCategory::new(
                 ScoringCategoryName::Shaping,
+                vec!["Shaped", "Flat"],
                 vec![1, 0],
             ),
         ],

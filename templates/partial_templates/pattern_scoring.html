@@ -1,16 +1,36 @@
 <table class="bg-white w-full mx-1 table-fixed">
+    <col>
+    {% for scoring_category in pattern_scoring_categories %}
+        <colgroup span="{{ scoring_category.points.len() }}"></colgroup>
+    {% endfor %}
+
     <h2 class="text-2xl font-bold py-4 px-4 border-b-2 text-center">Pattern Scoring</h2>
 
     <!-- Label the Scoring Categories -->
-    <thead>
+    <thead class="sticky top-0 bg-white z-10">
+        <!-- Create the Overall Scoring Category Headers -->
         <tr>
             <!-- Empty Padding to Align Everything -->
-            <th class="w-1/4"</th>
+            <th class="w-1/4"></th>
 
             {% for scoring_category in pattern_scoring_categories %}
-                <th class="lg:text-2xl" colspan="{{ scoring_category.points.len() }}">
+                <th class="lg:text-4xl outline-gray-300 py-2" colspan="{{ scoring_category.points.len() }}" scope="colgroup">
                     {{ scoring_category.name }}
                 </th>
+            {% endfor %}
+        </tr>
+
+        <!-- Create the Detailed Scoring Headers -->
+        <tr>
+            <!-- Empty Padding to Align Everything -->
+            <th class="w-1/4 border-r"></th>
+
+            {% for scoring_category in pattern_scoring_categories %}
+                {% for header in scoring_category.headers %}
+                    <th class="mt-1 text-gray-600 lg:text-2xl {% if loop.last %}border-r border-gray-300{% else %}{% endif %}">
+                        {{ header }}
+                    </th>
+                {% endfor %}
             {% endfor %}
         </tr>
     </thead>
@@ -20,12 +40,12 @@
         {% for pattern in patterns %}
         <tr>
             <!-- Add the Pattern Name to the Left Column -->
-            <td class="py-2 px-4 border-b font-bold sm:text-sm md:text-xl lg:text-2xl text-right">{{ pattern }}</td>
+            <td class="py-2 px-4 border-b border-r font-bold sm:text-sm md:text-xl lg:text-2xl text-right">{{ pattern }}</td>
 
             <!-- Add radio buttons for each scoring category -->
             {% for scoring_category in pattern_scoring_categories %}
                 {% for point in scoring_category.points %}
-                    <!-- Add a border between scoring catergories for comprehension -->
+                    <!-- Add a border between scoring categories for comprehension -->
                     <td class="py-2 px-1 w-full border-b text-center {% if loop.last %}border-r border-gray-300 last:border-0{% else %}{% endif %}">
                         <input 
                             type="radio" 
