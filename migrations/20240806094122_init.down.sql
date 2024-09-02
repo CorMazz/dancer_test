@@ -1,5 +1,6 @@
 -- Add down migration script here
 
+DROP TABLE IF EXISTS queue;
 DROP TABLE IF EXISTS bonus_points;
 DROP TABLE IF EXISTS techniques;
 DROP TABLE IF EXISTS patterns;

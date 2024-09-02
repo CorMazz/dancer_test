@@ -1,5 +1,5 @@
 use chrono::{Local, NaiveDateTime};
-use sqlx::{Error, PgPool};
+use sqlx::{query, Error, PgPool};
 use strum_macros::Display;
 use std::{collections::HashMap, fmt::Display};
 use crate::exam::models::{
@@ -207,28 +207,19 @@ pub async fn save_test_to_database(
     graded_test: GradedTest
 ) -> Result<(), TestError> {
     // Insert the testee or get the testee ID if the testee already exists
-    let testee_id = match sqlx::query!(
-        "INSERT INTO testees (first_name, last_name, email)
-        VALUES ($1, $2, $3)
-        ON CONFLICT (email) DO UPDATE SET first_name = $1, last_name = $2
-        RETURNING id",
-        graded_test.testee.first_name,
-        graded_test.testee.last_name,
-        graded_test.testee.email
-    )
-    .fetch_one(pool)
-    .await {
-        Ok(record) => record.id,
-        Err(e) => return Err(e.into()),
-    };
-
+    let testee = create_testee(
+        pool, 
+        &graded_test.testee.first_name, 
+        &graded_test.testee.last_name,
+        &graded_test.testee.email,
+    ).await?;
 
     // Insert a new test record
     let test_id = match sqlx::query!(
         "INSERT INTO tests (testee_id, role, test_date, score, max_score, passing_score)
         VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING id",
-        testee_id,
+        testee.id,
         graded_test.test_type.to_string(),
         graded_test.test_date,
         graded_test.score as i32,
@@ -472,6 +463,11 @@ pub async fn fetch_testee_tests_by_id(
 
 }
 
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
+// Fetch Testee by ID
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
+
+/// Fetch a testee from the testees table by their id
 pub async fn fetch_testee_by_id(pool: &PgPool, testee_id: i32) -> Result<Option<Testee>, TestError> {
     let testee = sqlx::query_as!(
         Testee,
@@ -482,4 +478,129 @@ pub async fn fetch_testee_by_id(pool: &PgPool, testee_id: i32) -> Result<Option<
     .await?;
     
     Ok(testee)
+}
+
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
+// Create Testee
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
+
+pub async fn create_testee(pool: &PgPool, first_name: &str, last_name: &str, email: &str) -> Result<Testee, TestError> {
+    sqlx::query_as!(
+        Testee,
+        "INSERT INTO testees (first_name, last_name, email)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (email) DO UPDATE SET first_name = $1, last_name = $2
+        RETURNING id, first_name, last_name, email",
+        first_name,
+        last_name,
+        email
+    )
+    .fetch_one(pool)
+    .await
+    .map_err(TestError::from)
+}
+
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
+// Enqueue Testee
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
+
+pub async fn enqueue_testee(pool: &PgPool, testee_id: i32, role: &str) -> Result<(), TestError> {
+    sqlx::query!(
+        "INSERT INTO queue (testee_id, role)
+        VALUES ($1, $2)
+        ON CONFLICT (testee_id, role) DO NOTHING",
+        testee_id,
+        role
+    )
+    .execute(pool)
+    .await
+    .map_err(TestError::from)?;
+
+    Ok(())
+}
+
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
+// Dequeue Testee 
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
+
+/// Remove and return the next person on the queue plus the role of their desired test
+/// If a testee_id is given, remove that person, (or throw an error if not found)
+pub async fn dequeue_testee(
+    pool: &PgPool,
+    testee_id: Option<i32>,
+) -> Result<Option<(Testee, String)>, TestError> {
+    // Determine which testee_id to use: provided one or first in the queue
+    let (testee_id, role) = if let Some(id) = testee_id {
+        // If a testee_id is provided, use it
+        match sqlx::query!(
+            "DELETE FROM queue WHERE testee_id = $1 RETURNING role",
+            id
+        )
+        .fetch_optional(pool)
+        .await? {
+        Some(role) => (id, role.role),
+        None => return Ok(None)    
+        }
+    } else {
+        // Otherwise, dequeue the first person in the queue
+        match sqlx::query!(
+            "DELETE FROM queue WHERE testee_id = (
+                SELECT testee_id FROM queue ORDER BY added_at LIMIT 1
+            ) RETURNING testee_id, role"
+        )
+        .fetch_optional(pool)
+        .await? {
+        Some(result ) => (result.testee_id, result.role),
+        None => return Ok(None)
+        }
+    };
+
+    // Fetch the testee details
+    let testee = sqlx::query_as!(
+        Testee,
+        "SELECT id, first_name, last_name, email FROM testees WHERE id = $1",
+        testee_id
+    )
+    .fetch_one(pool)
+    .await?;
+
+    Ok(Some((testee, role)))
+}
+
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
+// Get Queue
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
+
+pub async fn retrieve_queue(pool: &PgPool) -> Result<Vec<(Testee, String)>, TestError> {
+    let rows = sqlx::query!(
+        "
+        SELECT 
+            t.id, t.first_name, t.last_name, t.email, q.role 
+        FROM 
+            queue q
+        JOIN 
+            testees t 
+        ON 
+            q.testee_id = t.id
+        ORDER BY 
+            q.added_at
+        "
+    )
+    .fetch_all(pool)
+    .await?;
+
+    // Map the result into a Vec of (Testee, role) tuples
+    let queue = rows.into_iter().map(|row| {
+        (
+            Testee {
+                id: row.id,
+                first_name: row.first_name,
+                last_name: row.last_name,
+                email: row.email,
+            },
+            row.role,
+        )
+    }).collect();
+
+    Ok(queue)
 }

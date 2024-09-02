@@ -13,12 +13,9 @@ use crate::{
         handlers::{login_user_handler, logout_handler, register_user_handler}, 
         middleware::{AuthError, AuthStatus},
         model::User
-    },
-    exam::{
-        handlers::{fetch_test_results_by_id, fetch_testee_by_id, fetch_testee_tests_by_id, parse_test_form_data, save_test_to_database, search_for_testee, TestError}, models::{generate_follower_test, generate_leader_test, GradedTest, TestSummary, TestType, Testee}
-    },
-    AppState,
-    filters,
+    }, exam::{
+        handlers::{create_testee, enqueue_testee, fetch_test_results_by_id, fetch_testee_by_id, fetch_testee_tests_by_id, parse_test_form_data, retrieve_queue, save_test_to_database, search_for_testee, TestError}, models::{generate_follower_test, generate_leader_test, GradedTest, TestSummary, TestType, Testee}
+    }, filters, AppState
 };
 
 // #######################################################################################################################################################
@@ -411,4 +408,72 @@ pub async fn get_test_summaries(
         option_testee,
     };
     (StatusCode::OK, Html(template.render().unwrap())).into_response()
+}
+
+// #######################################################################################################################################################
+// display_queue.html
+// #######################################################################################################################################################
+
+#[derive(Template)]
+#[template(path = "./primary_templates/queue.html")] 
+pub struct QueueTemplate {
+    admin_user: bool,
+    queue: Vec<(Testee, String)>,
+    is_demo_mode: bool,
+}
+
+pub async fn get_queue(
+    State(data): State<Arc<AppState>>,
+    Extension(auth_status): Extension<AuthStatus>,
+) -> impl IntoResponse {
+    
+    let admin_user = match auth_status {
+        AuthStatus::Authorized(_) => true,
+        AuthStatus::Unauthorized(_) => false
+    };
+
+    let queue = match retrieve_queue(&data.db).await {
+        Ok(q) => q,
+        Err(e) => {
+            return (StatusCode::OK, Html(format!("Error: {:?}", e))).into_response()
+        }
+    };
+
+    let template = QueueTemplate {
+        admin_user: admin_user,
+        queue: queue,
+        is_demo_mode: data.env.is_demo_mode
+    };
+
+    (StatusCode::OK, Html(template.render().unwrap())).into_response()
+}
+
+#[derive(Deserialize)]
+pub struct EnqueueForm {
+    first_name: String,
+    last_name: String,
+    email: String,
+    role: String,
+}
+
+pub async fn post_queue(
+    State(data): State<Arc<AppState>>,
+    Form(user_info): Form<EnqueueForm>,
+) -> impl IntoResponse {
+
+    let testee = match create_testee(
+        &data.db, user_info.first_name.as_str(), user_info.last_name.as_str(), user_info.email.as_str()
+    ).await {
+        Ok(person) => person,
+        Err(e) => {
+            return (StatusCode::OK, Html(format!("Error: {:?}", e))).into_response()
+        }
+    };
+
+
+    if let Err(e) = enqueue_testee(&data.db, testee.id, user_info.role.as_str()).await {
+        return (StatusCode::OK, Html(format!("Error enqueuing testee: {:?}", e))).into_response();
+    }
+    
+    Redirect::to("/queue").into_response()
 }

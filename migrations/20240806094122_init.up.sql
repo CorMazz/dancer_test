@@ -77,3 +77,10 @@ CREATE TABLE bonus_points (
     FOREIGN KEY (test_id) REFERENCES tests(id)
 );
 
+CREATE TABLE queue (
+    testee_id INT NOT NULL,
+    role VARCHAR(10) CHECK (role IN ('leader', 'follower')) NOT NULL,
+    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (testee_id, role),
+    FOREIGN KEY (testee_id) REFERENCES testees(id)
+);

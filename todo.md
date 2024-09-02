@@ -21,3 +21,6 @@
     - Frontend the submit button can be re-enabled by the user and used to submit forms. This is a security vulnerability.
 
 
+## Would be Nice TODO
+- Refactor the test definition to parse a leader_test.yaml and follower_test.yaml at runtime (so that any community can easily define their own test without needing to recompile)
+- Refactor the error handling to use the anyhow crate
