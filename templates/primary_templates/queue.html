@@ -5,62 +5,64 @@
 {% block content %}
 
 <!-- View Queue -->
-<div class="bg-gray-50 shadow-md rounded-lg overflow-hidden hover:bg-gray-100 hover:shadow-xl transition duration-300">
 
-    <div class="p-6">
-        <h2 class="text-2xl font-semibold text-gray-800 mb-4 lg:text-4xl">Join the Queue</h2>
-        <form action="/queue" method="post" class="space-y-4">
-            <!-- First Name -->
-            <div>
-                <label for="first_name" class="block text-sm font-medium text-gray-700">First Name</label>
-                <input type="text" name="first_name" id="first_name" required 
-                       class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-            </div>
-            
-            <!-- Last Name -->
-            <div>
-                <label for="last_name" class="block text-sm font-medium text-gray-700">Last Name</label>
-                <input type="text" name="last_name" id="last_name" required 
-                       class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-            </div>
-            
-            <!-- Email -->
-            <div>
-                <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
-                <input type="email" name="email" id="email" required 
-                       class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-            </div>
-            
-            <!-- Role (Radio Buttons) -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Role</label>
-                <div class="mt-2 flex items-center">
-                    <div class="flex items-center mr-2">
-                        <input type="radio" name="role" id="leader" value="leader" required 
-                               class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500">
-                        <label for="leader" class="ml-2 block text-sm font-medium text-gray-700">Leader</label>
-                    </div>
-                    <div class="flex items-center ml-2">
-                        <input type="radio" name="role" id="follower" value="follower" required 
-                               class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500">
-                        <label for="follower" class="ml-2 block text-sm font-medium text-gray-700">Follower</label>
+<div class="text-center mt-4 mx-4 border-gray-100 bg-gray-50 shadow-lg rounded-lg p-6 hover:bg-gray-100 hover:shadow-xl transition duration-300">
+    <div class="bg-gray-50 shadow-md rounded-lg overflow-hidden hover:bg-gray-100 hover:shadow-xl transition duration-300">
+
+        <div class="p-6">
+            <h2 class="py-2 text-2xl font-bold">Join the Queue</h2>
+            <form action="/queue" method="post" class="space-y-4">
+                <!-- First Name -->
+                <div>
+                    <label for="first_name" class="block text-sm font-medium text-gray-700">First Name</label>
+                    <input type="text" name="first_name" id="first_name" required 
+                        class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                </div>
+                
+                <!-- Last Name -->
+                <div>
+                    <label for="last_name" class="block text-sm font-medium text-gray-700">Last Name</label>
+                    <input type="text" name="last_name" id="last_name" required 
+                        class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                </div>
+                
+                <!-- Email -->
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+                    <input type="email" name="email" id="email" required 
+                        class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                </div>
+                
+                <!-- Role (Radio Buttons) -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Role</label>
+                    <div class="mt-2 flex items-center">
+                        <div class="flex items-center mr-2">
+                            <input type="radio" name="role" id="leader" value="leader" required 
+                                class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500">
+                            <label for="leader" class="ml-2 block text-sm font-medium text-gray-700">Leader</label>
+                        </div>
+                        <div class="flex items-center ml-2">
+                            <input type="radio" name="role" id="follower" value="follower" required 
+                                class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500">
+                            <label for="follower" class="ml-2 block text-sm font-medium text-gray-700">Follower</label>
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Submit Button -->
-            <div>
-                <button type="submit" 
-                        class="{% if is_demo_mode %}bg-gray-300 text-gray-900{% else %}text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500{% endif %}inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md"
-                        {% if is_demo_mode %}disabled{% else %}{% endif %}>
-                    {% if is_demo_mode %}Submission Disabled for Demo{% else %}Join Queue{% endif %}
-                </button>
-            </div>
-        </form>
-    </div>
-    
-    <div id="queue" class="p-6">
-        <h2 class="text-2xl font-semibold text-gray-800 mb-4 lg:text-4xl">Testee Queue</h2>
+                
+                <!-- Submit Button -->
+                <div>
+                    <button type="submit" 
+                            class="{% if is_demo_mode %}bg-gray-300 text-gray-900{% else %}text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500{% endif %}inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md"
+                            {% if is_demo_mode %}disabled{% else %}{% endif %}>
+                        {% if is_demo_mode %}Submission Disabled for Demo{% else %}Join Queue{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>    
+    <div id="queue" class="text-center mt-4 bg-gray-50 shadow-md rounded-lg overflow-hidden hover:bg-gray-100 hover:shadow-xl transition duration-300">
+        <h2 class="py-2 text-2xl font-bold">Testee Queue</h2>
         <table class="min-w-full bg-white">
             <thead>
                 <tr>
@@ -87,6 +89,7 @@
                         hx-select="#primary-content"
                         hx-target="#primary-content"
                         hx-confirm="Administer Test for {{ testee.first_name }} {{testee.last_name}}?"
+                        hx-push-url="true"
                         class="text-indigo-600 hover:text-indigo-900"
                         >Administer Test</a>
 
