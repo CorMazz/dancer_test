@@ -3,10 +3,9 @@ use sqlx::{query, Error, PgPool};
 use strum_macros::Display;
 use std::{collections::HashMap, fmt::Display};
 use crate::exam::models::{
-    BonusPointName, GradedBonusPoint, GradedPattern, GradedTechnique, GradedTest, PatternName, ScoringCategoryName, TechniqueName, TechniqueScoringHeaderName, TestSummary, TestType, Testee
+    BonusPointName, GradedBonusPoint, GradedPattern, GradedTechnique, GradedTest, PatternName, ScoringCategoryName, TechniqueName, TechniqueScoringHeaderName, TestSummary, TestType, Testee, TestDefinition
 };
 
-use super::models::TestTemplate;
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 // Custom Error Enum
@@ -28,6 +27,7 @@ impl From<strum::ParseError> for TestError {
         TestError::InternalServerError(error.to_string())
     }
 }
+
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 // Parse Test
@@ -74,7 +74,7 @@ impl From<strum::ParseError> for TestError {
 /// bonus--clear_turn_signal: 1
 /// bonus--swung_triple: 4
 /// 
-pub fn parse_test_form_data(test: HashMap<String, String>, test_type: TestType, test_template: TestTemplate) -> GradedTest {
+pub fn parse_test_form_data(test: HashMap<String, String>, test_type: TestType, test_template: TestDefinition) -> GradedTest {
     let mut pattern_scores = Vec::new();
     let mut technique_scores = Vec::new();
     let mut bonus_scores = Vec::new();
@@ -523,35 +523,58 @@ pub async fn enqueue_testee(pool: &PgPool, testee_id: i32, role: &str) -> Result
 // Dequeue Testee 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
-/// Remove and return the next person on the queue plus the role of their desired test
+/// Remove and return the next person on the queue plus the role of their desired test.
 /// If a testee_id is given, remove that person, (or throw an error if not found)
 pub async fn dequeue_testee(
     pool: &PgPool,
     testee_id: Option<i32>,
+    role: Option<TestType>,
 ) -> Result<Option<(Testee, String)>, TestError> {
-    // Determine which testee_id to use: provided one or first in the queue
-    let (testee_id, role) = if let Some(id) = testee_id {
-        // If a testee_id is provided, use it
-        match sqlx::query!(
-            "DELETE FROM queue WHERE testee_id = $1 RETURNING role",
-            id
-        )
-        .fetch_optional(pool)
-        .await? {
-        Some(role) => (id, role.role),
-        None => return Ok(None)    
+
+    // Handle different cases based on the presence of testee_id and role
+    let (testee_id, role) = match (testee_id, role) {
+        (Some(id), Some(r)) => {
+            // Both testee_id and role are provided; delete the specific entry
+            match sqlx::query!(
+                "DELETE FROM queue WHERE testee_id = $1 AND role = $2 RETURNING role",
+                id, r.to_string()
+            )
+            .fetch_optional(pool)
+            .await? {
+                Some(result) => (id, result.role),
+                None => return Ok(None),
+            }
         }
-    } else {
-        // Otherwise, dequeue the first person in the queue
-        match sqlx::query!(
-            "DELETE FROM queue WHERE testee_id = (
-                SELECT testee_id FROM queue ORDER BY added_at LIMIT 1
-            ) RETURNING testee_id, role"
-        )
-        .fetch_optional(pool)
-        .await? {
-        Some(result ) => (result.testee_id, result.role),
-        None => return Ok(None)
+        (Some(id), None) => {
+            // Only testee_id is provided; delete the oldest entry for that testee_id
+            match sqlx::query!(
+                "DELETE FROM queue WHERE ctid = (
+                    SELECT ctid FROM queue WHERE testee_id = $1 ORDER BY added_at LIMIT 1
+                ) RETURNING role",
+                id
+            )
+            .fetch_optional(pool)
+            .await? {
+                Some(result) => (id, result.role),
+                None => return Ok(None),
+            }
+        }
+        (None, None) => {
+            // Neither testee_id nor role is provided; delete the oldest queue item
+            match sqlx::query!(
+                "DELETE FROM queue WHERE ctid = (
+                    SELECT ctid FROM queue ORDER BY added_at LIMIT 1
+                ) RETURNING testee_id, role"
+            )
+            .fetch_optional(pool)
+            .await? {
+                Some(result) => (result.testee_id, result.role),
+                None => return Ok(None),
+            }
+        }
+        (None, Some(_)) => {
+            // Only role is provided, which is an invalid case
+            return Err(TestError::InternalServerError("Role specified without testee_id when trying to dequeue.".into()));
         }
     };
 

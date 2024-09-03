@@ -315,19 +315,16 @@ pub enum PatternName {
 }
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
-// Test Template
+// Test Definition
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
-#[derive(Template)]
-#[template(path = "./primary_templates/dancer_test.html")] 
-pub struct TestTemplate {
+pub struct TestDefinition {
     pub test_type: TestType,
     pub passing_score: u32,
     pub patterns: Vec<PatternName>,
     pub pattern_scoring_categories: Vec<TestDefinitionPatternScoringCategory>,
     pub technique_groups: Vec<TestDefinitionTechniqueGroup>,
     pub bonus_items: Vec<TestDefinitionBonusItem>,
-    pub is_demo_mode: bool,
 }
 
 // #######################################################################################################################################################
@@ -390,6 +387,7 @@ impl From<HashMap<String, String>> for Testee {
 
 // Didn't use SQLX custom types because they required hoops to jump through for compile time type checking to work
 #[derive(Debug, EnumString, Display, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 #[strum(serialize_all = "snake_case")]
 pub enum TestType {
     Leader,
@@ -471,9 +469,8 @@ pub struct TestSummary {
 // Leader Test
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
-pub fn generate_leader_test(is_demo_mode: bool) -> TestTemplate {
-    TestTemplate {
-        is_demo_mode: is_demo_mode,
+pub fn generate_leader_test() -> TestDefinition {
+    TestDefinition {
         test_type: TestType::Leader,
         passing_score: 60,
         patterns:  vec![
@@ -618,9 +615,8 @@ pub fn generate_leader_test(is_demo_mode: bool) -> TestTemplate {
 // Leader Test
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
-pub fn generate_follower_test(is_demo_mode: bool) -> TestTemplate {
-    TestTemplate {
-        is_demo_mode: is_demo_mode,
+pub fn generate_follower_test() -> TestDefinition {
+    TestDefinition {
         test_type: TestType::Follower,
         passing_score: 60,
         patterns:  vec![

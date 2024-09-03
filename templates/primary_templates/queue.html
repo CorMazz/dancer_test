@@ -80,10 +80,23 @@
                     <td class="py-2 px-4">{{ role|capitalize }}</td>
                     {% if admin_user %}
                     <td class="py-2 px-4">
-                        <a href="/administer_test/{{ testee.id }}" 
-                           class="text-indigo-600 hover:text-indigo-900">Administer Test</a> |
-                        <a href="/queue/dequeue/{{ testee.id }}" 
-                           class="text-red-600 hover:text-red-900">Delete</a>
+                        <a 
+                        id="administer-test-button"
+                        hx-delete="/queue/dequeue?testee_id={{ testee.id }}&role={{ role }}" 
+                        hx-swap="outerHTML"
+                        hx-select="#primary-content"
+                        hx-target="#primary-content"
+                        hx-confirm="Administer Test for {{ testee.first_name }} {{testee.last_name}}?"
+                        class="text-indigo-600 hover:text-indigo-900"
+                        >Administer Test</a>
+
+                        <a 
+                        hx-delete="/queue/dequeue?testee_id={{ testee.id }}&role={{ role }}" 
+                        hx-swap="outerHTML"
+                        hx-confirm="Are you sure you want to delete {{ testee.first_name }} {{testee.last_name}} from the queue?"
+                        hx-target="closest tr"
+                        class="text-red-600 hover:text-red-900 hover:underline">Delete</a>
+
                     </td>
                     {% endif %}
                 </tr>

@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use askama_axum::Template; // bring trait in scope
 use axum::{
-    extract::{Path, State, Query}, http::StatusCode, response::{Html, IntoResponse, Redirect}, Extension, Form, Json
+    extract::{Path, Query, State}, http::{HeaderMap, StatusCode}, response::{Html, IntoResponse, Redirect}, Extension, Form, Json
 };
 use axum_extra::extract::CookieJar;
 use serde::Deserialize;
@@ -14,7 +14,7 @@ use crate::{
         middleware::{AuthError, AuthStatus},
         model::User
     }, exam::{
-        handlers::{create_testee, enqueue_testee, fetch_test_results_by_id, fetch_testee_by_id, fetch_testee_tests_by_id, parse_test_form_data, retrieve_queue, save_test_to_database, search_for_testee, TestError}, models::{generate_follower_test, generate_leader_test, GradedTest, TestSummary, TestType, Testee}
+        handlers::{create_testee, dequeue_testee, enqueue_testee, fetch_test_results_by_id, fetch_testee_by_id, fetch_testee_tests_by_id, parse_test_form_data, retrieve_queue, save_test_to_database, search_for_testee, TestError}, models::{generate_follower_test, generate_leader_test, GradedTest, TestDefinition, TestSummary, TestType, Testee}
     }, filters, AppState
 };
 
@@ -215,9 +215,31 @@ pub async fn get_dashboard_page() -> impl IntoResponse  {
 // leader_test.html
 // #######################################################################################################################################################
 
+#[derive(Template)]
+#[template(path = "./primary_templates/dancer_test.html")] 
+pub struct DancerTestPageTemplate {
+    test: TestDefinition,
+    prefilled_user_info: PrefilledTestData,
+    is_demo_mode: bool,
+}
 
-pub async fn get_leader_test_page(State(data): State<Arc<AppState>>) -> impl IntoResponse  {
-    let template = generate_leader_test(data.env.is_demo_mode);
+#[derive(Deserialize)]
+pub struct PrefilledTestData {
+    first_name: Option<String>,
+    last_name: Option<String>,
+    email: Option<String>,
+    role: Option<String>,
+}
+
+pub async fn get_leader_test_page(
+    State(data): State<Arc<AppState>>,
+    Query(prefilled_user_info): Query<PrefilledTestData>,
+) -> impl IntoResponse  {
+    let template = DancerTestPageTemplate {
+        test: generate_leader_test(),
+        prefilled_user_info: prefilled_user_info,
+        is_demo_mode: data.env.is_demo_mode,
+    };
 
     (StatusCode::OK, Html(template.render().unwrap()))
 }
@@ -226,11 +248,11 @@ pub async fn post_leader_test_form(
     State(data): State<Arc<AppState>>,
     Form(test): Form<HashMap<String, String>>,
 ) -> impl IntoResponse {
-    let graded_test = parse_test_form_data(test, TestType::Leader, generate_leader_test(data.env.is_demo_mode));
+    let graded_test = parse_test_form_data(test, TestType::Leader, generate_leader_test());
 
     match save_test_to_database(&data.db, graded_test).await {
         Ok(_) => Redirect::to("/dashboard").into_response(),
-        Err(e) => return (StatusCode::OK, Html(format!("Error: {:?}", e))).into_response(),
+        Err(e) => return (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">: {:?}</h1>", e))).into_response(),
     }
 }
 
@@ -239,8 +261,15 @@ pub async fn post_leader_test_form(
 // #######################################################################################################################################################
 
 /// This could've been refactored to avoid copy-pasting the leader functions, but tbh this is a spot where it wasn't worth the effort
-pub async fn get_follower_test_page(State(data): State<Arc<AppState>>) -> impl IntoResponse  {
-    let template = generate_follower_test(data.env.is_demo_mode);
+pub async fn get_follower_test_page(
+    State(data): State<Arc<AppState>>,
+    Query(prefilled_user_info): Query<PrefilledTestData>,
+) -> impl IntoResponse  {
+    let template = DancerTestPageTemplate {
+        test: generate_follower_test(),
+        prefilled_user_info: prefilled_user_info,
+        is_demo_mode: data.env.is_demo_mode,
+    };
 
     (StatusCode::OK, Html(template.render().unwrap()))
 }
@@ -249,11 +278,11 @@ pub async fn post_follower_test_form(
     State(data): State<Arc<AppState>>,
     Form(test): Form<HashMap<String, String>>,
 ) -> impl IntoResponse {
-    let graded_test = parse_test_form_data(test, TestType::Follower, generate_follower_test(data.env.is_demo_mode));
+    let graded_test = parse_test_form_data(test, TestType::Follower, generate_follower_test());
 
     match save_test_to_database(&data.db, graded_test).await {
         Ok(_) => Redirect::to("/dashboard").into_response(),
-        Err(e) => return (StatusCode::OK, Html(format!("Error: {:?}", e))).into_response(),
+        Err(e) => return (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error: {:?}</h1>", e))).into_response(),
     }
 }
 
@@ -273,7 +302,7 @@ pub async fn post_grade_test(
     State(data): State<Arc<AppState>>,
     Form(test): Form<HashMap<String, String>>,
 ) -> impl IntoResponse {
-    let graded_test = parse_test_form_data(test, TestType::Leader, generate_leader_test(data.env.is_demo_mode));
+    let graded_test = parse_test_form_data(test, TestType::Leader, generate_leader_test());
 
     let template = GradeTestTemplate {
         score: graded_test.score,
@@ -300,7 +329,7 @@ pub async fn get_json_test_results(
             None => (StatusCode::NOT_FOUND, Json("No test with that ID found")).into_response(),
         }
         Err(TestError::InternalServerError(err)) => {
-            (StatusCode::OK, Html(format!("Error: {:?}", err))).into_response()
+            (StatusCode::OK, Json(format!("Error: {:?}", err))).into_response()
         }
     }
 }
@@ -327,12 +356,12 @@ pub async fn get_test_results(
             match template.render() {
                 Ok(rendered) => Html(rendered).into_response(),
                 Err(e) => {
-                    (StatusCode::OK, Html(format!("Error: {:?}", e))).into_response()
+                    (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error: {:?}</h1>", e))).into_response()
                 }
             }
         }
         Err(TestError::InternalServerError(err)) => {
-            (StatusCode::OK, Html(format!("Error: {:?}", err))).into_response()
+            (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error: {:?}<h1>", err))).into_response()
         }
     }
 }
@@ -390,7 +419,7 @@ pub async fn get_test_summaries(
     let option_test_summaries = match fetch_testee_tests_by_id(&data.db, testee_id).await {
         Ok(option) => option,
         Err(e) => match e {
-            TestError::InternalServerError(msg) => return (StatusCode::OK, Html(format!("Error: {:?}", msg))).into_response(),
+            TestError::InternalServerError(msg) => return (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error: {:?}</h1>", msg))).into_response(),
             _ => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": "Undefined behavior. This should never happen." }))).into_response()
         }
     };
@@ -398,7 +427,7 @@ pub async fn get_test_summaries(
     let option_testee = match fetch_testee_by_id(&data.db, testee_id).await {
         Ok(option) => option,
         Err(e) => match e {
-            TestError::InternalServerError(msg) => return (StatusCode::OK, Html(format!("Error: {:?}", msg))).into_response(),
+            TestError::InternalServerError(msg) => return (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error: {:?}</h1>", msg))).into_response(),
             _ => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": "Undefined behavior. This should never happen." }))).into_response()
         }
     };
@@ -411,7 +440,7 @@ pub async fn get_test_summaries(
 }
 
 // #######################################################################################################################################################
-// display_queue.html
+// queue.html
 // #######################################################################################################################################################
 
 #[derive(Template)]
@@ -435,7 +464,7 @@ pub async fn get_queue(
     let queue = match retrieve_queue(&data.db).await {
         Ok(q) => q,
         Err(e) => {
-            return (StatusCode::OK, Html(format!("Error: {:?}", e))).into_response()
+            return (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error: {:?}</h1>", e))).into_response()
         }
     };
 
@@ -466,14 +495,65 @@ pub async fn post_queue(
     ).await {
         Ok(person) => person,
         Err(e) => {
-            return (StatusCode::OK, Html(format!("Error: {:?}", e))).into_response()
+            return (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error: {:?}</h1>", e))).into_response()
         }
     };
 
 
     if let Err(e) = enqueue_testee(&data.db, testee.id, user_info.role.as_str()).await {
-        return (StatusCode::OK, Html(format!("Error enqueuing testee: {:?}", e))).into_response();
+        return (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error enqueuing testee: {:?}</h1>", e))).into_response();
     }
     
     Redirect::to("/queue").into_response()
+}
+
+// #######################################################################################################################################################
+// dequeue
+// #######################################################################################################################################################
+
+#[derive(Deserialize, Debug)]
+pub struct DequeueParams {
+    testee_id: Option<i32>,
+    role: Option<TestType>,
+}
+
+/// Removes a user from the queue upon receiving a delete request. If called with a request header HX-Trigger equal to 
+/// "administer-test-button", will redirect to the proper (leader or follower) administer test page with the query parameters
+/// equal to the queue user's information. If there is no response header, just deletes the user and returns empty html.
+pub async fn delete_dequeue(
+    State(data): State<Arc<AppState>>,
+    Query(params): Query<DequeueParams>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
+
+    let (testee, role) = match dequeue_testee(&data.db, params.testee_id, params.role).await {
+        Ok(option) => match option {
+            Some(result) => (result.0, result.1),
+            None => return (StatusCode::OK, Html("<h1 id=\"primary-content\">Error: No testee with that ID found --> Perhaps the queue was empty.</h1>")).into_response(),
+        },
+        Err(e) => {
+            return (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error dequeuing testee: {:?}</h1>", e))).into_response();
+        }
+    };
+
+    if let Some(header_value) = headers.get("HX-Trigger") {
+        if header_value == "administer-test-button" {
+            // Convert the role and testee fields to strings for use in the URL
+            let role = role.to_string();
+            let first_name = testee.first_name.to_string();
+            let last_name = testee.last_name.to_string();
+            let email = testee.email.to_string();
+
+            let redirect_url = format!(
+                "/{}-test?first_name={}&last_name={}&email={}",
+                role, first_name, last_name, email
+            );
+
+            println!("{:?}" ,redirect_url);
+
+            return Redirect::to(&redirect_url).into_response();
+        }
+    }
+
+    (StatusCode::OK, Html("")).into_response()
 }
