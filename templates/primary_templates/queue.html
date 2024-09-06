@@ -61,16 +61,16 @@
             </form>
         </div>
     </div>    
-    <div id="queue" class="text-center mt-4 bg-gray-50 shadow-md rounded-lg overflow-hidden hover:bg-gray-100 hover:shadow-xl transition duration-300">
+    <div id="queue" class="overflow-x-auto text-center mt-4 bg-gray-50 shadow-md rounded-lg overflow-hidden hover:bg-gray-100 hover:shadow-xl transition duration-300">
         <h2 class="py-2 text-2xl font-bold">Testee Queue</h2>
         <table class="min-w-full bg-white">
             <thead>
                 <tr>
-                    <th class="py-2 text-left text-sm font-semibold text-gray-800">First Name</th>
-                    <th class="py-2 text-left text-sm font-semibold text-gray-800">Last Name</th>
-                    <th class="py-2 text-left text-sm font-semibold text-gray-800">Role</th>
+                    <th class="py-2 text-sm md:text-lg font-semibold text-gray-800">First Name</th>
+                    <th class="py-2 text-sm md:text-lg font-semibold text-gray-800">Last Name</th>
+                    <th class="py-2 text-sm md:text-lg font-semibold text-gray-800">Role</th>
                     {% if admin_user %}
-                        <th class="py-2 text-left text-sm font-semibold text-gray-800">Actions</th>
+                        <th class="py-2 text-sm md:text-lg font-semibold text-gray-800">Actions</th>
                     {% endif %}
                 </tr>
             </thead>
@@ -92,7 +92,7 @@
                         hx-push-url="true"
                         class="text-indigo-600 hover:text-indigo-900"
                         >Administer Test</a>
-
+                        <span>|</span>
                         <a 
                         hx-delete="/queue/dequeue?testee_id={{ testee.id }}&role={{ role }}" 
                         hx-swap="outerHTML"

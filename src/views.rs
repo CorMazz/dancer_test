@@ -549,8 +549,6 @@ pub async fn delete_dequeue(
                 role, first_name, last_name, email
             );
 
-            println!("{:?}" ,redirect_url);
-
             return Redirect::to(&redirect_url).into_response();
         }
     }
