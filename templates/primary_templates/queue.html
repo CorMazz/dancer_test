@@ -70,7 +70,11 @@
                     <th class="py-2 text-sm md:text-lg font-semibold text-gray-800">Last Name</th>
                     <th class="py-2 text-sm md:text-lg font-semibold text-gray-800">Role</th>
                     {% if admin_user %}
-                        <th class="py-2 text-sm md:text-lg font-semibold text-gray-800">Actions</th>
+                        <th class="py-2 text-sm md:text-lg font-semibold text-gray-800">
+                            <p>Actions</p>
+                            {% if is_demo_mode %}<p class="text-sm text-gray-500 font-normal">Disabled for Demo</p>{% else %}{% endif %}
+                            
+                        </th>
                     {% endif %}
                 </tr>
             </thead>
@@ -82,8 +86,8 @@
                     <td class="py-2 px-4">{{ role|capitalize }}</td>
                     {% if admin_user %}
                     <td class="py-2 px-4">
-                        <a 
-                        id="administer-test-button"
+                        <button
+                        id="administer-test-button"   {# ID is used in HX-Trigger response header parsing #}
                         hx-delete="/queue/dequeue?testee_id={{ testee.id }}&role={{ role }}" 
                         hx-swap="outerHTML"
                         hx-select="#primary-content"
@@ -91,14 +95,17 @@
                         hx-confirm="Administer Test for {{ testee.first_name }} {{testee.last_name}}?"
                         hx-push-url="true"
                         class="text-indigo-600 hover:text-indigo-900"
-                        >Administer Test</a>
+                        {% if is_demo_mode %}disabled{% else %}{% endif %}
+                        >Administer Test</button> 
                         <span>|</span>
-                        <a 
+                        <button 
                         hx-delete="/queue/dequeue?testee_id={{ testee.id }}&role={{ role }}" 
                         hx-swap="outerHTML"
                         hx-confirm="Are you sure you want to delete {{ testee.first_name }} {{testee.last_name}} from the queue?"
                         hx-target="closest tr"
-                        class="text-red-600 hover:text-red-900 hover:underline">Delete</a>
+                        class="text-red-600 hover:text-red-900 hover:underline"
+                        {% if is_demo_mode %}disabled{% else %}{% endif %}
+                        >Delete</button>
 
                     </td>
                     {% endif %}
