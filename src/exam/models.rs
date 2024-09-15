@@ -1,9 +1,253 @@
-use std::{collections::HashMap};
+use std::{array, collections::{HashMap, HashSet}};
 use askama::Template;
+use axum::{http::header, routing::head};
 use chrono::NaiveDateTime;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
+
 use strum_macros::{Display, EnumString};
 use crate::filters;
+
+
+#[derive(Debug, Serialize)]
+pub struct Test {
+    metadata: Metadata,
+    sections: Vec<TestSection>,
+    bonus_section: Option<BonusSection>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct TestSection {
+    section_name: String,
+    header_labels: Vec<HeaderLabel>,
+    graded_items: Vec<GradedItem>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct BonusSection {
+    bonus_items: Vec<BonusItem>
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct BonusItem {
+    bonus_name: String,
+    score: u64,
+}
+
+#[derive(Debug, Serialize, Clone)]
+struct Metadata {
+    test_name: String,
+    minimum_percent: f64,
+    max_score: u64
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct HeaderLabel {
+    header_section_label: String,
+    values: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct FailingHeaderLabel {
+    header_section_label: String,
+    values: Vec<String>, 
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct GradedItem {
+    name: String,
+    scores: Vec<Vec<u64>>,
+    subtext: Option<String>,
+    failing_header_labels: Option<Vec<FailingHeaderLabel>>,
+    antithesis: Option<String>,
+}
+
+impl Test {
+    fn calculate_max_score(&self) -> u64 {
+        self.sections.iter()
+            .flat_map(|section| section.graded_items.iter())
+            .flat_map(|item| item.scores.iter())
+            .flat_map(|score| score.iter())
+            .cloned()
+            .max()
+            .unwrap_or(0)
+    }
+}
+
+impl<'de> Deserialize<'de> for Metadata {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        // Define an intermediate struct to handle deserialization
+        #[derive(Deserialize)]
+        struct IntermediateMetadata {
+            test_name: String,
+            minimum_percent: f64,
+            // Omit max_score in intermediate deserialization
+        }
+
+        // Deserialize using the intermediate struct
+        let intermediate: IntermediateMetadata = IntermediateMetadata::deserialize(deserializer)?;
+
+        // Return Metadata with calculated max_score (will be set later in Test)
+        Ok(Metadata {
+            test_name: intermediate.test_name,
+            minimum_percent: intermediate.minimum_percent,
+            max_score: 0, // Placeholder value, to be updated later
+        })
+    }
+}
+
+impl<'de> Deserialize<'de> for Test {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        // Deserialize the Test struct from the input
+        let mut map: serde_yaml::Mapping = serde_yaml::Mapping::deserialize(deserializer)?;
+        let mut metadata: Metadata = serde_yaml::from_value(map["metadata"].clone()).expect("On plane will fix");
+        let sections: Vec<TestSection> = serde_yaml::from_value(map["sections"].clone()).expect("On plane will fix");
+        let bonus_items: Vec<BonusItem> = serde_yaml::from_value(map["bonus_section"].clone()).expect("On plane will fix");
+        let bonus_section = BonusSection {bonus_items};
+
+        // Perform validation
+        for section in &sections {
+            // Validate header labels against graded items
+            if let Err(e) = validate_header_labels(&section.graded_items, &section.header_labels) {
+                return Err(serde::de::Error::custom(e));
+            }
+
+            // Validate failing header labels
+            if let Err(e) = validate_failing_header_labels(&section.graded_items, &section.header_labels) {
+                return Err(serde::de::Error::custom(e));
+            }
+        }
+
+        // Calculate and set max score in metadata
+        metadata.max_score = Test {
+            metadata: metadata.clone(),
+            sections: sections.clone(),
+            bonus_section: Some(bonus_section.clone()),
+        }.calculate_max_score();
+
+        // Return the final Test instance with the updated metadata
+        Ok(Test {
+            metadata,
+            sections,
+            bonus_section: Some(bonus_section),
+        })
+    }
+}
+
+/// When given the list of GradedItems and the list of HeaderLabels corresponding to a TestSection, will
+/// validate that the GradedItems have scores that line up with the number of HeaderLabels in the TestSection. 
+/// IE, in the following yaml ensures that there is only one scores list in the graded item named "Body Lead"
+/// since there is only one header label, and ensures that the length of that scores list is 5 since there are 
+/// 5 values within the header label. 
+///   - section_name: "Technique Scoring"
+///      header_labels:
+///      - section_label: ""
+///        values: ["Consistent >90%", "Present 75%", "Occasional 50%", "Lacking 25%", "Missing <10%"]
+///      graded_items: 
+///        - name: "Body Lead"
+///          subtext: "(Week 1)"
+///          scores: 
+///            - [8, 6, 0, 0, 0]
+fn validate_header_labels(graded_items: &[GradedItem], header_labels: &[HeaderLabel]) -> Result<(), String> {
+    
+    // Check to ensure that each item has one list of scores per header label.
+    let expected_number_of_scores_lists = header_labels.len();
+    for item in graded_items {
+        if item.scores.len() != expected_number_of_scores_lists {
+            return Err(format!(
+                "Graded item '{}' has a number of lists of scores ({}) that does not correspond to the number of header label groups. ({})",
+                item.name, item.scores.len(), header_labels.len()
+            ))
+        }
+    }
+
+    // Check to ensure that each item's list of scores is the same length as the corresponding list of header labels.
+    for (i, header_label) in header_labels.into_iter().enumerate() {
+        let expected_number_of_scores = header_label.values.len();
+        for item in graded_items {
+            if item.scores[i].len() != expected_number_of_scores {
+                return Err(format!(
+                    "The graded item named '{}' has a score list at index {} of length {} that does not correspond to the number of header labels ({}) for the header label group at index {}.",
+                    item.name, i, item.scores[i].len(), expected_number_of_scores, i
+                ))
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Checks to ensure that all of the failing header labels for the graded items correspond to actual header values.
+/// IE, in the following yaml, checks to ensure that the failing header labels for the starter step correspond
+/// to actual header section labels and that the values correspond to the values. So it matches the string footwork
+/// to footwork and makes sure "Nope" is inside the list of header_labels values. 
+/// header_labels:
+/// - header_section_label: "Footwork"
+///   values: ["Perfect", "Variation?", "Right Concept", "Nope"]
+/// - header_section_label: "Timing"
+///   values: ["On", "Off"]
+/// graded_items:
+/// - name: "Starter Step"
+///   scores: 
+///     - [3, 2, 1, 0]
+///     - [1, 0]
+///   failing_header_labels: 
+///     - header_section_label: "Footwork"
+///       values: ["Nope"]
+fn validate_failing_header_labels(graded_items: &[GradedItem], header_labels: &[HeaderLabel]) -> Result<(), String> {
+
+    // Create a hashmap of the header labels so that we can correspond failing header labels on the graded item to the true header labels
+    let mut header_label_hm: HashMap<String, Vec<String>> = HashMap::new();
+    for header_label in header_labels {
+        header_label_hm.insert(header_label.header_section_label.clone(), header_label.values.clone());
+    }
+
+    for item in graded_items {
+        match &item.failing_header_labels {
+            // Has failing header labels
+            Some(labels) => for label in labels {
+
+                match header_label_hm.get(&label.header_section_label) {
+                    // The failing header label corresponds to a section (ie, the footwork section)
+                    Some(valid_failing_header_labels) => for failing_header_label in &label.values {
+                        if !valid_failing_header_labels.contains(&failing_header_label) {
+                            return Err(format!(
+                                "The graded item named '{}' has a failing header named '{}' that does not correspond to any of the header labels ({:#?}) in the header section named '{}'.",
+                                item.name, failing_header_label, valid_failing_header_labels, label.header_section_label
+                            ))
+                        }
+                    },
+                    // The failing header label does not correspond to a valid section
+                    None => return Err(format!(
+                        "The graded item named '{}' has failing headers '{:#?}' under the header section label '{}' that does not correspond to any of the valid header section labels ({:#?}).",
+                        item.name, label.values, label.header_section_label, header_label_hm.keys()
+                    ))
+                }
+            }
+            // Does not have failing header labels
+            None => continue
+        }
+    }
+    Ok(())
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // #######################################################################################################################################################
 // #######################################################################################################################################################

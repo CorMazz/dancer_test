@@ -5,8 +5,9 @@ mod views;
 mod filters;
 mod exam;
 
-use config::Config;
-use std::sync::Arc;
+use config::SecretsConfig;
+use exam::models::Test;
+use std::{fs::File, io::Read, sync::Arc};
 
 use axum::http::{
     header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
@@ -20,16 +21,24 @@ use tower_http::cors::CorsLayer;
 
 pub struct AppState {
     db: Pool<Postgres>,
-    env: Config,
+    env: SecretsConfig,
     redis_client: Client,
 }
 
 
 #[tokio::main]
 async fn main() {
+
+    let mut file = File::open("leader_test.yaml").expect("couldn't open file");
+    let mut yaml_string = String::new();
+    file.read_to_string(&mut yaml_string).expect("couldn't read file to string");
+
+    let test: Test = serde_yaml::from_str(&yaml_string).expect("couldn't parse yaml");
+    println!("{:#?}", test);
+
     dotenv().ok();
 
-    let config = Config::init();
+    let config = SecretsConfig::init();
 
     let pool = match PgPoolOptions::new()
         .max_connections(10)

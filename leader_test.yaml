@@ -1,0 +1,67 @@
+metadata:
+  test_name: "Standard Leader Test"
+  minimum_percent: 0.60
+  max_score: 20
+
+sections:
+  - section_name: "Pattern Scoring"
+    header_labels:
+      - header_section_label: "Footwork"
+        values: ["Perfect", "Variation?", "Right Concept", "Nope"]
+      - header_section_label: "Timing"
+        values: ["On", "Off"]
+    graded_items:
+      - name: "Starter Step"
+        scores: 
+          - [3, 2, 1, 0]
+          - [1, 0]
+        failing_header_labels: 
+          - header_section_label: "Footwork"
+            values: ["Nope"]
+      - name: "Left Side Pass from Closed"
+        scores: 
+          - [3, 2, 1, 0]
+          - [1, 0]
+
+  - section_name: "Technique Scoring"
+    header_labels:
+      - header_section_label: ""
+        values: ["Consistent >90%", "Present 75%", "Occasional 50%", "Lacking 25%", "Missing <10%"]
+    graded_items: 
+      - name: "Body Lead"
+        subtext: "(Week 1)"
+        scores: 
+          - [8, 6, 0, 0, 0]
+        failing_header_labels: 
+          - header_section_label: ""
+            values: ["Missing <10%"]
+        antithesis: "Arm Lead"
+      - name: "Post"
+        subtext: "(Week 2)"
+        scores: 
+          - [6, 4, 0, 0, 0]
+        failing_header_labels: 
+          - header_section_label: ""
+            values: ["Missing <10%"]
+        antithesis: "Arm Lead"
+
+  - section_name: ""
+    header_labels:
+      - header_section_label: ""
+        values: ["Perpendicular", "Over-Angled", "Angled", "Under-Angled", "Flat"]
+    graded_items:
+      - name: "Body Angle"
+        subtext: "(Week 1)"
+        scores: 
+          - [0, 2, 3, 2, 0]
+        failing_header_labels: 
+          - header_section_label: ""
+            values: ["Perpendicular", "Flat"]
+
+bonus_section: 
+  - bonus_name: "No Thumbs"
+    score: 1
+  - bonus_name: "Clear Turn Signal"
+    score: 1
+  - bonus_name: "Swung Triple"
+    score: 4
