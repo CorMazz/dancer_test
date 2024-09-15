@@ -1,10 +1,10 @@
 metadata:
-  test_name: "Standard Leader Test"
+  test_name: "Standard Follower Test"
   minimum_percent: 0.60
   max_score: 20
 
 sections:
-  - name: "Leader Pattern Scoring"
+  - name: "Follower Pattern Scoring"
     scoring_categories:
       - name: "Footwork"
         values: ["Perfect", "Variation?", "Right Concept", "Nope"]

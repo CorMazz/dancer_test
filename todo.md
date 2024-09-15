@@ -3,15 +3,13 @@
 ## Required TODO
 - Add HTMX functionality to everything
 - Send emails to testees once their tests are graded
+- Fix the test max score calculation when I have wifi
 
 ## Additional Possible Functionality
 - Add "most recent testee" to the dashboard
-- Add a testee queue
-- Add dynamic grading to leader/follower test pages
 - Add dynamic form validation to leader/follower test pages
 - Add dynamic form validation to the sign up/login pages
 - Add pagination/active search to the test summary list page
-- Add organizations to the users so that different clubs can use this
 
 ## Pretty TODO
 - Make my errors not just display unformatted HTML cause I'm lazy...
@@ -22,5 +20,5 @@
 
 
 ## Would be Nice TODO
-- Refactor the test definition to parse a leader_test.yaml and follower_test.yaml at runtime (so that any community can easily define their own test without needing to recompile)
 - Refactor the error handling to use the anyhow crate
+- Separate the test parsing into a separate crate that I can provide as an executable so that other people can work on creating valid tests

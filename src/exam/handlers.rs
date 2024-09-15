@@ -1,10 +1,12 @@
 use chrono::{Local, NaiveDateTime};
 use sqlx::{query, Error, PgPool};
 use strum_macros::Display;
-use std::{collections::HashMap, fmt::Display};
+use std::{collections::HashMap, fmt::Display, fs::File, io::Read};
 use crate::exam::models::{
-    BonusPointName, GradedBonusPoint, GradedPattern, GradedTechnique, GradedTest, PatternName, ScoringCategoryName, TechniqueName, TechniqueScoringHeaderName, TestSummary, TestType, Testee, TestDefinition
+    Testee, TestType
 };
+
+use super::models::TestDefinition;
 
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -30,253 +32,266 @@ impl From<strum::ParseError> for TestError {
 
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
-// Parse Test
+// Parse Test from YAML
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
-/// Parses the test form data, which should have a format of a hashmap more or less like this
-///
-/// first_name: Corrado
-/// last_name: Mazzarelli
-/// email: corrado@mazzarelli.biz
-/// pattern--starter_step--scoring_category--footwork--max_score--3: 3
-/// pattern--starter_step--scoring_category--timing--max_score--1: 0
-/// pattern--left_side_pass_from_closed--scoring_category--footwork--max_score--3: 2
-/// pattern--left_side_pass_from_closed--scoring_category--timing--max_score--1: 0
-/// pattern--sugar_tuck--scoring_category--footwork--max_score--3: 1
-/// pattern--sugar_tuck--scoring_category--timing--max_score--1: 0
-/// pattern--cutoff_whip--scoring_category--footwork--max_score--3: 0
-/// pattern--cutoff_whip--scoring_category--timing--max_score--1: 1
-/// pattern--left_side_pass--scoring_category--footwork--max_score--3: 0
-/// pattern--left_side_pass--scoring_category--timing--max_score--1: 1
-/// pattern--whip--scoring_category--footwork--max_score--3: 0
-/// pattern--whip--scoring_category--timing--max_score--1: 1
-/// pattern--sugar_push--scoring_category--footwork--max_score--3: 0
-/// pattern--sugar_push--scoring_category--timing--max_score--1: 1
-/// pattern--spinning_side_pass--scoring_category--footwork--max_score--3: 0
-/// pattern--spinning_side_pass--scoring_category--timing--max_score--1: 1
-/// pattern--right_side_pass--scoring_category--footwork--max_score--3: 1
-/// pattern--right_side_pass--scoring_category--timing--max_score--1: 0
-/// pattern--basket_whip--scoring_category--footwork--max_score--3: 2
-/// pattern--basket_whip--scoring_category--timing--max_score--1: 0
-/// pattern--free_spin--scoring_category--footwork--max_score--3: 3
-/// pattern--free_spin--scoring_category--timing--max_score--1: 0
-/// technique--body_lead--max_score--8: Consistent >90%--8
-/// technique--post--max_score--6: Present 75%--4
-/// technique--strong_frame--max_score--6: Occasional 50%--2
-/// technique--closed_connection--max_score--4: Lacking 25%--0
-/// technique--connection_transition--max_score--4: Missing <10%--0
-/// technique--on_time--max_score--8: Lacking 25%--0
-/// technique--move_off_slot--max_score--4: Occasional 50%--0
-/// technique--safe--max_score--8: Present 75%--0
-/// technique--body_angle--max_score--3: Over-Angled--2
-/// technique--prep--max_score--3: Overkill Prep--0
-/// bonus--no_thumbs: 1
-/// bonus--clear_turn_signal: 1
-/// bonus--swung_triple: 4
-/// 
-pub fn parse_test_form_data(test: HashMap<String, String>, test_type: TestType, test_template: TestDefinition) -> GradedTest {
-    let mut pattern_scores = Vec::new();
-    let mut technique_scores = Vec::new();
-    let mut bonus_scores = Vec::new();
-    let mut user_info = HashMap::new();
+/// Read the test definition from a .yaml file
+pub fn parse_test_definition(file_path: &str) -> Result<TestDefinition, serde_yaml::Error> {
+    let mut file = File::open(file_path).expect(&format!("couldn't open file: {}", file_path));
+    let mut yaml_string = String::new();
+    file.read_to_string(&mut yaml_string).expect(&format!("Couldn't read file '{}' to string. This should work...", file_path));
+    serde_yaml::from_str(&yaml_string)
+}
 
-    for (key, value) in test.iter() {
-        if key.starts_with("pattern--") {
-            // Extract pattern score
-            let parts: Vec<&str> = key.split("--").collect();
 
-            match parts.len() {
-                6 => {
-                    match (parts[1].parse::<PatternName>(), parts[3].parse::<ScoringCategoryName>(), parts[5].parse::<u32>()) {
-                        (Ok(pattern), Ok(category), Ok(max_score)) => {
-                            match value.parse::<u32>() {
-                                Ok(score) => pattern_scores.push(GradedPattern {
-                                    // id: None,
-                                    // test_id: None,
-                                    pattern: pattern,
-                                    category: category,
-                                    score: score,
-                                    max_score: max_score,
-                                }),
-                                Err(_) => eprintln!("Failed to parse score from value '{}'", value),
-                            }
-                        }
-                        (Err(e), _, _) => eprintln!("Failed to parse pattern name from key '{}': {:?}", key, e),
-                        (_, Err(e), _) => eprintln!("Failed to parse category name from key '{}': {:?}", key, e),
-                        (_, _, Err(e)) => eprintln!("Failed to parse max_score from key '{}': {:?}", key, e),
-                    }
-                }
-                _ => eprintln!("The key '{}' should be formatted as follows pattern--pattern_name--scoring_category--scoring_category_name--max_score--num", key),
-            }
-        } else if key.starts_with("technique--") {
-            // Extract technique score
-            let key_parts: Vec<&str> = key.split("--").collect();
-            let value_parts: Vec<&str> = value.split("--").collect();
+// // -------------------------------------------------------------------------------------------------------------------------------------------------------
+// // Parse Test
+// // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
-            match (key_parts.len(), value_parts.len()) {
-                (4, 2) => {
-                    match (key_parts[1].parse::<TechniqueName>(), key_parts[3].parse::<u32>(), value_parts[0].parse::<TechniqueScoringHeaderName>(), value_parts[1].parse::<u32>()) {
-                        (Ok(technique), Ok(max_score), Ok(score_header), Ok(score)) => {
-                            technique_scores.push(GradedTechnique {
-                                // id: None,
-                                // test_id: None,
-                                technique: technique,
-                                score_header:score_header,
-                                score: score,
-                                max_score: max_score
-                            });
-                        }
-                        (Err(e), _,  _, _) => eprintln!("Failed to parse technique name from key '{}': {:?}", key, e),
-                        (_, Err(e), _,  _) => eprintln!("Failed to parse max_score from key '{}': {:?}", key, e),
-                        (_, _, Err(e), _) => eprintln!("Failed to parse scoring header from value '{}': {:?}", value, e),
-                        (_, _, _, Err(e)) => eprintln!("Failed to parse score from value '{}': {:?}", value, e),
-                    }
-                }
-                _ => eprintln!("The key '{}' and value '{}' should be formatted as follows technique--technique_name--max_score--num: technique_scoring_header--score", key, value),
-            }
-        } else if key.starts_with("bonus--") {
-            // Extract bonus score
-            let parts: Vec<&str> = key.split("--").collect();
+// /// Parses the test form data, which should have a format of a hashmap more or less like this
+// ///
+// /// first_name: Corrado
+// /// last_name: Mazzarelli
+// /// email: corrado@mazzarelli.biz
+// /// pattern--starter_step--scoring_category--footwork--max_score--3: 3
+// /// pattern--starter_step--scoring_category--timing--max_score--1: 0
+// /// pattern--left_side_pass_from_closed--scoring_category--footwork--max_score--3: 2
+// /// pattern--left_side_pass_from_closed--scoring_category--timing--max_score--1: 0
+// /// pattern--sugar_tuck--scoring_category--footwork--max_score--3: 1
+// /// pattern--sugar_tuck--scoring_category--timing--max_score--1: 0
+// /// pattern--cutoff_whip--scoring_category--footwork--max_score--3: 0
+// /// pattern--cutoff_whip--scoring_category--timing--max_score--1: 1
+// /// pattern--left_side_pass--scoring_category--footwork--max_score--3: 0
+// /// pattern--left_side_pass--scoring_category--timing--max_score--1: 1
+// /// pattern--whip--scoring_category--footwork--max_score--3: 0
+// /// pattern--whip--scoring_category--timing--max_score--1: 1
+// /// pattern--sugar_push--scoring_category--footwork--max_score--3: 0
+// /// pattern--sugar_push--scoring_category--timing--max_score--1: 1
+// /// pattern--spinning_side_pass--scoring_category--footwork--max_score--3: 0
+// /// pattern--spinning_side_pass--scoring_category--timing--max_score--1: 1
+// /// pattern--right_side_pass--scoring_category--footwork--max_score--3: 1
+// /// pattern--right_side_pass--scoring_category--timing--max_score--1: 0
+// /// pattern--basket_whip--scoring_category--footwork--max_score--3: 2
+// /// pattern--basket_whip--scoring_category--timing--max_score--1: 0
+// /// pattern--free_spin--scoring_category--footwork--max_score--3: 3
+// /// pattern--free_spin--scoring_category--timing--max_score--1: 0
+// /// technique--body_lead--max_score--8: Consistent >90%--8
+// /// technique--post--max_score--6: Present 75%--4
+// /// technique--strong_frame--max_score--6: Occasional 50%--2
+// /// technique--closed_connection--max_score--4: Lacking 25%--0
+// /// technique--connection_transition--max_score--4: Missing <10%--0
+// /// technique--on_time--max_score--8: Lacking 25%--0
+// /// technique--move_off_slot--max_score--4: Occasional 50%--0
+// /// technique--safe--max_score--8: Present 75%--0
+// /// technique--body_angle--max_score--3: Over-Angled--2
+// /// technique--prep--max_score--3: Overkill Prep--0
+// /// bonus--no_thumbs: 1
+// /// bonus--clear_turn_signal: 1
+// /// bonus--swung_triple: 4
+// /// 
+// pub fn parse_test_form_data(test: HashMap<String, String>, test_type: TestType, test_template: TestDefinition) -> GradedTest {
+//     let mut pattern_scores = Vec::new();
+//     let mut technique_scores = Vec::new();
+//     let mut bonus_scores = Vec::new();
+//     let mut user_info = HashMap::new();
 
-            match parts.len() {
-                2 => {
-                    match (parts[1].parse::<BonusPointName>(), value.parse::<u32>()) {
-                        (Ok(name), Ok(score)) => {
-                            bonus_scores.push(GradedBonusPoint {
-                                // id: None,
-                                // test_id: None,
-                                name,
-                                score,
-                            });
-                        }
-                        (Err(e), _) => eprintln!("Failed to parse bonus point name from key '{}': {:?}", key, e),
-                        (_, Err(e)) => eprintln!("Failed to parse bonus score from value '{}': {}", value, e),
-                    }
-                }
-                _ => eprintln!("The key '{}' should be formatted as follows bonus--bonus_point_name: score", key),
-            }
-        } else {
-            // Assume user info
-            user_info.insert(key.clone(), value.clone());
-        }
-    }
+//     for (key, value) in test.iter() {
+//         if key.starts_with("pattern--") {
+//             // Extract pattern score
+//             let parts: Vec<&str> = key.split("--").collect();
 
-    // Construct the GradedTestee instance from the user_info hashmap
-    let testee: Testee = match (
-        user_info.get("first_name").cloned(),
-        user_info.get("last_name").cloned(),
-        user_info.get("email").cloned()
-    ) {
-        (Some(first_name), Some(last_name), Some(email)) => Testee {
-            id: -1,
-            first_name,
-            last_name,
-            email,
-        },
-        // TODO: This should probably be refactored to propagate an error
-        _ => {
-            eprintln!("Missing user information. Please ensure 'first_name', 'last_name', and 'email' are provided.");
-            Testee {
-                id: -1,
-                first_name: String::new(),
-                last_name: String::new(),
-                email: String::new(),
-            }
-        }
-    };
+//             match parts.len() {
+//                 6 => {
+//                     match (parts[1].parse::<PatternName>(), parts[3].parse::<ScoringCategoryName>(), parts[5].parse::<u32>()) {
+//                         (Ok(pattern), Ok(category), Ok(max_score)) => {
+//                             match value.parse::<u32>() {
+//                                 Ok(score) => pattern_scores.push(GradedPattern {
+//                                     // id: None,
+//                                     // test_id: None,
+//                                     pattern: pattern,
+//                                     category: category,
+//                                     score: score,
+//                                     max_score: max_score,
+//                                 }),
+//                                 Err(_) => eprintln!("Failed to parse score from value '{}'", value),
+//                             }
+//                         }
+//                         (Err(e), _, _) => eprintln!("Failed to parse pattern name from key '{}': {:?}", key, e),
+//                         (_, Err(e), _) => eprintln!("Failed to parse category name from key '{}': {:?}", key, e),
+//                         (_, _, Err(e)) => eprintln!("Failed to parse max_score from key '{}': {:?}", key, e),
+//                     }
+//                 }
+//                 _ => eprintln!("The key '{}' should be formatted as follows pattern--pattern_name--scoring_category--scoring_category_name--max_score--num", key),
+//             }
+//         } else if key.starts_with("technique--") {
+//             // Extract technique score
+//             let key_parts: Vec<&str> = key.split("--").collect();
+//             let value_parts: Vec<&str> = value.split("--").collect();
 
-    GradedTest::new(
-        testee,
-        Local::now().naive_utc(),
-        test_type,
-        test_template.passing_score,
-        pattern_scores,
-        technique_scores,
-        bonus_scores,
-    )
+//             match (key_parts.len(), value_parts.len()) {
+//                 (4, 2) => {
+//                     match (key_parts[1].parse::<TechniqueName>(), key_parts[3].parse::<u32>(), value_parts[0].parse::<TechniqueScoringHeaderName>(), value_parts[1].parse::<u32>()) {
+//                         (Ok(technique), Ok(max_score), Ok(score_header), Ok(score)) => {
+//                             technique_scores.push(GradedTechnique {
+//                                 // id: None,
+//                                 // test_id: None,
+//                                 technique: technique,
+//                                 score_header:score_header,
+//                                 score: score,
+//                                 max_score: max_score
+//                             });
+//                         }
+//                         (Err(e), _,  _, _) => eprintln!("Failed to parse technique name from key '{}': {:?}", key, e),
+//                         (_, Err(e), _,  _) => eprintln!("Failed to parse max_score from key '{}': {:?}", key, e),
+//                         (_, _, Err(e), _) => eprintln!("Failed to parse scoring header from value '{}': {:?}", value, e),
+//                         (_, _, _, Err(e)) => eprintln!("Failed to parse score from value '{}': {:?}", value, e),
+//                     }
+//                 }
+//                 _ => eprintln!("The key '{}' and value '{}' should be formatted as follows technique--technique_name--max_score--num: technique_scoring_header--score", key, value),
+//             }
+//         } else if key.starts_with("bonus--") {
+//             // Extract bonus score
+//             let parts: Vec<&str> = key.split("--").collect();
+
+//             match parts.len() {
+//                 2 => {
+//                     match (parts[1].parse::<BonusPointName>(), value.parse::<u32>()) {
+//                         (Ok(name), Ok(score)) => {
+//                             bonus_scores.push(GradedBonusPoint {
+//                                 // id: None,
+//                                 // test_id: None,
+//                                 name,
+//                                 score,
+//                             });
+//                         }
+//                         (Err(e), _) => eprintln!("Failed to parse bonus point name from key '{}': {:?}", key, e),
+//                         (_, Err(e)) => eprintln!("Failed to parse bonus score from value '{}': {}", value, e),
+//                     }
+//                 }
+//                 _ => eprintln!("The key '{}' should be formatted as follows bonus--bonus_point_name: score", key),
+//             }
+//         } else {
+//             // Assume user info
+//             user_info.insert(key.clone(), value.clone());
+//         }
+//     }
+
+//     // Construct the GradedTestee instance from the user_info hashmap
+//     let testee: Testee = match (
+//         user_info.get("first_name").cloned(),
+//         user_info.get("last_name").cloned(),
+//         user_info.get("email").cloned()
+//     ) {
+//         (Some(first_name), Some(last_name), Some(email)) => Testee {
+//             id: -1,
+//             first_name,
+//             last_name,
+//             email,
+//         },
+//         // TODO: This should probably be refactored to propagate an error
+//         _ => {
+//             eprintln!("Missing user information. Please ensure 'first_name', 'last_name', and 'email' are provided.");
+//             Testee {
+//                 id: -1,
+//                 first_name: String::new(),
+//                 last_name: String::new(),
+//                 email: String::new(),
+//             }
+//         }
+//     };
+
+//     GradedTest::new(
+//         testee,
+//         Local::now().naive_utc(),
+//         test_type,
+//         test_template.passing_score,
+//         pattern_scores,
+//         technique_scores,
+//         bonus_scores,
+//     )
     
-}
+// }
 
-// -------------------------------------------------------------------------------------------------------------------------------------------------------
-// Save Test to Database
-// -------------------------------------------------------------------------------------------------------------------------------------------------------
+// // -------------------------------------------------------------------------------------------------------------------------------------------------------
+// // Save Test to Database
+// // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
-pub async fn save_test_to_database(
-    pool: &PgPool,
-    graded_test: GradedTest
-) -> Result<(), TestError> {
-    // Insert the testee or get the testee ID if the testee already exists
-    let testee = create_testee(
-        pool, 
-        &graded_test.testee.first_name, 
-        &graded_test.testee.last_name,
-        &graded_test.testee.email,
-    ).await?;
+// pub async fn save_test_to_database(
+//     pool: &PgPool,
+//     graded_test: GradedTest
+// ) -> Result<(), TestError> {
+//     // Insert the testee or get the testee ID if the testee already exists
+//     let testee = create_testee(
+//         pool, 
+//         &graded_test.testee.first_name, 
+//         &graded_test.testee.last_name,
+//         &graded_test.testee.email,
+//     ).await?;
 
-    // Insert a new test record
-    let test_id = match sqlx::query!(
-        "INSERT INTO tests (testee_id, role, test_date, score, max_score, passing_score)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING id",
-        testee.id,
-        graded_test.test_type.to_string(),
-        graded_test.test_date,
-        graded_test.score as i32,
-        graded_test.max_score as i32,
-        graded_test.passing_score as i32,
-    )
-    .fetch_one(pool)
-    .await {
-        Ok(record) => record.id,
-        Err(e) => return Err(e.into()),
-    };
+//     // Insert a new test record
+//     let test_id = match sqlx::query!(
+//         "INSERT INTO tests (testee_id, role, test_date, score, max_score, passing_score)
+//         VALUES ($1, $2, $3, $4, $5, $6)
+//         RETURNING id",
+//         testee.id,
+//         graded_test.test_type.to_string(),
+//         graded_test.test_date,
+//         graded_test.score as i32,
+//         graded_test.max_score as i32,
+//         graded_test.passing_score as i32,
+//     )
+//     .fetch_one(pool)
+//     .await {
+//         Ok(record) => record.id,
+//         Err(e) => return Err(e.into()),
+//     };
 
-    // Insert pattern scores
-    for pattern in graded_test.patterns {
-        sqlx::query!(
-            "INSERT INTO patterns (test_id, pattern, category, score, max_score)
-            VALUES ($1, $2, $3, $4, $5)",
-            test_id,
-            pattern.pattern.to_string(),
-            pattern.category.to_string(),
-            pattern.score as i32,
-            pattern.max_score as i32,
-        )
-        .execute(pool)
-        .await?;
-    }
+//     // Insert pattern scores
+//     for pattern in graded_test.patterns {
+//         sqlx::query!(
+//             "INSERT INTO patterns (test_id, pattern, category, score, max_score)
+//             VALUES ($1, $2, $3, $4, $5)",
+//             test_id,
+//             pattern.pattern.to_string(),
+//             pattern.category.to_string(),
+//             pattern.score as i32,
+//             pattern.max_score as i32,
+//         )
+//         .execute(pool)
+//         .await?;
+//     }
 
-    // Insert technique scores
-    for technique in graded_test.techniques {
-        sqlx::query!(
-            "INSERT INTO techniques (test_id, technique, score, score_header, max_score)
-            VALUES ($1, $2, $3, $4, $5)",
-            test_id,
-            technique.technique.to_string(),
-            technique.score as i32,
-            technique.score_header.to_string(),
-            technique.max_score as i32,
-        )
-        .execute(pool)
-        .await?;
-    }
+//     // Insert technique scores
+//     for technique in graded_test.techniques {
+//         sqlx::query!(
+//             "INSERT INTO techniques (test_id, technique, score, score_header, max_score)
+//             VALUES ($1, $2, $3, $4, $5)",
+//             test_id,
+//             technique.technique.to_string(),
+//             technique.score as i32,
+//             technique.score_header.to_string(),
+//             technique.max_score as i32,
+//         )
+//         .execute(pool)
+//         .await?;
+//     }
 
-    // Insert bonus scores
-    for bonus in graded_test.bonuses {
-        sqlx::query!(
-            "INSERT INTO bonus_points (test_id, name, score)
-            VALUES ($1, $2, $3)",
-            test_id,
-            bonus.name.to_string(),
-            bonus.score as i32
-        )
-        .execute(pool)
-        .await?;
-    }
+//     // Insert bonus scores
+//     for bonus in graded_test.bonuses {
+//         sqlx::query!(
+//             "INSERT INTO bonus_points (test_id, name, score)
+//             VALUES ($1, $2, $3)",
+//             test_id,
+//             bonus.name.to_string(),
+//             bonus.score as i32
+//         )
+//         .execute(pool)
+//         .await?;
+//     }
 
-    Ok(())
-}
+//     Ok(())
+// }
 
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -318,150 +333,150 @@ pub async fn search_for_testee(
 
 }
 
-// -------------------------------------------------------------------------------------------------------------------------------------------------------
-// Fetch Test Results
-// -------------------------------------------------------------------------------------------------------------------------------------------------------
+// // -------------------------------------------------------------------------------------------------------------------------------------------------------
+// // Fetch Test Results
+// // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
-/// This function parses test results from the DB into GradedPattern, GradedTechnique, and GradedBonus objects
-/// Thus, old pattern names, technique names, and other enum variants CANNOT be retired so long 
-/// as they may exist within the database. 
-/// This is where some refactoring work could be done. The parsing into the enum types is fragile since
-/// I manually defined the to_str and serialize traits using strum. Some of them require snake case,
-/// others don't.
-pub async fn fetch_test_results_by_id(
-    pool: &PgPool, 
-    test_id: i32
-) -> Result<Option<GradedTest>, TestError> {
-    // Grab the testee corresponding to a given test
-    let testee = match sqlx::query_as!(
-        Testee,
-        "SELECT id, first_name, last_name, email FROM testees WHERE id = (
-            SELECT testee_id FROM tests WHERE id = $1
-        )",
-        test_id
-    )
-    .fetch_optional(pool)
-    .await? {
-        Some(testee) => testee,
-        None => return Ok(None)
-    };
+// /// This function parses test results from the DB into GradedPattern, GradedTechnique, and GradedBonus objects
+// /// Thus, old pattern names, technique names, and other enum variants CANNOT be retired so long 
+// /// as they may exist within the database. 
+// /// This is where some refactoring work could be done. The parsing into the enum types is fragile since
+// /// I manually defined the to_str and serialize traits using strum. Some of them require snake case,
+// /// others don't.
+// pub async fn fetch_test_results_by_id(
+//     pool: &PgPool, 
+//     test_id: i32
+// ) -> Result<Option<GradedTest>, TestError> {
+//     // Grab the testee corresponding to a given test
+//     let testee = match sqlx::query_as!(
+//         Testee,
+//         "SELECT id, first_name, last_name, email FROM testees WHERE id = (
+//             SELECT testee_id FROM tests WHERE id = $1
+//         )",
+//         test_id
+//     )
+//     .fetch_optional(pool)
+//     .await? {
+//         Some(testee) => testee,
+//         None => return Ok(None)
+//     };
 
-    let raw_test_info = sqlx::query!(
-        "SELECT role, test_date, score, max_score, passing_score FROM tests WHERE id = $1",
-        test_id
-    )
-    .fetch_one(pool)
-    .await?;
+//     let raw_test_info = sqlx::query!(
+//         "SELECT role, test_date, score, max_score, passing_score FROM tests WHERE id = $1",
+//         test_id
+//     )
+//     .fetch_one(pool)
+//     .await?;
 
-    // println!("{}", raw_test_info.role);
+//     // println!("{}", raw_test_info.role);
 
-    let test_type = raw_test_info.role.parse::<TestType>()?;
+//     let test_type = raw_test_info.role.parse::<TestType>()?;
 
-    let raw_patterns = sqlx::query!(
-        "SELECT pattern, category, score, max_score FROM patterns WHERE test_id = $1",
-        test_id
-    )
-    .fetch_all(pool)
-    .await?;
+//     let raw_patterns = sqlx::query!(
+//         "SELECT pattern, category, score, max_score FROM patterns WHERE test_id = $1",
+//         test_id
+//     )
+//     .fetch_all(pool)
+//     .await?;
 
-    // println!("{}", raw_patterns[0].pattern.to_lowercase().replace(" ", "_"));
-    // println!("{}", raw_patterns[0].category.to_lowercase().replace(" ", "_"));
+//     // println!("{}", raw_patterns[0].pattern.to_lowercase().replace(" ", "_"));
+//     // println!("{}", raw_patterns[0].category.to_lowercase().replace(" ", "_"));
 
-    let patterns: Vec<GradedPattern> = raw_patterns
-    .into_iter()
-    .map(|raw_pattern|
-        Ok(GradedPattern {
-            pattern: raw_pattern.pattern.to_lowercase().replace(" ", "_").parse::<PatternName>()?,
-            category: raw_pattern.category.to_lowercase().replace(" ", "_").parse::<ScoringCategoryName>()?,
-            score: raw_pattern.score as u32,
-            max_score: raw_pattern.max_score as u32,
-        })
-    ).collect::<Result<Vec<GradedPattern>, strum::ParseError>>()?;
+//     let patterns: Vec<GradedPattern> = raw_patterns
+//     .into_iter()
+//     .map(|raw_pattern|
+//         Ok(GradedPattern {
+//             pattern: raw_pattern.pattern.to_lowercase().replace(" ", "_").parse::<PatternName>()?,
+//             category: raw_pattern.category.to_lowercase().replace(" ", "_").parse::<ScoringCategoryName>()?,
+//             score: raw_pattern.score as u32,
+//             max_score: raw_pattern.max_score as u32,
+//         })
+//     ).collect::<Result<Vec<GradedPattern>, strum::ParseError>>()?;
 
-    let raw_techniques = sqlx::query!(
-        "SELECT technique, score, score_header, max_score FROM techniques WHERE test_id = $1",
-        test_id
-    )
-    .fetch_all(pool)
-    .await?;
+//     let raw_techniques = sqlx::query!(
+//         "SELECT technique, score, score_header, max_score FROM techniques WHERE test_id = $1",
+//         test_id
+//     )
+//     .fetch_all(pool)
+//     .await?;
 
-    // println!("{}", raw_techniques[0].technique.to_lowercase().replace(" ", "_"));
-    // println!("{}", raw_techniques[0].score_header);
+//     // println!("{}", raw_techniques[0].technique.to_lowercase().replace(" ", "_"));
+//     // println!("{}", raw_techniques[0].score_header);
 
-    let techniques: Vec<GradedTechnique> = raw_techniques
-    .into_iter()
-    .map(|raw_technique| 
-        Ok(GradedTechnique {
-            technique: raw_technique.technique.to_lowercase().replace(" ", "_").parse::<TechniqueName>()?,
-            score: raw_technique.score as u32,
-            max_score: raw_technique.max_score as u32,
-            score_header: raw_technique.score_header.parse::<TechniqueScoringHeaderName>()?,
-        })
-    ).collect::<Result<Vec<GradedTechnique>, strum::ParseError>>()?;
+//     let techniques: Vec<GradedTechnique> = raw_techniques
+//     .into_iter()
+//     .map(|raw_technique| 
+//         Ok(GradedTechnique {
+//             technique: raw_technique.technique.to_lowercase().replace(" ", "_").parse::<TechniqueName>()?,
+//             score: raw_technique.score as u32,
+//             max_score: raw_technique.max_score as u32,
+//             score_header: raw_technique.score_header.parse::<TechniqueScoringHeaderName>()?,
+//         })
+//     ).collect::<Result<Vec<GradedTechnique>, strum::ParseError>>()?;
 
-    let raw_bonuses = sqlx::query!(
-        "SELECT name, score FROM bonus_points WHERE test_id = $1",
-        test_id
-    )
-    .fetch_all(pool)
-    .await?;
+//     let raw_bonuses = sqlx::query!(
+//         "SELECT name, score FROM bonus_points WHERE test_id = $1",
+//         test_id
+//     )
+//     .fetch_all(pool)
+//     .await?;
 
-    // println!("{}", raw_bonuses[0].name.to_lowercase().replace(" ", "_"));
+//     // println!("{}", raw_bonuses[0].name.to_lowercase().replace(" ", "_"));
 
 
-    let bonuses: Vec<GradedBonusPoint> = raw_bonuses
-    .into_iter()
-    .map(|raw_bonus| 
-        Ok(GradedBonusPoint {
-            name: raw_bonus.name.to_lowercase().replace(" ", "_").parse::<BonusPointName>()?,
-            score: raw_bonus.score as u32,
-        })
-    ).collect::<Result<Vec<GradedBonusPoint>, strum::ParseError>>()?;
+//     let bonuses: Vec<GradedBonusPoint> = raw_bonuses
+//     .into_iter()
+//     .map(|raw_bonus| 
+//         Ok(GradedBonusPoint {
+//             name: raw_bonus.name.to_lowercase().replace(" ", "_").parse::<BonusPointName>()?,
+//             score: raw_bonus.score as u32,
+//         })
+//     ).collect::<Result<Vec<GradedBonusPoint>, strum::ParseError>>()?;
 
-    Ok(Some(GradedTest {
-        testee: testee,
-        test_date: raw_test_info.test_date,
-        test_type: test_type,
-        patterns: patterns,
-        techniques: techniques,
-        bonuses: bonuses,
-        score: raw_test_info.score as u32,
-        max_score: raw_test_info.max_score as u32,
-        passing_score: raw_test_info.passing_score as u32,
-    }))
-}
+//     Ok(Some(GradedTest {
+//         testee: testee,
+//         test_date: raw_test_info.test_date,
+//         test_type: test_type,
+//         patterns: patterns,
+//         techniques: techniques,
+//         bonuses: bonuses,
+//         score: raw_test_info.score as u32,
+//         max_score: raw_test_info.max_score as u32,
+//         passing_score: raw_test_info.passing_score as u32,
+//     }))
+// }
 
-// -------------------------------------------------------------------------------------------------------------------------------------------------------
-// Fetch Testee Tests
-// -------------------------------------------------------------------------------------------------------------------------------------------------------
+// // -------------------------------------------------------------------------------------------------------------------------------------------------------
+// // Fetch Testee Tests
+// // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
-/// Grab all the tests that a given testee has taken, by their testee id. 
-/// By virtue of there being a testee, they have taken at least one test.
-pub async fn fetch_testee_tests_by_id(
-    pool: &PgPool, 
-    testee_id: i32
-) -> Result<Option<Vec<TestSummary>>, TestError> {
+// /// Grab all the tests that a given testee has taken, by their testee id. 
+// /// By virtue of there being a testee, they have taken at least one test.
+// pub async fn fetch_testee_tests_by_id(
+//     pool: &PgPool, 
+//     testee_id: i32
+// ) -> Result<Option<Vec<TestSummary>>, TestError> {
 
-    let testee = match fetch_testee_by_id(pool, testee_id).await? {
-        Some(data) => data,
-        None => return Ok(None),
-    };
+//     let testee = match fetch_testee_by_id(pool, testee_id).await? {
+//         Some(data) => data,
+//         None => return Ok(None),
+//     };
 
-    // By virtue of there being a testee, they have taken at least one test.
-    Ok(Some(sqlx::query_as!(
-        TestSummary,
-        "
-        SELECT id, role, test_date, score, passing_score, max_score 
-        FROM tests 
-        WHERE testee_id = $1
-        ORDER BY test_date DESC
-        ",
-        testee.id
-    )
-    .fetch_all(pool)
-    .await?))
+//     // By virtue of there being a testee, they have taken at least one test.
+//     Ok(Some(sqlx::query_as!(
+//         TestSummary,
+//         "
+//         SELECT id, role, test_date, score, passing_score, max_score 
+//         FROM tests 
+//         WHERE testee_id = $1
+//         ORDER BY test_date DESC
+//         ",
+//         testee.id
+//     )
+//     .fetch_all(pool)
+//     .await?))
 
-}
+// }
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 // Fetch Testee by ID

@@ -1,10 +1,9 @@
+{% if section.name != "" %}<h2 class="text-6xl font-bold py-4 px-4 border-b-2 text-center">{{ section.name }}</h2>{% endif %}
 <table class="bg-white w-full mx-1 table-fixed">
     <col>
-    {% for scoring_category in test.pattern_scoring_categories %}
-        <colgroup span="{{ scoring_category.points.len() }}"></colgroup>
+    {% for scoring_category in section.scoring_categories %}
+        <colgroup span="{{ scoring_category.values.len() }}"></colgroup>
     {% endfor %}
-
-    <h2 class="text-2xl font-bold py-4 px-4 border-b-2 text-center">Pattern Scoring</h2>
 
     <!-- Label the Scoring Categories -->
     <thead class="sticky top-0 bg-white z-10">
@@ -13,8 +12,8 @@
             <!-- Empty Padding to Align Everything -->
             <th class="w-1/4"></th>
 
-            {% for scoring_category in test.pattern_scoring_categories %}
-                <th class="lg:text-4xl py-2" colspan="{{ scoring_category.points.len() }}" scope="colgroup">
+            {% for scoring_category in section.scoring_categories %}
+                <th class="lg:text-4xl py-2" colspan="{{ scoring_category.values.len() }}" scope="colgroup">
                     {{ scoring_category.name }}
                 </th>
             {% endfor %}
@@ -25,8 +24,8 @@
             <!-- Empty Padding to Align Everything -->
             <th class="w-1/4 border-r"></th>
 
-            {% for scoring_category in test.pattern_scoring_categories %}
-                {% for header in scoring_category.headers %}
+            {% for scoring_category in section.scoring_categories %}
+                {% for header in scoring_category.values %}
                     <th class="mt-1 text-gray-600 lg:text-2xl {% if loop.last %}border-r border-gray-300{% else %}{% endif %}">
                         {{ header }}
                     </th>
@@ -35,29 +34,36 @@
         </tr>
     </thead>
 
-    <!-- Add the Patterns -->
+    <!-- Add the Items -->
     <tbody>
-        {% for pattern in test.patterns %}
+        {% for item in section.items_to_be_graded %}
         <tr>
-            <!-- Add the Pattern Name to the Left Column -->
-            <td class="py-2 px-4 border-b border-r font-bold sm:text-sm md:text-xl lg:text-2xl text-right">{{ pattern }}</td>
+            <!-- Add the Item Name to the Left Column -->
+            <td class="py-2 px-4 border-b border-r font-bold sm:text-sm md:text-xl lg:text-2xl text-right">{{ item.name }}</td>
 
             <!-- Add radio buttons for each scoring category -->
-            {% for scoring_category in test.pattern_scoring_categories %}
-                {% for point in scoring_category.points %}
+            {% for scoring_category in section.scoring_categories %}
+                {% for point in item.scores[loop.index - 1] %}
                     <!-- Add a border between scoring categories for comprehension -->
                     <td class="py-2 px-1 w-full border-b text-center {% if loop.last %}border-r border-gray-300 last:border-0{% else %}{% endif %}">
+
+                        <!-- 
+                        name: for radio buttons have to all be the same (that is what lets the rendered know only one of each radio can be selected), this is what gets sent with the form as the key
+                        id: must be unique for each element
+                        value: this is the value that gets sent with the key    
+                        -->
+
                         <input 
                             type="radio" 
-                            name="pattern--{{ pattern|lower|replace(" ", "_") }}--scoring_category--{{ scoring_category.name|lower|replace(" ", "_") }}--max_score--{{ scoring_category.max_score }}" 
-                            id="pattern--{{ pattern|lower|replace(" ", "_") }}--scoring_category--{{ scoring_category.name|lower|replace(" ", "_") }}--max_score--{{ scoring_category.max_score }}--{{ point }}" 
+                            name="section_name---{{ section.name }}---item_name---{{ item.name }}---scoring_category---{{ scoring_category.name}}" 
+                            id="section_name---{{ section.name }}---item_name---{{ item.name }}---scoring_category---{{ scoring_category.name }}---{{ point }}" 
                             value="{{ point }}" 
                             class="hidden peer" 
                             required
                             {% if loop.last %}checked{% else %}{% endif %}
                         >
                         <label 
-                            for="pattern--{{ pattern|lower|replace(" ", "_") }}--scoring_category--{{ scoring_category.name|lower|replace(" ", "_") }}--max_score--{{ scoring_category.max_score }}--{{ point }}" 
+                            for="section_name---{{ section.name }}---item_name---{{ item.name }}---scoring_category---{{ scoring_category.name }}---{{ point }}" 
                             class="inline-flex items-center justify-center w-full h-12 p-2 text-sm font-medium text-gray-900 bg-white border-2 border-gray-300 rounded-lg cursor-pointer peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-transparent hover:bg-gray-100 hover:shadow-sm transition duration-300"
                         >
                             {{ point }}

@@ -6,7 +6,7 @@ mod filters;
 mod exam;
 
 use config::SecretsConfig;
-use exam::models::Test;
+use exam::{handlers::parse_test_definition, models::TestDefinition};
 use std::{fs::File, io::Read, sync::Arc};
 
 use axum::http::{
@@ -23,22 +23,21 @@ pub struct AppState {
     db: Pool<Postgres>,
     env: SecretsConfig,
     redis_client: Client,
+    leader_test: TestDefinition,
+    follower_test: TestDefinition,
 }
 
 
 #[tokio::main]
 async fn main() {
 
-    let mut file = File::open("leader_test.yaml").expect("couldn't open file");
-    let mut yaml_string = String::new();
-    file.read_to_string(&mut yaml_string).expect("couldn't read file to string");
-
-    let test: Test = serde_yaml::from_str(&yaml_string).expect("couldn't parse yaml");
-    println!("{:#?}", test);
-
     dotenv().ok();
 
     let config = SecretsConfig::init();
+
+    let leader_test = parse_test_definition("leader_test.yaml").expect("Error parsing leader_test.yaml");
+    println!("{:#?}", leader_test.clone());
+    let follower_test = parse_test_definition("follower_test.yaml").expect("Error parsing follower_test.yaml");
 
     let pool = match PgPoolOptions::new()
         .max_connections(10)
@@ -54,6 +53,8 @@ async fn main() {
             std::process::exit(1);
         }
     };
+
+    // Determine if a new test was loaded
 
     let redis_client = match Client::open(config.redis_url.to_owned()) {
         Ok(client) => {
@@ -76,6 +77,8 @@ async fn main() {
         db: pool.clone(),
         env: config.clone(),
         redis_client: redis_client.clone(),
+        leader_test: leader_test,
+        follower_test: follower_test,
     }))
     .layer(cors);
 

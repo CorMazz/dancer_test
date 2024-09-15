@@ -1,11 +1,11 @@
 {% extends "./extensible_templates/nav_on_top.html" %}
 
-{% block title %}{{ test.test_type|capitalize }} Test{% endblock %}
+{% block title %}{{ test.metadata.test_name }}{% endblock %}
 
 {% block content %}
 <body>
     <div class="mx-auto p-4">
-        <h2 class="text-4xl font-bold mb-4 text-center">{{ test.test_type|capitalize }} Advancement Test</h2>
+        <h2 class="text-4xl font-bold mb-4 text-center">{{ test.metadata.test_name }}</h2>
         <form method="post" class="bg-white p-6 rounded shadow-md">
 
             <!-- User Info Section -->
@@ -19,7 +19,9 @@
                 <p class="text-gray-600">For the best experience, please use a larger screen or switch to landscape mode on your mobile device.</p>
             </div>
 
+            
             <div class="hidden sm:block justify-center">
+                {#
                 <!-- Dynamic Grading Section -->
                 
                 <div 
@@ -28,30 +30,28 @@
                 hx-debounce="0.25s"
                 >
                 </div>
+                #}
 
                 <div class="flex flex-col text-center">
                     <input type="submit" value={% if is_demo_mode %}"Submission Disabled for Demo"{% else %}Submit{% endif %} class="{% if is_demo_mode %}bg-gray-300 text-gray-900{% else %}bg-blue-500 hover:bg-blue-700 text-white{% endif %} mx-auto font-bold py-2 px-4 mb-4 rounded" {% if is_demo_mode %}disabled{% else %}{% endif %}>
                 </div>
 
-                <!-- Pattern Scoring Table -->
+                <!-- Loop to Add Test Sections -->
                 <div class="card shadow-md rounded border border-gray-300 mb-6 p-4">
-                    {% include "../partial_templates/pattern_scoring.html" %}
-                </div>
-
-                <!-- Technique Scoring Table -->
-
-                <div class="card shadow-md rounded border border-gray-300 mb-6 p-4">
-                    <h2 class="text-2xl font-bold py-4 px-4 border-b-2 text-center">Technique Scoring</h2>
-                    {% for technique_group in test.technique_groups %}
-                        {% include "../partial_templates/technique_scoring.html" %}
+                    {% for section in test.sections %}
+                        {% include "../partial_templates/test_section.html" %}
                     {% endfor %}
                 </div>
 
 
-                <!-- Bonus Points Table -->
-                <div class="card shadow-md rounded border border-gray-300 mb-6 p-4">
-                    {% include "../partial_templates/bonus_points.html" %}
-                </div>
+                {% match test.bonus_section %}
+                    {% when Some with (bonus_section) %}
+                        <!-- Bonus Points Table -->
+                        <div class="card shadow-md rounded border border-gray-300 mb-6 p-4">
+                            {% include "../partial_templates/bonus_section.html" %}
+                        </div>
+                    {% when None %}
+                {% endmatch %}
             </div>
         </form>
     </div>
