@@ -2,13 +2,13 @@
 <table class="min-w-full bg-white">
     <h2 class="text-2xl font-bold py-4 px-4 border-b-2 text-center">Bonus Points</h2>
     <tbody>
-        {% for bonus_item in bonus_section.bonus_items %}
+        {% for bonus_item in bonus_items %}
         <tr>
             <td class="py-2 px-4 border-b text-xl text-right">{{ bonus_item.name }}</td>
 
             <td class="py-2 px-4 border-b text-center">
-                <input type="checkbox" name="bonus---{{ bonus_item.name }}" value="{{ bonus_item.score }}" id="bonus--{{ bonus_item.name }}" class="hidden peer">
-                <label for="bonus--{{ bonus_item.name }}" class="inline-flex items-center justify-center w-full h-12 p-2 text-sm font-medium text-gray-900 bg-white border-2 border-gray-300 rounded-lg cursor-pointer peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-transparent hover:bg-gray-100 hover:shadow-sm transition duration-300">
+                <input type="checkbox" name="bonus_index---{{ loop.index0 }}" value="{{ bonus_item.score }}" id="bonus_index--{{ loop.index0}}" class="hidden peer">
+                <label for="bonus_index--{{ loop.index0}}" class="inline-flex items-center justify-center w-full h-12 p-2 text-sm font-medium text-gray-900 bg-white border-2 border-gray-300 rounded-lg cursor-pointer peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-transparent hover:bg-gray-100 hover:shadow-sm transition duration-300">
                     + {{ bonus_item.score }}
                 </label>
             </td>

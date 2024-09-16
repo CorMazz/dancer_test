@@ -14,8 +14,8 @@ use crate::{
         middleware::{AuthError, AuthStatus},
         model::User
     }, exam::{
-        handlers::{create_testee, dequeue_testee, enqueue_testee, fetch_testee_by_id, retrieve_queue, search_for_testee, TestError}, 
-        models::{TestDefinition, TestType, Testee}
+        handlers::{create_testee, dequeue_testee, enqueue_testee, fetch_testee_by_id, parse_test_form_data, retrieve_queue, search_for_testee, TestError}, 
+        models::{Test, TestType, Testee}
     }, filters, AppState
 };
 
@@ -219,7 +219,7 @@ pub async fn get_dashboard_page() -> impl IntoResponse  {
 #[derive(Template)]
 #[template(path = "./primary_templates/dancer_test.html")] 
 pub struct DancerTestPageTemplate {
-    test: TestDefinition,
+    test: Test,
     prefilled_user_info: PrefilledTestData,
     is_demo_mode: bool,
 }
@@ -245,17 +245,21 @@ pub async fn get_leader_test_page(
     (StatusCode::OK, Html(template.render().unwrap()))
 }
 
-// pub async fn post_leader_test_form(
-//     State(data): State<Arc<AppState>>,
-//     Form(test): Form<HashMap<String, String>>,
-// ) -> impl IntoResponse {
-//     let graded_test = parse_test_form_data(test, TestType::Leader, generate_leader_test());
+pub async fn post_leader_test_form(
+    State(data): State<Arc<AppState>>,
+    Form(test): Form<HashMap<String, String>>,
+) -> impl IntoResponse {
 
-//     match save_test_to_database(&data.db, graded_test).await {
-//         Ok(_) => Redirect::to("/dashboard").into_response(),
-//         Err(e) => return (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">: {:?}</h1>", e))).into_response(),
-//     }
-// }
+    println!("{:#?}", test);
+    parse_test_form_data(test, data.leader_test.clone());
+
+    // match save_test_to_database(&data.db, graded_test).await {
+    //     Ok(_) => Redirect::to("/dashboard").into_response(),
+    //     Err(e) => return (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">: {:?}</h1>", e))).into_response(),
+    // }
+
+    (StatusCode::OK, Html("Worked"))
+}
 
 // #######################################################################################################################################################
 // follower_test.html

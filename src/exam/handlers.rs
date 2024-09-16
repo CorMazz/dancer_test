@@ -3,10 +3,9 @@ use sqlx::{query, Error, PgPool};
 use strum_macros::Display;
 use std::{collections::HashMap, fmt::Display, fs::File, io::Read};
 use crate::exam::models::{
-    Testee, TestType
+    BonusItem, Competency, Test, TestType, Testee
 };
 
-use super::models::TestDefinition;
 
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -36,7 +35,7 @@ impl From<strum::ParseError> for TestError {
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
 /// Read the test definition from a .yaml file
-pub fn parse_test_definition(file_path: &str) -> Result<TestDefinition, serde_yaml::Error> {
+pub fn parse_test_definition(file_path: &str) -> Result<Test, serde_yaml::Error> {
     let mut file = File::open(file_path).expect(&format!("couldn't open file: {}", file_path));
     let mut yaml_string = String::new();
     file.read_to_string(&mut yaml_string).expect(&format!("Couldn't read file '{}' to string. This should work...", file_path));
@@ -44,58 +43,123 @@ pub fn parse_test_definition(file_path: &str) -> Result<TestDefinition, serde_ya
 }
 
 
-// // -------------------------------------------------------------------------------------------------------------------------------------------------------
-// // Parse Test
-// // -------------------------------------------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
+// Parse Test
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
 
-// /// Parses the test form data, which should have a format of a hashmap more or less like this
-// ///
-// /// first_name: Corrado
-// /// last_name: Mazzarelli
-// /// email: corrado@mazzarelli.biz
-// /// pattern--starter_step--scoring_category--footwork--max_score--3: 3
-// /// pattern--starter_step--scoring_category--timing--max_score--1: 0
-// /// pattern--left_side_pass_from_closed--scoring_category--footwork--max_score--3: 2
-// /// pattern--left_side_pass_from_closed--scoring_category--timing--max_score--1: 0
-// /// pattern--sugar_tuck--scoring_category--footwork--max_score--3: 1
-// /// pattern--sugar_tuck--scoring_category--timing--max_score--1: 0
-// /// pattern--cutoff_whip--scoring_category--footwork--max_score--3: 0
-// /// pattern--cutoff_whip--scoring_category--timing--max_score--1: 1
-// /// pattern--left_side_pass--scoring_category--footwork--max_score--3: 0
-// /// pattern--left_side_pass--scoring_category--timing--max_score--1: 1
-// /// pattern--whip--scoring_category--footwork--max_score--3: 0
-// /// pattern--whip--scoring_category--timing--max_score--1: 1
-// /// pattern--sugar_push--scoring_category--footwork--max_score--3: 0
-// /// pattern--sugar_push--scoring_category--timing--max_score--1: 1
-// /// pattern--spinning_side_pass--scoring_category--footwork--max_score--3: 0
-// /// pattern--spinning_side_pass--scoring_category--timing--max_score--1: 1
-// /// pattern--right_side_pass--scoring_category--footwork--max_score--3: 1
-// /// pattern--right_side_pass--scoring_category--timing--max_score--1: 0
-// /// pattern--basket_whip--scoring_category--footwork--max_score--3: 2
-// /// pattern--basket_whip--scoring_category--timing--max_score--1: 0
-// /// pattern--free_spin--scoring_category--footwork--max_score--3: 3
-// /// pattern--free_spin--scoring_category--timing--max_score--1: 0
-// /// technique--body_lead--max_score--8: Consistent >90%--8
-// /// technique--post--max_score--6: Present 75%--4
-// /// technique--strong_frame--max_score--6: Occasional 50%--2
-// /// technique--closed_connection--max_score--4: Lacking 25%--0
-// /// technique--connection_transition--max_score--4: Missing <10%--0
-// /// technique--on_time--max_score--8: Lacking 25%--0
-// /// technique--move_off_slot--max_score--4: Occasional 50%--0
-// /// technique--safe--max_score--8: Present 75%--0
-// /// technique--body_angle--max_score--3: Over-Angled--2
-// /// technique--prep--max_score--3: Overkill Prep--0
-// /// bonus--no_thumbs: 1
-// /// bonus--clear_turn_signal: 1
-// /// bonus--swung_triple: 4
-// /// 
-// pub fn parse_test_form_data(test: HashMap<String, String>, test_type: TestType, test_template: TestDefinition) -> GradedTest {
-//     let mut pattern_scores = Vec::new();
-//     let mut technique_scores = Vec::new();
-//     let mut bonus_scores = Vec::new();
-//     let mut user_info = HashMap::new();
+/// Parses the test form data, which should have a format of a hashmap more or less like this
+/// 
+/// Takes in a test_template which it will then mutate, adding the results so that it is graded.
+pub fn parse_test_form_data(test: HashMap<String, String>, mut test_template: Test) -> Result<Test, > {
+    // graded_item_map must be a hash map because each graded item has multiple keys in the test dict whose information must be combined
+    // Keys of this map will be tuples of the form (table_index, section_index, item_index, scoring_category_index) and the values will be GradedItemToBeGraded
+    println!("{:#?}", test_template);
+    
+    
+    let mut user_info = HashMap::new();
 
-//     for (key, value) in test.iter() {
+    // Sort the keys so that the graded test gets reconstructed in the same order as the test definition
+    let mut sorted_keys: Vec<&String> = test.keys().collect();
+    sorted_keys.sort(); 
+
+    for key in sorted_keys {
+        let value = &test[key];
+
+        // Build the hash map with all of the graded items
+        if key.starts_with("table_index") {
+            let key_parts: Vec<&str> = key.split("---").collect();
+            let value_parts: Vec<&str> = value.split("---").collect();
+
+            match (key_parts.len(), value_parts.len()) {
+                (8, 4) => {
+                    match (
+                        key_parts[1].parse::<usize>(), 
+                        key_parts[3].parse::<usize>(), 
+                        key_parts[5].parse::<usize>(), 
+                        key_parts[7].parse::<usize>(), 
+                        value_parts[1].parse::<usize>(), 
+                        value_parts[3].parse::<i64>()
+                    ) {
+                        (Ok(table_index), Ok(section_index), Ok(item_index), Ok(scoring_category_index), Ok(scoring_category_label_index), Ok(points)) => {
+
+                            let label = test_template.tables[table_index]
+                                .sections[section_index]
+                                .scoring_categories[scoring_category_index]
+                                .values[scoring_category_label_index]
+                                .clone();
+
+                            if let Some(item) = test_template.tables[table_index]
+                            .sections[section_index]
+                            .competencies
+                            .get_mut(item_index)
+                        {
+                            item.achieved_scores.get_or_insert_with(Vec::new).push(points);
+                                               
+                            item.achieved_score_labels
+                                .get_or_insert_with(Vec::new)
+                                .push(label);
+                        }
+                        },
+
+                        (Err(e), _, _, _, _, _) => eprintln!("Failed to parse table index key '{}': {:?}", key, e),
+                        (_, Err(e), _, _, _, _) => eprintln!("Failed to parse section index from key '{}': {:?}", key, e),
+                        (_, _, Err(e), _, _, _) => eprintln!("Failed to parse item index from key'{}': {:?}", key, e),
+                        (_, _, _, Err(e), _, _) => eprintln!("Failed to parse scoring category index from key '{}': {:?}", key, e),
+                        (_, _, _, _, Err(e), _) => eprintln!("Failed to parse scoring category label index from value '{}': {:?}", value, e),
+                        (_, _, _, _, _, Err(e)) => eprintln!("Failed to parse score from value '{}': {:?}", value, e),
+                    }
+                }
+                _ => eprintln!("The key '{}' and value '{}' should be formatted as follows 'table_index---0---section_index---0---item_index---0---scoring_category_index---1': 'scoring_category_value_index---0---points---1'", key, value),
+            }
+        } else if key.starts_with("bonus_index") {
+            if let Some(bonus_items) = &mut test_template.bonus_items {
+                let key_parts: Vec<&str> = key.split("---").collect();
+                match key_parts.len() {
+                    2 => {
+                        match (key_parts[1].parse::<usize>(), value.parse::<i64>()) {
+                            (Ok(bonus_index), Ok(points)) => {
+                                bonus_items[bonus_index].achieved.get_or_insert(true);
+                            },
+                            (Err(e), _) => eprintln!("Failed to parse bonus index from key '{}': {:?}", key, e),
+                            (_, Err(e)) => eprintln!("Failed to parse points from value '{}': {:?}", value, e),
+                        }
+                    }
+                    _ => eprintln!("The key '{}' should be formatted as 'bonus_index---<index>', but got '{}'", key, key),
+                }
+            }
+        } else {
+            user_info.insert(key.clone(), value.clone());
+        }
+    } 
+
+    // Construct the GradedTestee instance from the user_info hashmap
+    let testee: Testee = match (
+        user_info.get("first_name").cloned(),
+        user_info.get("last_name").cloned(),
+        user_info.get("email").cloned()
+    ) {
+        (Some(first_name), Some(last_name), Some(email)) => Testee {
+            id: -1,
+            first_name,
+            last_name,
+            email,
+        },
+        // TODO: This should probably be refactored to propagate an error
+        _ => {
+           panic!("Missing user information. Please ensure 'first_name', 'last_name', and 'email' are provided.");
+            Testee {
+                id: -1,
+                first_name: String::new(),
+                last_name: String::new(),
+                email: String::new(),
+            }
+        }
+    };
+
+    println!("{:#?}", test_template);
+
+}
+
 //         if key.starts_with("pattern--") {
 //             // Extract pattern score
 //             let parts: Vec<&str> = key.split("--").collect();
@@ -115,7 +179,7 @@ pub fn parse_test_definition(file_path: &str) -> Result<TestDefinition, serde_ya
 //                                 }),
 //                                 Err(_) => eprintln!("Failed to parse score from value '{}'", value),
 //                             }
-//                         }
+//                         } 
 //                         (Err(e), _, _) => eprintln!("Failed to parse pattern name from key '{}': {:?}", key, e),
 //                         (_, Err(e), _) => eprintln!("Failed to parse category name from key '{}': {:?}", key, e),
 //                         (_, _, Err(e)) => eprintln!("Failed to parse max_score from key '{}': {:?}", key, e),

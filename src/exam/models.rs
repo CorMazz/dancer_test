@@ -8,137 +8,125 @@ use strum_macros::{Display, EnumString};
 use crate::filters;
 
 
-#[derive(Debug, Serialize, Clone)]
-pub struct TestDefinition {
+// #######################################################################################################################################################
+// #######################################################################################################################################################
+// Declare Structs/Enums Used to Define the Test
+// #######################################################################################################################################################
+// #######################################################################################################################################################
+
+
+/// A test object -- can be graded or ungraded, and is used to store the 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Test {
     pub metadata: Metadata,
-    pub sections: Vec<TestSection>,
-    pub bonus_section: Option<BonusSection>,
+    pub tables: Vec<TestTable>,
+    pub bonus_items: Option<Vec<BonusItem>>,
+}
+
+impl Test {
+    /// Iterates over each item to be graded scores lists and calculates the max possible score, not including bonus points. 
+    fn calculate_max_score(&self) -> i64 {
+        self.tables.iter()
+            .flat_map(|table| table.sections.iter()) // Flatten the list of lists
+            .flat_map(|section| section.competencies.iter()) // Flatten to items to be graded
+            .map(|item| {
+                item.scores.iter()
+                    .flat_map(|score| score.iter())
+                    .max()
+                    .cloned()
+                    .unwrap_or(0) // Get the max score for this item, or 0 if no scores
+            })
+            .sum() // Sum the max scores of all items
+    }
+    
+
+    /// Ensures the score labels are correct, ensures that failing score labels are correct, ensures that antitheses are only present
+    /// for single scoring category questions, and ensures that the max score is properly documented in the metadata. 
+    /// This violates parse, don't validate, and if this method is not called it is technically possible to have an invalid test
+    /// definition, but I'm going to be real, the serde documentation was a huge PITA to figure out the parse don't validate and I'm the
+    /// only one using this so just remember to call validate the 2 times you ever deserialize a test from yaml. 
+    pub fn validate(&self) -> Result<(), String> {
+        for table in &self.tables {
+            for section in &table.sections {
+                validate_score_labels(&section.competencies, &section.scoring_categories)?;
+
+                validate_failing_score_labels(&section.competencies, &section.scoring_categories) ?;
+
+                validate_antitheses(&section.competencies)?;
+            }
+        }
+
+        if self.calculate_max_score() != self.metadata.max_score {
+            return Err(format!(
+                "The test metadata indicates a max score of {} when the actual max score (without bonus points) is {}.",
+                self.metadata.max_score, self.calculate_max_score()
+            ))
+        }
+            
+        Ok(())
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct TestTable {
+    pub test_id: Option<i64>,
+    pub table_id: Option<i64>,
+    pub sections: Vec<TestSection>
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TestSection {
+    pub table_id: Option<i64>,
     pub name: String,
     pub scoring_categories: Vec<ScoringCategory>,
-    pub items_to_be_graded: Vec<ItemToBeGraded>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct BonusSection {
-    pub bonus_items: Vec<BonusItem>
+    pub competencies: Vec<Competency>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct BonusItem {
+    pub test_id: Option<i64>,
     pub name: String,
-    pub score: u64,
+    pub score: i64,
+    pub achieved: Option<bool>,
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Metadata {
+    pub test_id: Option<i64>,
     pub test_name: String,
+    pub test_type: TestType,
     pub minimum_percent: f64,
-    pub max_score: u64
+    pub max_score: i64,
+    pub achieved_score: Option<i64>,
+    pub testee: Option<Testee>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ScoringCategory {
+    pub section_id: Option<i64>,
     pub name: String,
     pub values: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FailingScoreLabels {
+    pub competency_id: Option<i64>,
     pub scoring_category_name: String,
     pub values: Vec<String>, 
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ItemToBeGraded {
+pub struct Competency {
+    pub section_id: Option<i64>,
     pub name: String,
-    pub scores: Vec<Vec<u64>>,
-    subtext: Option<String>,
-    failing_score_labels: Option<Vec<FailingScoreLabels>>,
-    antithesis: Option<String>,
+    pub scores: Vec<Vec<i64>>,
+    pub subtext: Option<String>,
+    pub failing_score_labels: Option<Vec<FailingScoreLabels>>,
+    pub antithesis: Option<String>,
+    pub achieved_scores: Option<Vec<i64>>,
+    pub achieved_score_labels: Option<Vec<String>>
 }
 
-impl TestDefinition {
-    // TODO: This doesn't work
-    fn calculate_max_score(&self) -> u64 {
-        self.sections.iter()
-            .flat_map(|section| section.items_to_be_graded.iter())
-            .flat_map(|item| item.scores.iter())
-            .flat_map(|score| score.iter())
-            .cloned()
-            .max()
-            .unwrap_or(0)
-    }
-}
-
-impl<'de> Deserialize<'de> for Metadata {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        // Define an intermediate struct to handle deserialization
-        #[derive(Deserialize)]
-        struct IntermediateMetadata {
-            test_name: String,
-            minimum_percent: f64,
-            // Omit max_score in intermediate deserialization
-        }
-
-        // Deserialize using the intermediate struct
-        let intermediate: IntermediateMetadata = IntermediateMetadata::deserialize(deserializer)?;
-
-        // Return Metadata with calculated max_score (will be set later in Test)
-        Ok(Metadata {
-            test_name: intermediate.test_name,
-            minimum_percent: intermediate.minimum_percent,
-            max_score: 0, // Placeholder value, to be updated later
-        })
-    }
-}
-
-impl<'de> Deserialize<'de> for TestDefinition {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        // Deserialize the Test struct from the input
-        let map: serde_yaml::Mapping = serde_yaml::Mapping::deserialize(deserializer)?;
-        let mut metadata: Metadata = serde_yaml::from_value(map["metadata"].clone()).expect("Metadata -- TODO: On plane will fix");
-        let sections: Vec<TestSection> = serde_yaml::from_value(map["sections"].clone()).expect("Sections -- TODO: On plane will fix");
-        let bonus_items: Vec<BonusItem> = serde_yaml::from_value(map["bonus_section"].clone()).expect("Bonus -- TODO: On plane will fix");
-        let bonus_section = BonusSection {bonus_items};
-
-        // Perform validation
-        for section in &sections {
-            // Validate header labels against graded items
-            if let Err(e) = validate_header_labels(&section.items_to_be_graded, &section.scoring_categories) {
-                return Err(serde::de::Error::custom(e));
-            }
-
-            // Validate failing header labels
-            if let Err(e) = validate_failing_header_labels(&section.items_to_be_graded, &section.scoring_categories) {
-                return Err(serde::de::Error::custom(e));
-            }
-        }
-
-        // Calculate and set max score in metadata
-        metadata.max_score = TestDefinition {
-            metadata: metadata.clone(),
-            sections: sections.clone(),
-            bonus_section: Some(bonus_section.clone()),
-        }.calculate_max_score();
-
-        // Return the final Test instance with the updated metadata
-        Ok(TestDefinition {
-            metadata,
-            sections,
-            bonus_section: Some(bonus_section),
-        })
-    }
-}
 
 /// When given the list of GradedItems and the list of HeaderLabels corresponding to a TestSection, will
 /// validate that the GradedItems have scores that line up with the number of HeaderLabels in the TestSection. 
@@ -146,34 +134,34 @@ impl<'de> Deserialize<'de> for TestDefinition {
 /// since there is only one header label, and ensures that the length of that scores list is 5 since there are 
 /// 5 values within the header label. 
 ///   - section_name: "Technique Scoring"
-///      header_labels:
-///      - section_label: ""
+///      scoring_categories:
+///      - name: ""
 ///        values: ["Consistent >90%", "Present 75%", "Occasional 50%", "Lacking 25%", "Missing <10%"]
 ///      graded_items: 
 ///        - name: "Body Lead"
 ///          subtext: "(Week 1)"
 ///          scores: 
 ///            - [8, 6, 0, 0, 0]
-fn validate_header_labels(graded_items: &[ItemToBeGraded], header_labels: &[ScoringCategory]) -> Result<(), String> {
+fn validate_score_labels(graded_items: &[Competency], score_labels: &[ScoringCategory]) -> Result<(), String> {
     
     // Check to ensure that each item has one list of scores per header label.
-    let expected_number_of_scores_lists = header_labels.len();
+    let expected_number_of_scores_lists = score_labels.len();
     for item in graded_items {
         if item.scores.len() != expected_number_of_scores_lists {
             return Err(format!(
-                "Graded item '{}' has a number of lists of scores ({}) that does not correspond to the number of header label groups. ({})",
-                item.name, item.scores.len(), header_labels.len()
+                "Graded item '{}' has a number of lists of scores ({}) that does not correspond to the number of scoring categories. ({})",
+                item.name, item.scores.len(), score_labels.len()
             ))
         }
     }
 
     // Check to ensure that each item's list of scores is the same length as the corresponding list of header labels.
-    for (i, header_label) in header_labels.into_iter().enumerate() {
-        let expected_number_of_scores = header_label.values.len();
+    for (i, score_label) in score_labels.into_iter().enumerate() {
+        let expected_number_of_scores = score_label.values.len();
         for item in graded_items {
             if item.scores[i].len() != expected_number_of_scores {
                 return Err(format!(
-                    "The graded item named '{}' has a score list at index {} of length {} that does not correspond to the number of header labels ({}) for the header label group at index {}.",
+                    "The graded item named '{}' has a score list at index {} of length {} that does not correspond to the number of score labels ({}) for the scoring category at index {}.",
                     item.name, i, item.scores[i].len(), expected_number_of_scores, i
                 ))
             }
@@ -182,59 +170,125 @@ fn validate_header_labels(graded_items: &[ItemToBeGraded], header_labels: &[Scor
     Ok(())
 }
 
-/// Checks to ensure that all of the failing header labels for the graded items correspond to actual header values.
-/// IE, in the following yaml, checks to ensure that the failing header labels for the starter step correspond
+/// Checks to ensure that all of the failing score labels for the graded items correspond to actual header values.
+/// IE, in the following yaml, checks to ensure that the failing score labels for the starter step correspond
 /// to actual header section labels and that the values correspond to the values. So it matches the string footwork
-/// to footwork and makes sure "Nope" is inside the list of header_labels values. 
-/// header_labels:
-/// - header_section_label: "Footwork"
+/// to footwork and makes sure "Nope" is inside the list of scoring_categories values. 
+/// scoring_categories:
+/// - name: "Footwork"
 ///   values: ["Perfect", "Variation?", "Right Concept", "Nope"]
-/// - header_section_label: "Timing"
+/// - name: "Timing"
 ///   values: ["On", "Off"]
 /// graded_items:
 /// - name: "Starter Step"
 ///   scores: 
 ///     - [3, 2, 1, 0]
 ///     - [1, 0]
-///   failing_header_labels: 
-///     - header_section_label: "Footwork"
+///   failing_score_labels: 
+///     - name: "Footwork"
 ///       values: ["Nope"]
-fn validate_failing_header_labels(graded_items: &[ItemToBeGraded], header_labels: &[ScoringCategory]) -> Result<(), String> {
+fn validate_failing_score_labels(graded_items: &[Competency], score_labels: &[ScoringCategory]) -> Result<(), String> {
 
-    // Create a hashmap of the header labels so that we can correspond failing header labels on the graded item to the true header labels
-    let mut header_label_hm: HashMap<String, Vec<String>> = HashMap::new();
-    for header_label in header_labels {
-        header_label_hm.insert(header_label.name.clone(), header_label.values.clone());
+    // Create a hashmap of the header labels so that we can correspond failing score labels on the graded item to the true header labels
+    let mut score_label_hm: HashMap<String, Vec<String>> = HashMap::new();
+    for score_label in score_labels {
+        score_label_hm.insert(score_label.name.clone(), score_label.values.clone());
     }
 
     for item in graded_items {
         match &item.failing_score_labels {
-            // Has failing header labels
+            // Has failing score labels
             Some(labels) => for label in labels {
 
-                match header_label_hm.get(&label.scoring_category_name) {
-                    // The failing header label corresponds to a section (ie, the footwork section)
-                    Some(valid_failing_header_labels) => for failing_header_label in &label.values {
-                        if !valid_failing_header_labels.contains(&failing_header_label) {
+                match score_label_hm.get(&label.scoring_category_name) {
+                    // The failing score label corresponds to a section (ie, the footwork section)
+                    Some(valid_failing_score_labels) => for failing_score_label in &label.values {
+                        if !valid_failing_score_labels.contains(&failing_score_label) {
                             return Err(format!(
-                                "The graded item named '{}' has a failing header named '{}' that does not correspond to any of the header labels ({:#?}) in the header section named '{}'.",
-                                item.name, failing_header_label, valid_failing_header_labels, label.scoring_category_name
+                                "The graded item named '{}' has a failing score label '{}' that does not correspond to any of the score labels ({:#?}) in the scoring category named '{}'.",
+                                item.name, failing_score_label, valid_failing_score_labels, label.scoring_category_name
                             ))
                         }
                     },
-                    // The failing header label does not correspond to a valid section
+                    // The failing score label does not correspond to a valid section
                     None => return Err(format!(
-                        "The graded item named '{}' has failing headers '{:#?}' under the header section label '{}' that does not correspond to any of the valid header section labels ({:#?}).",
-                        item.name, label.values, label.scoring_category_name, header_label_hm.keys()
+                        "The graded item named '{}' has failing score labels '{:#?}' under the scoring category '{}' that does not correspond to any of the valid scoring category labels ({:#?}).",
+                        item.name, label.values, label.scoring_category_name, score_label_hm.keys()
                     ))
                 }
             }
-            // Does not have failing header labels
+            // Does not have failing score labels
             None => continue
         }
     }
     Ok(())
 }
+
+/// Ensures that if there is more than one scoring category for an item to be graded (which can be checked by checking the length of the
+/// vec of scores) that the item does not have an antithesis. 
+fn validate_antitheses(graded_items: &[Competency]) -> Result<(), String> {
+    for item in graded_items {
+        match &item.antithesis {
+            Some(antithesis) => if item.scores.len() > 1 {return Err(format!(
+                "The item to be graded named '{}' an antithesis {} which is not supported when there is more than one scoring category for that item.",
+                item.name, antithesis
+            ))}
+            None => continue
+        }
+    }
+    Ok(())
+}
+
+// // #######################################################################################################################################################
+// // #######################################################################################################################################################
+// // Declare Structs/Enums Used to Grade the Test
+// // #######################################################################################################################################################
+// // #######################################################################################################################################################
+
+// // There is code duplication here but Rust doesn't have inheritance. I would rather deal with the duplication
+// // than having to make achieved scores option types in the original test definition
+
+// #[derive(Debug, Serialize, Deserialize, Clone)]
+// pub struct GradedTestDefinition {
+//     pub metadata: GradedMetadata,
+//     pub tables: Vec<GradedTestTable>,
+//     pub bonus_items: Option<Vec<GradedBonusItem>>,
+// }
+
+// #[derive(Debug, Serialize, Deserialize, Clone)]
+// pub struct GradedMetadata {
+//     pub test_name: String,
+//     pub test_type: TestType,
+//     pub minimum_percent: f64,
+//     pub max_score: u64,
+//     pub achieved_score: u64,
+// }
+
+// #[derive(Debug, Serialize, Deserialize, Clone)]
+// pub struct GradedTestTable {
+//     sections: Vec<GradedTestSection>
+// }
+
+// #[derive(Debug, Serialize, Deserialize, Clone)]
+// pub struct GradedTestSection {
+//     pub name: String,
+//     pub scoring_categories: Vec<ScoringCategory>,
+//     pub graded_items: Vec<GradedItemToBeGraded>
+// }
+
+// #[derive(Debug, Serialize, Deserialize, Clone)]
+// pub struct BonusItem {
+//     pub original: BonusItem,
+//     pub achieved_score: u64,
+// }
+
+// #[derive(Debug, Serialize, Deserialize, Clone)]
+// pub struct GradedItemToBeGraded {
+//     pub original: ItemToBeGraded,
+//     pub achieved_scores: Vec<u64>,
+//     pub score_labels: Vec<String>,
+//     pub is_failing: bool,
+// }
 
 
 // // #######################################################################################################################################################
@@ -594,7 +648,7 @@ fn validate_failing_header_labels(graded_items: &[ItemToBeGraded], header_labels
 //     pub score: u32,
 // }
 
-#[derive(Debug, sqlx::FromRow, Serialize, Deserialize)]
+#[derive(Debug, Clone, sqlx::FromRow, Serialize, Deserialize)]
 pub struct Testee {
     pub id: i32,  
     pub first_name: String,
@@ -618,7 +672,7 @@ impl From<HashMap<String, String>> for Testee {
 }
 
 // Didn't use SQLX custom types because they required hoops to jump through for compile time type checking to work
-#[derive(Debug, EnumString, Display, Serialize, Deserialize)]
+#[derive(Debug, Clone, EnumString, Display, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 #[strum(serialize_all = "snake_case")]
 pub enum TestType {

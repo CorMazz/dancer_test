@@ -22,3 +22,7 @@
 ## Would be Nice TODO
 - Refactor the error handling to use the anyhow crate
 - Separate the test parsing into a separate crate that I can provide as an executable so that other people can work on creating valid tests
+
+
+## Last Thing I Was Doing
+Add this from to_be_deleted into the test_section.html value="{{ technique_group.technique_headers[loop.index0] }}--{{ point }}" 

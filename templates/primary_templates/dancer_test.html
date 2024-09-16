@@ -37,15 +37,22 @@
                 </div>
 
                 <!-- Loop to Add Test Sections -->
-                <div class="card shadow-md rounded border border-gray-300 mb-6 p-4">
-                    {% for section in test.sections %}
-                        {% include "../partial_templates/test_section.html" %}
-                    {% endfor %}
-                </div>
+                {% for table in test.tables %}
+                    {% let table_index = loop.index0 %}
+                    <div class="card shadow-md rounded border border-gray-300 mb-6 p-4">
+
+                        <!-- test.sections is a list of lists. The outer list says which sections are on the same table, and the inner list defines the sections themselves -->
+                        {% for section in table.sections %}
+                            {% let section_index = loop.index0 %}
+                            {% include "../partial_templates/test_section.html" %}
+                        {% endfor %}
+
+                    </div>
+                {% endfor %}
 
 
-                {% match test.bonus_section %}
-                    {% when Some with (bonus_section) %}
+                {% match test.bonus_items %}
+                    {% when Some with (bonus_items) %}
                         <!-- Bonus Points Table -->
                         <div class="card shadow-md rounded border border-gray-300 mb-6 p-4">
                             {% include "../partial_templates/bonus_section.html" %}
