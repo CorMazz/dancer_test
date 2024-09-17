@@ -30,7 +30,7 @@ pub struct Test {
 
 impl Test {
     /// Iterates over each competency scores lists and calculates the max possible score, not including bonus points. 
-    fn calculate_max_score(&self) -> i64 {
+    fn calculate_max_score(&self) -> i32 {
         self.tables.iter()
             .flat_map(|table| table.sections.iter()) // Flatten the list of lists
             .flat_map(|section| section.competencies.iter()) // Flatten to items to be graded
@@ -70,18 +70,40 @@ impl Test {
             
         Ok(())
     }
+
+    pub fn grade(& mut self) -> Result<i32, String> {
+        let mut total_score: i32= 0;
+
+        for table in &self.tables {
+            for section in &table.sections {
+                for competency in &section.competencies {
+                    let competency_score: i32 = match &competency.achieved_scores {
+                        Some(scores) => scores.iter().sum(),
+                        None => return Err(format!("Missing scores for competency '{}'", competency.name)),
+                    };
+
+                    total_score += competency_score;
+                }
+            }
+        }
+
+        self.metadata.achieved_score = Some(total_score);
+
+        // Return the total score for the test
+        Ok(total_score)
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TestTable {
-    pub test_id: Option<i64>,
-    pub table_id: Option<i64>,
+    pub test_id: Option<i32>,
+    pub table_id: Option<i32>,
     pub sections: Vec<TestSection>
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TestSection {
-    pub table_id: Option<i64>,
+    pub table_id: Option<i32>,
     pub name: String,
     pub scoring_categories: Vec<ScoringCategory>,
     pub competencies: Vec<Competency>,
@@ -89,45 +111,46 @@ pub struct TestSection {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct BonusItem {
-    pub test_id: Option<i64>,
+    pub test_id: Option<i32>,
     pub name: String,
-    pub score: i64,
+    pub score: i32,
     pub achieved: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Metadata {
-    pub test_id: Option<i64>,
+    pub test_id: Option<i32>,
     pub test_name: String,
-    pub minimum_percent: f64,
-    pub max_score: i64,
-    pub achieved_score: Option<i64>,
+    pub minimum_percent: f32,
+    pub max_score: i32,
+    pub achieved_score: Option<i32>,
     pub testee: Option<Testee>,
+    pub test_date: Option<NaiveDateTime>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ScoringCategory {
-    pub section_id: Option<i64>,
+    pub section_id: Option<i32>,
     pub name: String,
     pub values: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FailingScoreLabels {
-    pub competency_id: Option<i64>,
+    pub competency_id: Option<i32>,
     pub scoring_category_name: String,
     pub values: Vec<String>, 
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Competency {
-    pub section_id: Option<i64>,
+    pub section_id: Option<i32>,
     pub name: String,
-    pub scores: Vec<Vec<i64>>,
+    pub scores: Vec<Vec<i32>>,
     pub subtext: Option<String>,
     pub failing_score_labels: Option<Vec<FailingScoreLabels>>,
     pub antithesis: Option<String>,
-    pub achieved_scores: Option<Vec<i64>>,
+    pub achieved_scores: Option<Vec<i32>>,
     pub achieved_score_labels: Option<Vec<String>>
 }
 
@@ -654,7 +677,7 @@ fn validate_antitheses(graded_items: &[Competency], test_name: &String) -> Resul
 
 #[derive(Debug, Clone, sqlx::FromRow, Serialize, Deserialize)]
 pub struct Testee {
-    pub id: i32,  
+    pub id: Option<i32>,  
     pub first_name: String,
     pub last_name: String,
     pub email: String,
@@ -667,7 +690,7 @@ impl From<HashMap<String, String>> for Testee {
         let email = map.remove("email").unwrap_or_default();
 
         Testee {
-            id: -1,  // ID is None when parsed from form data
+            id: None,  // ID is None when parsed from form data
             first_name,
             last_name,
             email,

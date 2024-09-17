@@ -14,10 +14,15 @@ use crate::{
         middleware::{AuthError, AuthStatus},
         model::User
     }, exam::{
-        handlers::{create_testee, enqueue_testee, fetch_testee_by_id, parse_test_form_data, retrieve_queue, search_for_testee, TestError}, 
+        handlers::{create_testee, enqueue_testee, fetch_testee_by_id, parse_test_form_data, retrieve_queue, save_test_to_database, search_for_testee, TestError}, 
         models::{Test, Testee}
     }, filters, AppState
 };
+
+/// A helper function to handle errors consistently
+fn error_response(message: &str) -> impl IntoResponse {
+    (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">{}</h1>", message))).into_response()
+}
 
 // #######################################################################################################################################################
 // home.html
@@ -262,17 +267,19 @@ pub async fn post_test_form(
     println!("{:#?}", test);
 
     if let Some(test_definition) = data.test_configurations.tests.get(test_index as usize) {
-        let graded_test = parse_test_form_data(test, test_definition.clone());
-        println!("{:#?}", graded_test);
-        (StatusCode::OK, Html("Worked".to_string()))
+        match parse_test_form_data(test, test_definition.clone()) {
+            Ok(graded_test) => {
+                println!("{:#?}", graded_test);
+                match save_test_to_database(&data.db, graded_test).await {
+                    Ok(_) => Redirect::to("/dashboard").into_response(),
+                    Err(e) => error_response(&format!("Error saving test to database: {:?}", e)).into_response()
+                }
+            },
+            Err(e) => error_response(&format!("Error parsing test form data: {:?}", e)).into_response()
+        }
     } else {
-        (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error: Invalid test index ({}) in url.</h1>", test_index)))
+        error_response(&format!("Invalid test index ({}) in URL", test_index)).into_response()
     }
-
-    // match save_test_to_database(&data.db, graded_test).await {
-    //     Ok(_) => Redirect::to("/dashboard").into_response(),
-    //     Err(e) => return (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">: {:?}</h1>", e))).into_response(),
-    // }
 }
 
 // #######################################################################################################################################################
@@ -509,6 +516,7 @@ pub async fn post_queue(
     Form(user_info): Form<EnqueueForm>,
 ) -> impl IntoResponse {
 
+
     let testee = match create_testee(
         &data.db, user_info.first_name.as_str(), user_info.last_name.as_str(), user_info.email.as_str()
     ).await {
@@ -518,8 +526,8 @@ pub async fn post_queue(
         }
     };
 
-
-    if let Err(e) = enqueue_testee(&data.db, testee.id, user_info.role.as_str()).await {
+    // Create testee 100% returns a testee with a testee id, so I can call unwrap on this
+    if let Err(e) = enqueue_testee(&data.db, testee.id.unwrap(), user_info.role.as_str()).await {
         return (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error enqueuing testee: {:?}</h1>", e))).into_response();
     }
     

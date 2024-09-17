@@ -29,6 +29,12 @@ impl From<strum::ParseError> for TestError {
     }
 }
 
+impl From<serde_json::Error> for TestError {
+    fn from(error: serde_json::Error) -> Self {
+        TestError::InternalServerError(error.to_string())
+    }
+}
+
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 // Parse Test from YAML
@@ -54,6 +60,7 @@ pub fn parse_test_form_data(test: HashMap<String, String>, mut test_template: Te
     // graded_item_map must be a hash map because each graded item has multiple keys in the test dict whose information must be combined
     // Keys of this map will be tuples of the form (table_index, section_index, item_index, scoring_category_index) and the values will be GradedItemToBeGraded
     println!("{:#?}", test_template);
+    println!("##########################################################################\n#################################################################");
     
     
     let mut user_info = HashMap::new();
@@ -78,7 +85,7 @@ pub fn parse_test_form_data(test: HashMap<String, String>, mut test_template: Te
                         key_parts[5].parse::<usize>(), 
                         key_parts[7].parse::<usize>(), 
                         value_parts[1].parse::<usize>(), 
-                        value_parts[3].parse::<i64>()
+                        value_parts[3].parse::<i32>()
                     ) {
                         (Ok(table_index), Ok(section_index), Ok(item_index), Ok(scoring_category_index), Ok(scoring_category_label_index), Ok(points)) => {
 
@@ -139,16 +146,23 @@ pub fn parse_test_form_data(test: HashMap<String, String>, mut test_template: Te
         user_info.get("email").cloned()
     ) {
         (Some(first_name), Some(last_name), Some(email)) => Testee {
-            id: -1,
+            id: None,
             first_name,
             last_name,
             email,
         },
-        // TODO: This should probably be refactored to propagate an error
         _ => {
            return Err(TestError::InternalServerError("Missing user information. Please ensure 'first_name', 'last_name', and 'email' are provided.".to_string()));
         }
     };
+
+    // Assign the testee
+    test_template.metadata.testee = Some(testee);
+
+    // Grade the test
+    if let Err(e) = test_template.grade() {
+        return Err(TestError::InternalServerError(e)); // Return the error
+    }
 
     println!("{:#?}", test_template);
     Ok(test_template)
@@ -271,86 +285,133 @@ pub fn parse_test_form_data(test: HashMap<String, String>, mut test_template: Te
     
 // }
 
-// // -------------------------------------------------------------------------------------------------------------------------------------------------------
-// // Save Test to Database
-// // -------------------------------------------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
+// Save Test to Database
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
+
+/// Assumes that the graded_test has metadata with a testee object or the code panics.
+pub async fn save_test_to_database(
+    pool: &PgPool,
+    graded_test: Test,
+) -> Result<(), TestError> {
+    // Insert the testee or get the testee ID if the testee already exists
+    let testee = create_testee(
+        pool, 
+        &graded_test.metadata.testee.clone().expect("If this error was thrown, the invariant in the docstring of save_test_to_database was violated.").first_name, 
+        &graded_test.metadata.testee.clone().expect("If this error was thrown, the invariant in the docstring of save_test_to_database was violated.").last_name,
+        &graded_test.metadata.testee.clone().expect("If this error was thrown, the invariant in the docstring of save_test_to_database was violated.").email,
+    ).await?;
+
+    // Insert a new test record
+    let test_id = sqlx::query!(
+        "INSERT INTO tests DEFAULT VALUES RETURNING id"
+    )
+    .fetch_one(pool)
+    .await?
+    .id;
 
 
-// pub async fn save_test_to_database(
-//     pool: &PgPool,
-//     graded_test: GradedTest
-// ) -> Result<(), TestError> {
-//     // Insert the testee or get the testee ID if the testee already exists
-//     let testee = create_testee(
-//         pool, 
-//         &graded_test.testee.first_name, 
-//         &graded_test.testee.last_name,
-//         &graded_test.testee.email,
-//     ).await?;
+    // Insert test metadata
+    sqlx::query(
+        "INSERT INTO test_metadata (test_id, test_name, minimum_percent, max_score, achieved_score, testee_id, test_date)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)"
+    )
+    .bind(test_id)
+    .bind(graded_test.metadata.test_name)
+    .bind(graded_test.metadata.minimum_percent)
+    .bind(graded_test.metadata.max_score)
+    .bind(graded_test.metadata.achieved_score)
+    .bind(testee.id)
+    .bind(Local::now().naive_utc())
+    .execute(pool)
+    .await?;
 
-//     // Insert a new test record
-//     let test_id = match sqlx::query!(
-//         "INSERT INTO tests (testee_id, role, test_date, score, max_score, passing_score)
-//         VALUES ($1, $2, $3, $4, $5, $6)
-//         RETURNING id",
-//         testee.id,
-//         graded_test.test_type.to_string(),
-//         graded_test.test_date,
-//         graded_test.score as i32,
-//         graded_test.max_score as i32,
-//         graded_test.passing_score as i32,
-//     )
-//     .fetch_one(pool)
-//     .await {
-//         Ok(record) => record.id,
-//         Err(e) => return Err(e.into()),
-//     };
+    // Insert test tables, sections, scoring categories, and competencies
+    for table in graded_test.tables {
+        let table_id = sqlx::query!(
+            "INSERT INTO test_tables (test_id)
+            VALUES ($1)
+            RETURNING (id)",
+            test_id
+        ).fetch_one(pool)
+        .await?
+        .id;
 
-//     // Insert pattern scores
-//     for pattern in graded_test.patterns {
-//         sqlx::query!(
-//             "INSERT INTO patterns (test_id, pattern, category, score, max_score)
-//             VALUES ($1, $2, $3, $4, $5)",
-//             test_id,
-//             pattern.pattern.to_string(),
-//             pattern.category.to_string(),
-//             pattern.score as i32,
-//             pattern.max_score as i32,
-//         )
-//         .execute(pool)
-//         .await?;
-//     }
+        for section in table.sections {
+            let section_id = sqlx::query!(
+                "INSERT INTO test_sections (table_id, name)
+                VALUES ($1, $2)
+                RETURNING (id)",
+                table_id,
+                section.name
+            ).fetch_one(pool)
+            .await?
+            .id;
 
-//     // Insert technique scores
-//     for technique in graded_test.techniques {
-//         sqlx::query!(
-//             "INSERT INTO techniques (test_id, technique, score, score_header, max_score)
-//             VALUES ($1, $2, $3, $4, $5)",
-//             test_id,
-//             technique.technique.to_string(),
-//             technique.score as i32,
-//             technique.score_header.to_string(),
-//             technique.max_score as i32,
-//         )
-//         .execute(pool)
-//         .await?;
-//     }
+            for scoring_category in section.scoring_categories {
+                sqlx::query(
+                    "INSERT INTO scoring_categories (section_id, name, values)
+                    VALUES ($1, $2, $3)",
+                )
+                .bind(section_id)
+                .bind(&scoring_category.name)
+                .bind(&scoring_category.values)
+                .execute(pool)
+                .await?;
+            };
 
-//     // Insert bonus scores
-//     for bonus in graded_test.bonuses {
-//         sqlx::query!(
-//             "INSERT INTO bonus_points (test_id, name, score)
-//             VALUES ($1, $2, $3)",
-//             test_id,
-//             bonus.name.to_string(),
-//             bonus.score as i32
-//         )
-//         .execute(pool)
-//         .await?;
-//     }
+            for competency in section.competencies {
+                sqlx::query(
+                    "INSERT INTO competencies (section_id, name, scores, subtext, antithesis, achieved_scores, achieved_score_labels, failing_score_labels)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
+                )
+                .bind(competency.section_id)
+                .bind(&competency.name)
+                .bind(&serde_json::to_value(&competency.scores)?) // Convert Vec<Vec<i64>> to JSON
+                .bind(&competency.subtext)
+                .bind(&competency.antithesis)
+                .bind(&serde_json::to_value(competency.achieved_scores)?) // Convert Option<Vec<i64>> to JSON
+                .bind(&serde_json::to_value(competency.achieved_score_labels)?) // Convert Option<Vec<String>> to JSON
+                .bind(&serde_json::to_value(&competency.failing_score_labels)?) // Convert Option<Vec<FailingScoreLabels>> to JSON
+                .execute(pool)
+                .await?;
+            };
+        };
+    };
 
-//     Ok(())
-// }
+    // Insert test sections
+
+
+
+    // for technique in graded_test.techniques {
+    //     sqlx::query!(
+    //         "INSERT INTO techniques (test_id, technique, score, score_header, max_score)
+    //         VALUES ($1, $2, $3, $4, $5)",
+    //         test_id,
+    //         technique.technique.to_string(),
+    //         technique.score as i32,
+    //         technique.score_header.to_string(),
+    //         technique.max_score as i32,
+    //     )
+    //     .execute(pool)
+    //     .await?;
+    // }
+
+    // // Insert bonus scores
+    // for bonus in graded_test.bonuses {
+    //     sqlx::query!(
+    //         "INSERT INTO bonus_points (test_id, name, score)
+    //         VALUES ($1, $2, $3)",
+    //         test_id,
+    //         bonus.name.to_string(),
+    //         bonus.score as i32
+    //     )
+    //     .execute(pool)
+    //     .await?;
+    // }
+
+    Ok(())
+}
 
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -558,6 +619,7 @@ pub async fn fetch_testee_by_id(pool: &PgPool, testee_id: i32) -> Result<Option<
 // Create Testee
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
+/// Returns a testee that 100% has an ID.
 pub async fn create_testee(pool: &PgPool, first_name: &str, last_name: &str, email: &str) -> Result<Testee, TestError> {
     sqlx::query_as!(
         Testee,
@@ -690,7 +752,7 @@ pub async fn retrieve_queue(pool: &PgPool) -> Result<Vec<(Testee, String)>, Test
     let queue = rows.into_iter().map(|row| {
         (
             Testee {
-                id: row.id,
+                id: Some(row.id),
                 first_name: row.first_name,
                 last_name: row.last_name,
                 email: row.email,

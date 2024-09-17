@@ -44,7 +44,7 @@
         <h2 class="py-2 text-xl font-bold">Results</h2>
         {% for testee in data %}
             <ul class="bg-gray-100 border rounded hover:bg-gray-200 transition duration-300 mt-1 py-1">
-                <a href="/test-summaries/{{ testee.id }}">
+                <a href="/test-summaries/{{ testee.id.unwrap() }}">
                     {{ testee.first_name }} {{ testee.last_name }} - {{ testee.email }}
                 </a>
             </ul>
