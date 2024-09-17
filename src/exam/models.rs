@@ -14,6 +14,11 @@ use crate::filters;
 // #######################################################################################################################################################
 // #######################################################################################################################################################
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+
+pub struct TestDefinitionYaml {
+    pub tests: Vec<Test>
+}
 
 /// A test object -- can be graded or ungraded, and is used to store the 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -24,7 +29,7 @@ pub struct Test {
 }
 
 impl Test {
-    /// Iterates over each item to be graded scores lists and calculates the max possible score, not including bonus points. 
+    /// Iterates over each competency scores lists and calculates the max possible score, not including bonus points. 
     fn calculate_max_score(&self) -> i64 {
         self.tables.iter()
             .flat_map(|table| table.sections.iter()) // Flatten the list of lists
@@ -48,18 +53,18 @@ impl Test {
     pub fn validate(&self) -> Result<(), String> {
         for table in &self.tables {
             for section in &table.sections {
-                validate_score_labels(&section.competencies, &section.scoring_categories)?;
+                validate_score_labels(&section.competencies, &section.scoring_categories, &self.metadata.test_name)?;
 
-                validate_failing_score_labels(&section.competencies, &section.scoring_categories) ?;
+                validate_failing_score_labels(&section.competencies, &section.scoring_categories, &self.metadata.test_name)?;
 
-                validate_antitheses(&section.competencies)?;
+                validate_antitheses(&section.competencies, &self.metadata.test_name)?;
             }
         }
 
         if self.calculate_max_score() != self.metadata.max_score {
             return Err(format!(
-                "The test metadata indicates a max score of {} when the actual max score (without bonus points) is {}.",
-                self.metadata.max_score, self.calculate_max_score()
+                "The test metadata for the test named {} indicates a max score of {} when the actual max score (without bonus points) is {}.",
+                self.metadata.test_name, self.metadata.max_score, self.calculate_max_score()
             ))
         }
             
@@ -94,7 +99,6 @@ pub struct BonusItem {
 pub struct Metadata {
     pub test_id: Option<i64>,
     pub test_name: String,
-    pub test_type: TestType,
     pub minimum_percent: f64,
     pub max_score: i64,
     pub achieved_score: Option<i64>,
@@ -142,15 +146,15 @@ pub struct Competency {
 ///          subtext: "(Week 1)"
 ///          scores: 
 ///            - [8, 6, 0, 0, 0]
-fn validate_score_labels(graded_items: &[Competency], score_labels: &[ScoringCategory]) -> Result<(), String> {
+fn validate_score_labels(graded_items: &[Competency], score_labels: &[ScoringCategory], test_name: &String) -> Result<(), String> {
     
     // Check to ensure that each item has one list of scores per header label.
     let expected_number_of_scores_lists = score_labels.len();
     for item in graded_items {
         if item.scores.len() != expected_number_of_scores_lists {
             return Err(format!(
-                "Graded item '{}' has a number of lists of scores ({}) that does not correspond to the number of scoring categories. ({})",
-                item.name, item.scores.len(), score_labels.len()
+                "On the test named '{},' graded item '{}' has a number of lists of scores ({}) that does not correspond to the number of scoring categories. ({})",
+                test_name, item.name, item.scores.len(), score_labels.len()
             ))
         }
     }
@@ -161,8 +165,8 @@ fn validate_score_labels(graded_items: &[Competency], score_labels: &[ScoringCat
         for item in graded_items {
             if item.scores[i].len() != expected_number_of_scores {
                 return Err(format!(
-                    "The graded item named '{}' has a score list at index {} of length {} that does not correspond to the number of score labels ({}) for the scoring category at index {}.",
-                    item.name, i, item.scores[i].len(), expected_number_of_scores, i
+                    "On the test named '{},' the graded item named '{}' has a score list at index {} of length {} that does not correspond to the number of score labels ({}) for the scoring category at index {}.",
+                    test_name, item.name, i, item.scores[i].len(), expected_number_of_scores, i
                 ))
             }
         }
@@ -187,7 +191,7 @@ fn validate_score_labels(graded_items: &[Competency], score_labels: &[ScoringCat
 ///   failing_score_labels: 
 ///     - name: "Footwork"
 ///       values: ["Nope"]
-fn validate_failing_score_labels(graded_items: &[Competency], score_labels: &[ScoringCategory]) -> Result<(), String> {
+fn validate_failing_score_labels(graded_items: &[Competency], score_labels: &[ScoringCategory], test_name: &String) -> Result<(), String> {
 
     // Create a hashmap of the header labels so that we can correspond failing score labels on the graded item to the true header labels
     let mut score_label_hm: HashMap<String, Vec<String>> = HashMap::new();
@@ -205,15 +209,15 @@ fn validate_failing_score_labels(graded_items: &[Competency], score_labels: &[Sc
                     Some(valid_failing_score_labels) => for failing_score_label in &label.values {
                         if !valid_failing_score_labels.contains(&failing_score_label) {
                             return Err(format!(
-                                "The graded item named '{}' has a failing score label '{}' that does not correspond to any of the score labels ({:#?}) in the scoring category named '{}'.",
-                                item.name, failing_score_label, valid_failing_score_labels, label.scoring_category_name
+                                "On the test named '{},' the graded item named '{}' has a failing score label '{}' that does not correspond to any of the score labels ({:#?}) in the scoring category named '{}'.",
+                                test_name, item.name, failing_score_label, valid_failing_score_labels, label.scoring_category_name
                             ))
                         }
                     },
                     // The failing score label does not correspond to a valid section
                     None => return Err(format!(
-                        "The graded item named '{}' has failing score labels '{:#?}' under the scoring category '{}' that does not correspond to any of the valid scoring category labels ({:#?}).",
-                        item.name, label.values, label.scoring_category_name, score_label_hm.keys()
+                        "On the test named '{},' the graded item named '{}' has failing score labels '{:#?}' under the scoring category '{}' that does not correspond to any of the valid scoring category labels ({:#?}).",
+                        test_name, item.name, label.values, label.scoring_category_name, score_label_hm.keys()
                     ))
                 }
             }
@@ -224,14 +228,14 @@ fn validate_failing_score_labels(graded_items: &[Competency], score_labels: &[Sc
     Ok(())
 }
 
-/// Ensures that if there is more than one scoring category for an item to be graded (which can be checked by checking the length of the
+/// Ensures that if there is more than one scoring category for an competency (which can be checked by checking the length of the
 /// vec of scores) that the item does not have an antithesis. 
-fn validate_antitheses(graded_items: &[Competency]) -> Result<(), String> {
+fn validate_antitheses(graded_items: &[Competency], test_name: &String) -> Result<(), String> {
     for item in graded_items {
         match &item.antithesis {
             Some(antithesis) => if item.scores.len() > 1 {return Err(format!(
-                "The item to be graded named '{}' an antithesis {} which is not supported when there is more than one scoring category for that item.",
-                item.name, antithesis
+                "On the test named '{},' the competency named '{}' has an antithesis {} which is not supported when there is more than one scoring category for that item.",
+                test_name, item.name, antithesis
             ))}
             None => continue
         }
@@ -670,16 +674,6 @@ impl From<HashMap<String, String>> for Testee {
         }
     }
 }
-
-// Didn't use SQLX custom types because they required hoops to jump through for compile time type checking to work
-#[derive(Debug, Clone, EnumString, Display, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-#[strum(serialize_all = "snake_case")]
-pub enum TestType {
-    Leader,
-    Follower,
-}
-
 
 // #[derive(Debug, Serialize, Deserialize)]
 // pub struct GradedTest {

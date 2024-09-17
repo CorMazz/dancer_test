@@ -1,0 +1,143 @@
+tests:
+  -
+    metadata:
+      test_name: "Standard Leader Test"
+      minimum_percent: 0.60
+      max_score: 23
+
+    tables:
+      - sections:
+        - name: "Leader Pattern Scoring"
+          scoring_categories:
+            - name: "Footwork"
+              values: ["Perfect", "Variation?", "Right Concept", "Nope"]
+            - name: "Timing"
+              values: ["On", "Off"]
+          competencies:
+            - name: "Starter Step"
+              scores: 
+                - [3, 2, 1, 0]
+                - [1, 0]
+              failing_score_labels: 
+                - scoring_category_name: "Footwork"
+                  values: ["Nope"]
+            - name: "Left Side Pass from Closed"
+              scores: 
+                - [3, 2, 1, 0]
+                - [1, 0]
+
+      - sections:
+        - name: "Technique Scoring"
+          scoring_categories:
+            - name: ""
+              values: ["Consistent >90%", "Present 75%", "Occasional 50%", "Lacking 25%", "Missing <10%"]
+          competencies: 
+            - name: "Body Lead"
+              subtext: "(Week 1)"
+              scores: 
+                - [8, 6, 0, 0, 0]
+              failing_score_labels: 
+                - scoring_category_name: ""
+                  values: ["Missing <10%"]
+              antithesis: "Arm Lead"
+            - name: "Post"
+              subtext: "(Week 2)"
+              scores: 
+                - [6, 4, 0, 0, 0]
+              failing_score_labels: 
+                - scoring_category_name: ""
+                  values: ["Missing <10%"]
+              antithesis: "Arm Lead"
+
+        - name: ""
+          scoring_categories:
+            - name: ""
+              values: ["Perpendicular", "Over-Angled", "Angled", "Under-Angled", "Flat"]
+          competencies:
+            - name: "Body Angle"
+              subtext: "(Week 1)"
+              scores: 
+                - [0, 2, 3, 2, 0]
+              failing_score_labels: 
+                - scoring_category_name: ""
+                  values: ["Perpendicular", "Flat"]
+
+    bonus_items: 
+      - name: "No Thumbs"
+        score: 1
+      - name: "Clear Turn Signal"
+        score: 1
+      - name: "Swung Triple"
+        score: 4
+
+  -
+    metadata:
+      test_name: "Standard Follower Test"
+      test_type: "follower"
+      minimum_percent: 0.60
+      max_score: 23
+
+    tables:
+      - sections:
+        - name: "Follower Pattern Scoring"
+          scoring_categories:
+            - name: "Footwork"
+              values: ["Perfect", "Variation?", "Right Concept", "Nope"]
+            - name: "Timing"
+              values: ["On", "Off"]
+          competencies:
+            - name: "Starter Step"
+              scores: 
+                - [3, 2, 1, 0]
+                - [1, 0]
+              failing_score_labels: 
+                - scoring_category_name: "Footwork"
+                  values: ["Nope"]
+            - name: "Left Side Pass from Closed"
+              scores: 
+                - [3, 2, 1, 0]
+                - [1, 0]
+
+        - name: "Technique Scoring"
+          scoring_categories:
+            - name: ""
+              values: ["Consistent >90%", "Present 75%", "Occasional 50%", "Lacking 25%", "Missing <10%"]
+          competencies: 
+            - name: "Body Lead"
+              subtext: "(Week 1)"
+              scores: 
+                - [8, 6, 0, 0, 0]
+              failing_score_labels: 
+                - scoring_category_name: ""
+                  values: ["Missing <10%"]
+              antithesis: "Arm Lead"
+            - name: "Post"
+              subtext: "(Week 2)"
+              scores: 
+                - [6, 4, 0, 0, 0]
+              failing_score_labels: 
+                - scoring_category_name: ""
+                  values: ["Missing <10%"]
+              antithesis: "Arm Lead"
+              
+      - sections: 
+        - name: ""
+          scoring_categories:
+            - name: ""
+              values: ["Perpendicular", "Over-Angled", "Angled", "Under-Angled", "Flat"]
+          competencies:
+            - name: "Body Angle"
+              subtext: "(Week 1)"
+              scores: 
+                - [0, 2, 3, 2, 0]
+              failing_score_labels: 
+                - scoring_category_name: ""
+                  values: ["Perpendicular", "Flat"]
+
+    bonus_section: 
+      - name: "No Thumbs"
+        score: 1
+      - name: "Clear Turn Signal"
+        score: 1
+      - name: "Swung Triple"
+        score: 4

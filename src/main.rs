@@ -6,7 +6,7 @@ mod filters;
 mod exam;
 
 use config::SecretsConfig;
-use exam::{handlers::parse_test_definition, models::Test};
+use exam::{handlers::parse_test_definition, models::{TestDefinitionYaml}};
 use std::{fs::File, io::Read, sync::Arc};
 
 use axum::http::{
@@ -23,8 +23,7 @@ pub struct AppState {
     db: Pool<Postgres>,
     env: SecretsConfig,
     redis_client: Client,
-    leader_test: Test,
-    follower_test: Test,
+    test_configurations: TestDefinitionYaml,
 }
 
 
@@ -35,11 +34,11 @@ async fn main() {
 
     let config = SecretsConfig::init();
 
-    let leader_test = parse_test_definition("leader_test.yaml").expect("Error parsing leader_test.yaml");
-    let follower_test = parse_test_definition("follower_test.yaml").expect("Error parsing follower_test.yaml");
+    let tests = parse_test_definition("test_definitions.yaml").expect("Error parsing test_definition.yaml");
 
-    leader_test.validate().expect("Invalid leader test definition");
-    follower_test.validate().expect("Invalid follower test definition");
+    for test in &tests.tests {
+        test.validate().expect("Invalid test definition");
+    }
 
     let pool = match PgPoolOptions::new()
         .max_connections(10)
@@ -79,8 +78,7 @@ async fn main() {
         db: pool.clone(),
         env: config.clone(),
         redis_client: redis_client.clone(),
-        leader_test: leader_test,
-        follower_test: follower_test,
+        test_configurations: tests,
     }))
     .layer(cors);
 

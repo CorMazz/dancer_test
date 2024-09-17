@@ -3,7 +3,7 @@ use sqlx::{query, Error, PgPool};
 use strum_macros::Display;
 use std::{collections::HashMap, fmt::Display, fs::File, io::Read};
 use crate::exam::models::{
-    BonusItem, Competency, Test, TestType, Testee
+    BonusItem, Competency, Test, Testee, TestDefinitionYaml
 };
 
 
@@ -35,7 +35,7 @@ impl From<strum::ParseError> for TestError {
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
 /// Read the test definition from a .yaml file
-pub fn parse_test_definition(file_path: &str) -> Result<Test, serde_yaml::Error> {
+pub fn parse_test_definition(file_path: &str) -> Result<TestDefinitionYaml, serde_yaml::Error> {
     let mut file = File::open(file_path).expect(&format!("couldn't open file: {}", file_path));
     let mut yaml_string = String::new();
     file.read_to_string(&mut yaml_string).expect(&format!("Couldn't read file '{}' to string. This should work...", file_path));
@@ -50,7 +50,7 @@ pub fn parse_test_definition(file_path: &str) -> Result<Test, serde_yaml::Error>
 /// Parses the test form data, which should have a format of a hashmap more or less like this
 /// 
 /// Takes in a test_template which it will then mutate, adding the results so that it is graded.
-pub fn parse_test_form_data(test: HashMap<String, String>, mut test_template: Test) -> Result<Test, > {
+pub fn parse_test_form_data(test: HashMap<String, String>, mut test_template: Test) -> Result<Test, TestError> {
     // graded_item_map must be a hash map because each graded item has multiple keys in the test dict whose information must be combined
     // Keys of this map will be tuples of the form (table_index, section_index, item_index, scoring_category_index) and the values will be GradedItemToBeGraded
     println!("{:#?}", test_template);
@@ -146,17 +146,12 @@ pub fn parse_test_form_data(test: HashMap<String, String>, mut test_template: Te
         },
         // TODO: This should probably be refactored to propagate an error
         _ => {
-           panic!("Missing user information. Please ensure 'first_name', 'last_name', and 'email' are provided.");
-            Testee {
-                id: -1,
-                first_name: String::new(),
-                last_name: String::new(),
-                email: String::new(),
-            }
+           return Err(TestError::InternalServerError("Missing user information. Please ensure 'first_name', 'last_name', and 'email' are provided.".to_string()));
         }
     };
 
     println!("{:#?}", test_template);
+    Ok(test_template)
 
 }
 
@@ -598,76 +593,76 @@ pub async fn enqueue_testee(pool: &PgPool, testee_id: i32, role: &str) -> Result
     Ok(())
 }
 
-// -------------------------------------------------------------------------------------------------------------------------------------------------------
-// Dequeue Testee 
-// -------------------------------------------------------------------------------------------------------------------------------------------------------
+// // -------------------------------------------------------------------------------------------------------------------------------------------------------
+// // Dequeue Testee 
+// // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
-/// Remove and return the next person on the queue plus the role of their desired test.
-/// If a testee_id is given, remove that person, (or throw an error if not found)
-pub async fn dequeue_testee(
-    pool: &PgPool,
-    testee_id: Option<i32>,
-    role: Option<TestType>,
-) -> Result<Option<(Testee, String)>, TestError> {
+// /// Remove and return the next person on the queue plus the role of their desired test.
+// /// If a testee_id is given, remove that person, (or throw an error if not found)
+// pub async fn dequeue_testee(
+//     pool: &PgPool,
+//     testee_id: Option<i32>,
+//     test_index: Option<usize>,
+// ) -> Result<Option<(Testee, String)>, TestError> {
 
-    // Handle different cases based on the presence of testee_id and role
-    let (testee_id, role) = match (testee_id, role) {
-        (Some(id), Some(r)) => {
-            // Both testee_id and role are provided; delete the specific entry
-            match sqlx::query!(
-                "DELETE FROM queue WHERE testee_id = $1 AND role = $2 RETURNING role",
-                id, r.to_string()
-            )
-            .fetch_optional(pool)
-            .await? {
-                Some(result) => (id, result.role),
-                None => return Ok(None),
-            }
-        }
-        (Some(id), None) => {
-            // Only testee_id is provided; delete the oldest entry for that testee_id
-            match sqlx::query!(
-                "DELETE FROM queue WHERE ctid = (
-                    SELECT ctid FROM queue WHERE testee_id = $1 ORDER BY added_at LIMIT 1
-                ) RETURNING role",
-                id
-            )
-            .fetch_optional(pool)
-            .await? {
-                Some(result) => (id, result.role),
-                None => return Ok(None),
-            }
-        }
-        (None, None) => {
-            // Neither testee_id nor role is provided; delete the oldest queue item
-            match sqlx::query!(
-                "DELETE FROM queue WHERE ctid = (
-                    SELECT ctid FROM queue ORDER BY added_at LIMIT 1
-                ) RETURNING testee_id, role"
-            )
-            .fetch_optional(pool)
-            .await? {
-                Some(result) => (result.testee_id, result.role),
-                None => return Ok(None),
-            }
-        }
-        (None, Some(_)) => {
-            // Only role is provided, which is an invalid case
-            return Err(TestError::InternalServerError("Role specified without testee_id when trying to dequeue.".into()));
-        }
-    };
+//     // Handle different cases based on the presence of testee_id and role
+//     let (testee_id, role) = match (testee_id, test_index) {
+//         (Some(id), Some(r)) => {
+//             // Both testee_id and role are provided; delete the specific entry
+//             match sqlx::query!(
+//                 "DELETE FROM queue WHERE testee_id = $1 AND role = $2 RETURNING role",
+//                 id, r.to_string()
+//             )
+//             .fetch_optional(pool)
+//             .await? {
+//                 Some(result) => (id, result.role),
+//                 None => return Ok(None),
+//             }
+//         }
+//         (Some(id), None) => {
+//             // Only testee_id is provided; delete the oldest entry for that testee_id
+//             match sqlx::query!(
+//                 "DELETE FROM queue WHERE ctid = (
+//                     SELECT ctid FROM queue WHERE testee_id = $1 ORDER BY added_at LIMIT 1
+//                 ) RETURNING role",
+//                 id
+//             )
+//             .fetch_optional(pool)
+//             .await? {
+//                 Some(result) => (id, result.role),
+//                 None => return Ok(None),
+//             }
+//         }
+//         (None, None) => {
+//             // Neither testee_id nor role is provided; delete the oldest queue item
+//             match sqlx::query!(
+//                 "DELETE FROM queue WHERE ctid = (
+//                     SELECT ctid FROM queue ORDER BY added_at LIMIT 1
+//                 ) RETURNING testee_id, role"
+//             )
+//             .fetch_optional(pool)
+//             .await? {
+//                 Some(result) => (result.testee_id, result.role),
+//                 None => return Ok(None),
+//             }
+//         }
+//         (None, Some(_)) => {
+//             // Only role is provided, which is an invalid case
+//             return Err(TestError::InternalServerError("Test index specified without testee_id when trying to dequeue.".into()));
+//         }
+//     };
 
-    // Fetch the testee details
-    let testee = sqlx::query_as!(
-        Testee,
-        "SELECT id, first_name, last_name, email FROM testees WHERE id = $1",
-        testee_id
-    )
-    .fetch_one(pool)
-    .await?;
+//     // Fetch the testee details
+//     let testee = sqlx::query_as!(
+//         Testee,
+//         "SELECT id, first_name, last_name, email FROM testees WHERE id = $1",
+//         testee_id
+//     )
+//     .fetch_one(pool)
+//     .await?;
 
-    Ok(Some((testee, role)))
-}
+//     Ok(Some((testee, role)))
+// }
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 // Get Queue
