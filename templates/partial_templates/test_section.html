@@ -30,7 +30,7 @@
 
             {% for scoring_category in section.scoring_categories %}
                 {% for header in scoring_category.values %}
-                    <th class="mt-1 text-gray-600 lg:text-2xl {% if loop.last %}border-r border-gray-300{% else %}{% endif %}">
+                    <th class="mt-1 text-gray-600 lg:text-2xl {% if loop.last %}border-r border-gray-300{% endif %}">
                         {{ header }}
                     </th>
                 {% endfor %}
@@ -73,7 +73,19 @@
                             value="scoring_category_label_index---{{ loop.index0 }}---points---{{ point }}" 
                             class="hidden peer" 
                             required
-                            {% if loop.last %}checked{% else %}{% endif %}
+                            
+                            {# This is used to check the achieved scores if the test is graded and we are displaying results. Otherwise, check the last score. #}
+                            {% match test.metadata.is_graded %}{% when Some with (_) %}
+                                {% match item.achieved_score_labels %}
+                                    {% when Some with (achieved_score_labels) %}
+                                        {% if achieved_score_labels[scoring_category_index] == scoring_category.values[loop.index0] %}checked{% endif %}
+                                    {% when None %}
+                                    Error: This shouldn't be possible
+                                {% endmatch %}
+                            {% when None %}
+                                {% if loop.last %}checked{% endif %}
+                            {% endmatch %}
+                            {% match test.metadata.is_graded %}{% when Some with (_) %}disabled{% when None %}{% endmatch %}
                         >
                         <label 
                             for="table_index---{{ table_index }}---section_index---{{ section_index }}---item_index---{{ item_index }}---scoring_category_index---{{ scoring_category_index }}---scoring_category_label_index---{{ loop.index0 }}---{{ point }}" 

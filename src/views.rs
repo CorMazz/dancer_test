@@ -14,7 +14,7 @@ use crate::{
         middleware::{AuthError, AuthStatus},
         model::User
     }, exam::{
-        handlers::{create_testee, enqueue_testee, fetch_testee_by_id, parse_test_form_data, retrieve_queue, save_test_to_database, search_for_testee, TestError}, 
+        handlers::{create_testee, enqueue_testee, fetch_test_results_by_id, fetch_testee_by_id, parse_test_form_data, retrieve_queue, save_test_to_database, search_for_testee, TestError}, 
         models::{Test, Testee}
     }, filters, AppState
 };
@@ -236,7 +236,6 @@ pub struct PrefilledTestData {
     first_name: Option<String>,
     last_name: Option<String>,
     email: Option<String>,
-    role: Option<String>,
 }
 
 pub async fn get_test_page(
@@ -281,36 +280,6 @@ pub async fn post_test_form(
         error_response(&format!("Invalid test index ({}) in URL", test_index)).into_response()
     }
 }
-
-// #######################################################################################################################################################
-// follower_test.html
-// #######################################################################################################################################################
-
-// /// This could've been refactored to avoid copy-pasting the leader functions, but tbh this is a spot where it wasn't worth the effort
-// pub async fn get_follower_test_page(
-//     State(data): State<Arc<AppState>>,
-//     Query(prefilled_user_info): Query<PrefilledTestData>,
-// ) -> impl IntoResponse  {
-//     let template = DancerTestPageTemplate {
-//         test: data.follower_test.clone(),
-//         prefilled_user_info: prefilled_user_info,
-//         is_demo_mode: data.env.is_demo_mode,
-//     };
-
-//     (StatusCode::OK, Html(template.render().unwrap()))
-// }
-
-// pub async fn post_follower_test_form(
-//     State(data): State<Arc<AppState>>,
-//     Form(test): Form<HashMap<String, String>>,
-// ) -> impl IntoResponse {
-//     let graded_test = parse_test_form_data(test, TestType::Follower, generate_follower_test());
-
-//     match save_test_to_database(&data.db, graded_test).await {
-//         Ok(_) => Redirect::to("/dashboard").into_response(),
-//         Err(e) => return (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error: {:?}</h1>", e))).into_response(),
-//     }
-// }
 
 // #######################################################################################################################################################
 // test_grade.html
@@ -360,37 +329,49 @@ pub struct GradeTestTemplate {
 //     }
 // }
 
-// // #######################################################################################################################################################
-// // graded_test.html
-// // #######################################################################################################################################################
+// #######################################################################################################################################################
+// graded_test.html
+// #######################################################################################################################################################
 
-// #[derive(Template)]
-// #[template(path = "./primary_templates/graded_test.html")] 
-// pub struct GradedTestTemplate {
-//     test: Option<GradedTest>,
-// }
+#[derive(Template)]
+#[template(path = "./primary_templates/dancer_test.html")] 
+pub struct GradedTestTemplate {
+    test: Test,
+    prefilled_user_info: PrefilledTestData,
+    is_demo_mode: bool
+}
 
-// pub async fn get_test_results(
-//     State(data): State<Arc<AppState>>,
-//     Path(test_id): Path<i32>,
-// ) -> impl IntoResponse {
-//     match fetch_test_results_by_id(&data.db, test_id).await {
-//         Ok(test_result) => {
-//             let template = GradedTestTemplate {
-//                 test: test_result,
-//             };
-//             match template.render() {
-//                 Ok(rendered) => Html(rendered).into_response(),
-//                 Err(e) => {
-//                     (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error: {:?}</h1>", e))).into_response()
-//                 }
-//             }
-//         }
-//         Err(TestError::InternalServerError(err)) => {
-//             (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error: {:?}<h1>", err))).into_response()
-//         }
-//     }
-// }
+pub async fn get_test_results(
+    State(data): State<Arc<AppState>>,
+    Path(test_id): Path<i32>,
+) -> impl IntoResponse {
+    match fetch_test_results_by_id(&data.db, test_id).await {
+        Ok(Some(test)) => {
+            println!("{:#?}", test);
+            let prefilled_user_info = PrefilledTestData{
+                first_name: Some(test.metadata.testee.clone().expect("Invariant that graded tests all have Testees violated in get_test_results fn").first_name),
+                last_name: Some(test.metadata.testee.clone().expect("Invariant that graded tests all have Testees violated in get_test_results fn").last_name),
+                email: Some(test.metadata.testee.clone().expect("Invariant that graded tests all have Testees violated in get_test_results fn").email)
+            };
+
+            let template = GradedTestTemplate {
+                test,
+                prefilled_user_info,
+                is_demo_mode: data.env.is_demo_mode
+            };
+            match template.render() {
+                Ok(rendered) => Html(rendered).into_response(),
+                Err(e) => {
+                    (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error: {:?}</h1>", e))).into_response()
+                }
+            }
+        },
+        Ok(None) => error_response(&format!("No test found for test id ({}) in URL", test_id)).into_response(),
+        Err(TestError::InternalServerError(err)) => {
+            (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error: {:?}<h1>", err))).into_response()
+        }
+    }
+}
 
 // #######################################################################################################################################################
 // search_testee.html

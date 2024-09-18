@@ -126,6 +126,7 @@ pub struct Metadata {
     pub achieved_score: Option<i32>,
     pub testee: Option<Testee>,
     pub test_date: Option<NaiveDateTime>,
+    pub is_graded: Option<()>, // An option being used as a bool. So that serde_yaml parses the data
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

@@ -3,7 +3,6 @@
 ## Required TODO
 - Add HTMX functionality to everything
 - Send emails to testees once their tests are graded
-- Fix the test max score calculation when I have wifi
 
 ## Additional Possible Functionality
 - Add "most recent testee" to the dashboard
@@ -25,4 +24,3 @@
 
 
 ## Last Thing I Was Doing
-Add this from to_be_deleted into the test_section.html value="{{ technique_group.technique_headers[loop.index0] }}--{{ point }}" 

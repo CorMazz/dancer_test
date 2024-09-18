@@ -7,7 +7,19 @@
             <td class="py-2 px-4 border-b text-xl text-right">{{ bonus_item.name }}</td>
 
             <td class="py-2 px-4 border-b text-center">
-                <input type="checkbox" name="bonus_index---{{ loop.index0 }}" value="{{ bonus_item.score }}" id="bonus_index--{{ loop.index0}}" class="hidden peer">
+                <input 
+                type="checkbox" 
+                name="bonus_index---{{ loop.index0 }}" 
+                value="{{ bonus_item.score }}" 
+                id="bonus_index--{{ loop.index0}}" 
+                class="hidden peer"
+                {% match bonus_item.achieved %}
+                {% when Some with (achieved) %}
+                    {% if achieved %}checked{% endif %}
+                {% when None %}
+                {% endmatch %}
+                {% match test.metadata.is_graded %}{% when Some with (_) %}disabled{% when None %}{% endmatch %}
+                >
                 <label for="bonus_index--{{ loop.index0}}" class="inline-flex items-center justify-center w-full h-12 p-2 text-sm font-medium text-gray-900 bg-white border-2 border-gray-300 rounded-lg cursor-pointer peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-transparent hover:bg-gray-100 hover:shadow-sm transition duration-300">
                     + {{ bonus_item.score }}
                 </label>

@@ -3,7 +3,7 @@ use sqlx::{query, Error, PgPool};
 use strum_macros::Display;
 use std::{collections::HashMap, fmt::Display, fs::File, io::Read};
 use crate::exam::models::{
-    BonusItem, Competency, Test, Testee, TestDefinitionYaml
+    BonusItem, Competency, Metadata, Test, TestTable, TestSection, ScoringCategory, FailingScoreLabels,  TestDefinitionYaml, Testee
 };
 
 
@@ -164,7 +164,7 @@ pub fn parse_test_form_data(test: HashMap<String, String>, mut test_template: Te
         return Err(TestError::InternalServerError(e)); // Return the error
     }
 
-    println!("{:#?}", test_template);
+    println!("Graded Test:\n{:#?}", test_template);
     Ok(test_template)
 
 }
@@ -310,7 +310,6 @@ pub async fn save_test_to_database(
     .await?
     .id;
 
-
     // Insert test metadata
     sqlx::query(
         "INSERT INTO test_metadata (test_id, test_name, minimum_percent, max_score, achieved_score, testee_id, test_date)
@@ -365,7 +364,7 @@ pub async fn save_test_to_database(
                     "INSERT INTO competencies (section_id, name, scores, subtext, antithesis, achieved_scores, achieved_score_labels, failing_score_labels)
                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
                 )
-                .bind(competency.section_id)
+                .bind(section_id)
                 .bind(&competency.name)
                 .bind(&serde_json::to_value(&competency.scores)?) // Convert Vec<Vec<i64>> to JSON
                 .bind(&competency.subtext)
@@ -379,36 +378,21 @@ pub async fn save_test_to_database(
         };
     };
 
-    // Insert test sections
+    if let Some(bonus_items) = graded_test.bonus_items {
+        for bonus in bonus_items {
+            sqlx::query!(
+                "INSERT INTO bonus_items (test_id, name, score, achieved)
+                VALUES ($1, $2, $3, $4)",
+                test_id,
+                bonus.name.to_string(),
+                bonus.score,
+                bonus.achieved.unwrap_or(false)
+            )
+            .execute(pool)
+            .await?;
+        }
+    };
 
-
-
-    // for technique in graded_test.techniques {
-    //     sqlx::query!(
-    //         "INSERT INTO techniques (test_id, technique, score, score_header, max_score)
-    //         VALUES ($1, $2, $3, $4, $5)",
-    //         test_id,
-    //         technique.technique.to_string(),
-    //         technique.score as i32,
-    //         technique.score_header.to_string(),
-    //         technique.max_score as i32,
-    //     )
-    //     .execute(pool)
-    //     .await?;
-    // }
-
-    // // Insert bonus scores
-    // for bonus in graded_test.bonuses {
-    //     sqlx::query!(
-    //         "INSERT INTO bonus_points (test_id, name, score)
-    //         VALUES ($1, $2, $3)",
-    //         test_id,
-    //         bonus.name.to_string(),
-    //         bonus.score as i32
-    //     )
-    //     .execute(pool)
-    //     .await?;
-    // }
 
     Ok(())
 }
@@ -453,16 +437,176 @@ pub async fn search_for_testee(
 
 }
 
-// // -------------------------------------------------------------------------------------------------------------------------------------------------------
-// // Fetch Test Results
-// // -------------------------------------------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
+// Fetch Test Results
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
 
-// /// This function parses test results from the DB into GradedPattern, GradedTechnique, and GradedBonus objects
-// /// Thus, old pattern names, technique names, and other enum variants CANNOT be retired so long 
-// /// as they may exist within the database. 
-// /// This is where some refactoring work could be done. The parsing into the enum types is fragile since
-// /// I manually defined the to_str and serialize traits using strum. Some of them require snake case,
-// /// others don't.
+pub async fn fetch_test_results_by_id(pool: &PgPool, test_id: i32) -> Result<Option<Test>, TestError> {
+    // Fetch test metadata
+    let raw_metadata = match sqlx::query!(
+        r#"
+        SELECT test_id, test_name, minimum_percent, max_score, achieved_score, testee_id, test_date
+        FROM test_metadata
+        WHERE test_id = $1
+        "#,
+        test_id
+    )
+    .fetch_optional(pool)
+    .await? {
+        Some(data) => data,
+        None => return Ok(None)
+    };
+
+    // Fetch the testee
+    let testee = sqlx::query_as!(
+    Testee,
+    "SELECT id, first_name, last_name, email FROM testees WHERE id = $1",
+    raw_metadata.testee_id
+    )
+    .fetch_one(pool)
+    .await?;
+
+    // Create the metadata object
+    let metadata: Metadata = Metadata {
+        test_id: Some(test_id),
+        test_name: raw_metadata.test_name,
+        minimum_percent: raw_metadata.minimum_percent,
+        max_score: raw_metadata.max_score,
+        achieved_score: Some(raw_metadata.achieved_score),
+        testee: Some(testee),
+        test_date: raw_metadata.test_date,
+        is_graded: Some(()),
+    };
+
+    // Fetch test tables
+    let table_ids: Vec<i32> = sqlx::query!(
+        "SELECT id FROM test_tables WHERE test_id = $1
+        ORDER BY id ASC",
+        test_id
+    )
+    .fetch_all(pool)
+    .await?
+    .into_iter()
+    .map(|record| record.id)
+    .collect();
+
+    let mut test_tables: Vec<TestTable> = Vec::new();
+
+    for table_id in table_ids {
+        // Fetch sections for each table
+        let sections = sqlx::query!(
+            "SELECT id, name FROM test_sections WHERE table_id = $1
+            ORDER BY id ASC",
+            table_id
+        )
+        .fetch_all(pool)
+        .await?;
+
+        let mut test_sections: Vec<TestSection> = Vec::new();
+
+        for section in sections {
+            // Fetch scoring categories for each section
+            let scoring_categories = sqlx::query!(
+                r#"
+                SELECT id, section_id, name, values
+                FROM scoring_categories
+                WHERE section_id = $1
+                ORDER BY id ASC
+                "#,
+                section.id
+            )
+            .fetch_all(pool)
+            .await?
+            .into_iter()
+            .map(|record| ScoringCategory {
+                section_id: Some(section.id),
+                name: record.name,
+                values: record.values
+            })
+            .collect();
+
+            // Fetch competencies for each section
+            let raw_competencies = sqlx::query!(
+                r#"
+                SELECT id, section_id, name, scores, subtext, antithesis, achieved_scores, achieved_score_labels, failing_score_labels
+                FROM competencies
+                WHERE section_id = $1
+                ORDER BY id ASC
+                "#,
+                section.id
+            )
+            .fetch_all(pool)
+            .await?;
+
+            let mut competency_vec: Vec<Competency> = Vec::new();
+            for competency in raw_competencies {
+                let scores: Vec<Vec<i32>> = serde_json::from_value(competency.scores)?;
+                let achieved_scores: Option<Vec<i32>> = serde_json::from_value(competency.achieved_scores)?;
+                let achieved_score_labels: Option<Vec<String>> = serde_json::from_value(competency.achieved_score_labels)?;
+                let failing_score_labels: Option<Vec<FailingScoreLabels>> = serde_json::from_value(competency.failing_score_labels)?;
+
+                competency_vec.push(Competency {
+                    section_id: Some(competency.section_id),
+                    name: competency.name,
+                    scores,
+                    subtext: competency.subtext,
+                    antithesis: competency.antithesis,
+                    achieved_scores,
+                    achieved_score_labels,
+                    failing_score_labels,
+                });
+            }
+
+            test_sections.push(TestSection {
+                table_id: Some(table_id),
+                name: section.name,
+                scoring_categories,
+                competencies: competency_vec,
+            });
+        }
+
+        test_tables.push(TestTable {
+            test_id: Some(test_id),
+            table_id: Some(table_id),
+            sections: test_sections,
+        });
+    }
+
+    // Fetch bonus items
+    let bonus_items = sqlx::query!(
+        "SELECT id, test_id, name, score, achieved FROM bonus_items WHERE test_id = $1
+        ORDER BY id ASC",
+        test_id
+    )
+    .fetch_all(pool)
+    .await?;
+
+    let bonus_items = bonus_items
+        .into_iter()
+        .map(|bonus| BonusItem {
+            test_id: Some(test_id),
+            name: bonus.name,
+            score: bonus.score,
+            achieved: Some(bonus.achieved),
+        })
+        .collect::<Vec<_>>();
+
+    println!("Bonus Items:\n{:#?}", bonus_items);
+
+    let bonus_items = if bonus_items.is_empty() {
+        None
+    } else {
+        Some(bonus_items)
+    };
+
+    // Construct the Test object
+    Ok(Some(Test {
+        metadata,
+        tables: test_tables,
+        bonus_items: bonus_items,
+    }))
+}
+
 // pub async fn fetch_test_results_by_id(
 //     pool: &PgPool, 
 //     test_id: i32

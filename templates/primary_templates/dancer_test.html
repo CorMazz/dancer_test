@@ -32,9 +32,11 @@
                 </div>
                 #}
 
-                <div class="flex flex-col text-center">
-                    <input type="submit" value={% if is_demo_mode %}"Submission Disabled for Demo"{% else %}Submit{% endif %} class="{% if is_demo_mode %}bg-gray-300 text-gray-900{% else %}bg-blue-500 hover:bg-blue-700 text-white{% endif %} mx-auto font-bold py-2 px-4 mb-4 rounded" {% if is_demo_mode %}disabled{% else %}{% endif %}>
-                </div>
+                {% match test.metadata.is_graded %}{% when Some with (_) %}{% when None %}
+                    <div class="flex flex-col text-center">
+                        <input type="submit" value={% if is_demo_mode %}"Submission Disabled for Demo"{% else %}Submit{% endif %} class="{% if is_demo_mode %}bg-gray-300 text-gray-900{% else %}bg-blue-500 hover:bg-blue-700 text-white{% endif %} mx-auto font-bold py-2 px-4 mb-4 rounded" {% if is_demo_mode %}disabled{% else %}{% endif %}>
+                    </div>
+                {% endmatch %}
 
                 <!-- Loop to Add Test Sections -->
                 {% for table in test.tables %}

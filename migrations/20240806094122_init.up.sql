@@ -76,22 +76,22 @@ CREATE TABLE scoring_categories (
 
 CREATE TABLE competencies (
     id SERIAL PRIMARY KEY,
-    section_id INTEGER REFERENCES test_sections(id),  
+    section_id INTEGER NOT NULL REFERENCES test_sections(id),  
     name VARCHAR NOT NULL,
     scores JSONB NOT NULL,                      -- Array of scores (2D array for Vec<Vec<i32>>)
     subtext TEXT,
     antithesis TEXT,
     achieved_scores JSONB NOT NULL,                   
     achieved_score_labels JSONB NOT NULL,                    
-    failing_score_labels JSONB            
+    failing_score_labels JSONB NOT NULL            
 );
 
 CREATE TABLE bonus_items (
     id SERIAL PRIMARY KEY,
-    test_id INTEGER REFERENCES tests(id), 
+    test_id INTEGER NOT NULL REFERENCES tests(id), 
     name VARCHAR NOT NULL,
     score INTEGER NOT NULL,
-    achieved BOOLEAN                    
+    achieved BOOLEAN NOT NULL                    
 );
 
 CREATE TABLE queue (
