@@ -14,8 +14,8 @@ use crate::{
         middleware::{AuthError, AuthStatus},
         model::User
     }, exam::{
-        handlers::{create_testee, enqueue_testee, fetch_test_results_by_id, fetch_testee_by_id, parse_test_form_data, retrieve_queue, save_test_to_database, search_for_testee, TestError}, 
-        models::{Test, Testee}
+        handlers::{create_testee, enqueue_testee, fetch_test_results_by_id, fetch_testee_by_id, fetch_testee_tests_by_id, parse_test_form_data, retrieve_queue, save_test_to_database, search_for_testee, TestError}, 
+        models::{Test, TestSummary, Testee}
     }, filters, AppState
 };
 
@@ -407,44 +407,44 @@ pub async fn get_search_testee_form(
     (StatusCode::OK, Html(template.render().unwrap())).into_response()
 }
 
-// // #######################################################################################################################################################
-// // testee_test_summaries.html
-// // #######################################################################################################################################################
+// #######################################################################################################################################################
+// testee_test_summaries.html
+// #######################################################################################################################################################
 
-// #[derive(Template)]
-// #[template(path = "./primary_templates/testee_test_summaries.html")] 
-// pub struct TestSummariesTemplate {
-//     option_test_summaries: Option<Vec<TestSummary>>,
-//     option_testee: Option<Testee>,
-// }
+#[derive(Template)]
+#[template(path = "./primary_templates/testee_test_summaries.html")] 
+pub struct TestSummariesTemplate {
+    option_test_summaries: Option<Vec<TestSummary>>,
+    option_testee: Option<Testee>,
+}
 
-// pub async fn get_test_summaries(
-//     State(data): State<Arc<AppState>>,
-//     Path(testee_id): Path<i32>,
-// ) -> impl IntoResponse {
+pub async fn get_test_summaries(
+    State(data): State<Arc<AppState>>,
+    Path(testee_id): Path<i32>,
+) -> impl IntoResponse {
 
-//     let option_test_summaries = match fetch_testee_tests_by_id(&data.db, testee_id).await {
-//         Ok(option) => option,
-//         Err(e) => match e {
-//             TestError::InternalServerError(msg) => return (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error: {:?}</h1>", msg))).into_response(),
-//             _ => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": "Undefined behavior. This should never happen." }))).into_response()
-//         }
-//     };
+    let option_test_summaries = match fetch_testee_tests_by_id(&data.db, testee_id).await {
+        Ok(option) => option,
+        Err(e) => match e {
+            TestError::InternalServerError(msg) => return (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error: {:?}</h1>", msg))).into_response(),
+            _ => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": "Undefined behavior. This should never happen." }))).into_response()
+        }
+    };
 
-//     let option_testee = match fetch_testee_by_id(&data.db, testee_id).await {
-//         Ok(option) => option,
-//         Err(e) => match e {
-//             TestError::InternalServerError(msg) => return (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error: {:?}</h1>", msg))).into_response(),
-//             _ => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": "Undefined behavior. This should never happen." }))).into_response()
-//         }
-//     };
+    let option_testee = match fetch_testee_by_id(&data.db, testee_id).await {
+        Ok(option) => option,
+        Err(e) => match e {
+            TestError::InternalServerError(msg) => return (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error: {:?}</h1>", msg))).into_response(),
+            _ => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": "Undefined behavior. This should never happen." }))).into_response()
+        }
+    };
 
-//     let template = TestSummariesTemplate {
-//         option_test_summaries,
-//         option_testee,
-//     };
-//     (StatusCode::OK, Html(template.render().unwrap())).into_response()
-// }
+    let template = TestSummariesTemplate {
+        option_test_summaries,
+        option_testee,
+    };
+    (StatusCode::OK, Html(template.render().unwrap())).into_response()
+}
 
 // #######################################################################################################################################################
 // queue.html

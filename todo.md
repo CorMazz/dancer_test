@@ -3,6 +3,7 @@
 ## Required TODO
 - Add HTMX functionality to everything
 - Send emails to testees once their tests are graded
+- Add the "failing score label" functionality (as well as an explanation to the user)
 
 ## Additional Possible Functionality
 - Add "most recent testee" to the dashboard
@@ -24,3 +25,4 @@
 
 
 ## Last Thing I Was Doing
+Working on the test summaries.

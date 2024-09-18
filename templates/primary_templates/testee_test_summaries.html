@@ -29,22 +29,22 @@
                 <thead>
                     <tr class="bg-gray-100 border-b hover:bg-gray-200 transition duration-300">
                         <th class="py-2 px-4">Test Date</th>
-                        <th class="py-2 px-4">Role</th>
+                        <th class="py-2 px-4">Test Name</th>
                         <th class="py-2 px-4">Score</th>
-                        <th class="py-2 px-4">Passing Score</th>
+                        <th class="py-2 px-4">Passing Percent</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for summary in test_summaries %}
-                        {% if summary.score > summary.passing_score %}
+                        {% if summary.achieved_percent > summary.minimum_percent %}
                             <tr class="border-b bg-green-100 hover:bg-green-200">
                         {% else %}
                             <tr class="border-b bg-red-100 hover:bg-red-200">
                         {% endif %}
-                            <td class="py-2 px-4"><a href="/test-results/{{ summary.id }}" class="block py-2 px-4 hover:underline">{{ summary.test_date|trim_end_chars(10) }}</a></td>
-                            <td class="py-2 px-4"><a href="/test-results/{{ summary.id }}" class="block py-2 px-4 hover:underline">{{ summary.role|capitalize }}</a></td>
-                            <td class="py-2 px-4"><a href="/test-results/{{ summary.id }}" class="block py-2 px-4 hover:underline">{{ summary.score }} / {{ summary.max_score }}</a></td>
-                            <td class="py-2 px-4"><a href="/test-results/{{ summary.id }}" class="block py-2 px-4 hover:underline">{{ summary.passing_score }}</a></td>
+                            <td class="py-2 px-4"><a href="/test-results/{{ summary.test_id }}" class="block py-2 px-4 hover:underline">{{ summary.test_date|trim_end_chars(10) }}</a></td>
+                            <td class="py-2 px-4"><a href="/test-results/{{ summary.test_id }}" class="block py-2 px-4 hover:underline">{{ summary.test_name }}</a></td>
+                            <td class="py-2 px-4"><a href="/test-results/{{ summary.test_id }}" class="block py-2 px-4 hover:underline">{{ summary.achieved_score }} / {{ summary.max_score }} = {{ summary.achieved_percent }} </a></td>
+                            <td class="py-2 px-4"><a href="/test-results/{{ summary.test_id }}" class="block py-2 px-4 hover:underline">{{ summary.minimum_percent }}</a></td>
                         </tr>
                     {% endfor %}
                 </tbody>

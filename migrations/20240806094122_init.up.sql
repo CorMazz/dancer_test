@@ -50,7 +50,7 @@ CREATE TABLE test_metadata (
     max_score INTEGER NOT NULL,
     achieved_score INTEGER NOT NULL,             
     testee_id INTEGER NOT NULL REFERENCES testees(id),              
-    test_date TIMESTAMP                  
+    test_date TIMESTAMP NOT NULL                  
 );
 
 -- TestTable (stores multiple tables associated with a test)

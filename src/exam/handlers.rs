@@ -3,7 +3,7 @@ use sqlx::{query, Error, PgPool};
 use strum_macros::Display;
 use std::{collections::HashMap, fmt::Display, fs::File, io::Read};
 use crate::exam::models::{
-    BonusItem, Competency, Metadata, Test, TestTable, TestSection, ScoringCategory, FailingScoreLabels,  TestDefinitionYaml, Testee
+    BonusItem, Competency, FailingScoreLabels, Metadata, ScoringCategory, Test, TestDefinitionYaml, TestSection, TestSummary, TestTable, Testee
 };
 
 
@@ -474,7 +474,7 @@ pub async fn fetch_test_results_by_id(pool: &PgPool, test_id: i32) -> Result<Opt
         max_score: raw_metadata.max_score,
         achieved_score: Some(raw_metadata.achieved_score),
         testee: Some(testee),
-        test_date: raw_metadata.test_date,
+        test_date: Some(raw_metadata.test_date),
         is_graded: Some(()),
     };
 
@@ -607,140 +607,48 @@ pub async fn fetch_test_results_by_id(pool: &PgPool, test_id: i32) -> Result<Opt
     }))
 }
 
-// pub async fn fetch_test_results_by_id(
-//     pool: &PgPool, 
-//     test_id: i32
-// ) -> Result<Option<GradedTest>, TestError> {
-//     // Grab the testee corresponding to a given test
-//     let testee = match sqlx::query_as!(
-//         Testee,
-//         "SELECT id, first_name, last_name, email FROM testees WHERE id = (
-//             SELECT testee_id FROM tests WHERE id = $1
-//         )",
-//         test_id
-//     )
-//     .fetch_optional(pool)
-//     .await? {
-//         Some(testee) => testee,
-//         None => return Ok(None)
-//     };
 
-//     let raw_test_info = sqlx::query!(
-//         "SELECT role, test_date, score, max_score, passing_score FROM tests WHERE id = $1",
-//         test_id
-//     )
-//     .fetch_one(pool)
-//     .await?;
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
+// Fetch Testee Tests
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
 
-//     // println!("{}", raw_test_info.role);
+/// Grab all the tests that a given testee has taken, by their testee id. 
+/// By virtue of there being a testee, they have taken at least one test.
+pub async fn fetch_testee_tests_by_id(
+    pool: &PgPool, 
+    testee_id: i32
+) -> Result<Option<Vec<TestSummary>>, TestError> {
 
-//     let test_type = raw_test_info.role.parse::<TestType>()?;
+    let testee = match fetch_testee_by_id(pool, testee_id).await? {
+        Some(data) => data,
+        None => return Ok(None),
+    };
 
-//     let raw_patterns = sqlx::query!(
-//         "SELECT pattern, category, score, max_score FROM patterns WHERE test_id = $1",
-//         test_id
-//     )
-//     .fetch_all(pool)
-//     .await?;
+    // By virtue of there being a testee, they have taken at least one test.
+    Ok(Some(sqlx::query!(
+        "
+        SELECT test_id, test_name, test_date, achieved_score, minimum_percent, max_score 
+        FROM test_metadata 
+        WHERE testee_id = $1
+        ORDER BY test_date DESC
+        ",
+        testee.id
+    )
+    .fetch_all(pool)
+    .await?
+    .into_iter()
+    .map(|record| TestSummary {
+        test_id: record.test_id, 
+        test_date: record.test_date,
+        test_name: record.test_name,
+        achieved_score: record.achieved_score,
+        achieved_percent: record.achieved_score as f32 / record.max_score as f32,
+        max_score: record.max_score,
+        minimum_percent: record.minimum_percent
+    }
+    ).collect()))
 
-//     // println!("{}", raw_patterns[0].pattern.to_lowercase().replace(" ", "_"));
-//     // println!("{}", raw_patterns[0].category.to_lowercase().replace(" ", "_"));
-
-//     let patterns: Vec<GradedPattern> = raw_patterns
-//     .into_iter()
-//     .map(|raw_pattern|
-//         Ok(GradedPattern {
-//             pattern: raw_pattern.pattern.to_lowercase().replace(" ", "_").parse::<PatternName>()?,
-//             category: raw_pattern.category.to_lowercase().replace(" ", "_").parse::<ScoringCategoryName>()?,
-//             score: raw_pattern.score as u32,
-//             max_score: raw_pattern.max_score as u32,
-//         })
-//     ).collect::<Result<Vec<GradedPattern>, strum::ParseError>>()?;
-
-//     let raw_techniques = sqlx::query!(
-//         "SELECT technique, score, score_header, max_score FROM techniques WHERE test_id = $1",
-//         test_id
-//     )
-//     .fetch_all(pool)
-//     .await?;
-
-//     // println!("{}", raw_techniques[0].technique.to_lowercase().replace(" ", "_"));
-//     // println!("{}", raw_techniques[0].score_header);
-
-//     let techniques: Vec<GradedTechnique> = raw_techniques
-//     .into_iter()
-//     .map(|raw_technique| 
-//         Ok(GradedTechnique {
-//             technique: raw_technique.technique.to_lowercase().replace(" ", "_").parse::<TechniqueName>()?,
-//             score: raw_technique.score as u32,
-//             max_score: raw_technique.max_score as u32,
-//             score_header: raw_technique.score_header.parse::<TechniqueScoringHeaderName>()?,
-//         })
-//     ).collect::<Result<Vec<GradedTechnique>, strum::ParseError>>()?;
-
-//     let raw_bonuses = sqlx::query!(
-//         "SELECT name, score FROM bonus_points WHERE test_id = $1",
-//         test_id
-//     )
-//     .fetch_all(pool)
-//     .await?;
-
-//     // println!("{}", raw_bonuses[0].name.to_lowercase().replace(" ", "_"));
-
-
-//     let bonuses: Vec<GradedBonusPoint> = raw_bonuses
-//     .into_iter()
-//     .map(|raw_bonus| 
-//         Ok(GradedBonusPoint {
-//             name: raw_bonus.name.to_lowercase().replace(" ", "_").parse::<BonusPointName>()?,
-//             score: raw_bonus.score as u32,
-//         })
-//     ).collect::<Result<Vec<GradedBonusPoint>, strum::ParseError>>()?;
-
-//     Ok(Some(GradedTest {
-//         testee: testee,
-//         test_date: raw_test_info.test_date,
-//         test_type: test_type,
-//         patterns: patterns,
-//         techniques: techniques,
-//         bonuses: bonuses,
-//         score: raw_test_info.score as u32,
-//         max_score: raw_test_info.max_score as u32,
-//         passing_score: raw_test_info.passing_score as u32,
-//     }))
-// }
-
-// // -------------------------------------------------------------------------------------------------------------------------------------------------------
-// // Fetch Testee Tests
-// // -------------------------------------------------------------------------------------------------------------------------------------------------------
-
-// /// Grab all the tests that a given testee has taken, by their testee id. 
-// /// By virtue of there being a testee, they have taken at least one test.
-// pub async fn fetch_testee_tests_by_id(
-//     pool: &PgPool, 
-//     testee_id: i32
-// ) -> Result<Option<Vec<TestSummary>>, TestError> {
-
-//     let testee = match fetch_testee_by_id(pool, testee_id).await? {
-//         Some(data) => data,
-//         None => return Ok(None),
-//     };
-
-//     // By virtue of there being a testee, they have taken at least one test.
-//     Ok(Some(sqlx::query_as!(
-//         TestSummary,
-//         "
-//         SELECT id, role, test_date, score, passing_score, max_score 
-//         FROM tests 
-//         WHERE testee_id = $1
-//         ORDER BY test_date DESC
-//         ",
-//         testee.id
-//     )
-//     .fetch_all(pool)
-//     .await?))
-
-// }
+}
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 // Fetch Testee by ID

@@ -755,12 +755,13 @@ impl From<HashMap<String, String>> for Testee {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TestSummary {
-    pub id: i32,
+    pub test_id: i32,
     pub test_date: NaiveDateTime,
-    pub role: String,  // This probably should've been labeled test_type, but I'm lazy here...
-    pub score: i32,
+    pub test_name: String,  // This probably should've been labeled test_type, but I'm lazy here...
+    pub achieved_score: i32,
+    pub achieved_percent: f32,
     pub max_score: i32,
-    pub passing_score: i32,
+    pub minimum_percent: f32,
 }
 
 // // #######################################################################################################################################################
