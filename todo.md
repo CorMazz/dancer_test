@@ -3,9 +3,7 @@
 ## Required TODO
 - Add HTMX functionality to everything
 - Send emails to testees once their tests are graded
-- Add the "failing score label" functionality (as well as an explanation to the user)
-- Add test config to allow point values to be shown on questions or not
-- Add test config to allow on the fly grading to be shown while proctoring or not
+- Refactor the failure reason to give the parts to make the desired sentence instead of storing the whole sentence, because I cannot add formatting within the sentence to the html. 
 
 
 ## Additional Possible Functionality
@@ -28,7 +26,7 @@
 
 
 ## Last Thing I Was Doing
-Refactor the failure reason to give the parts to make the desired sentence instead of storing the whole sentence, because I cannot add formatting within the sentence to the html. 
+- Next thing to do is add the email functionality. 
 
 
 Test this in the validate_failing_header_labels

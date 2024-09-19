@@ -18,6 +18,7 @@ pub struct TestDefinitionYaml {
 
 /// A test object -- can be graded or ungraded, and is used to store the 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct Test {
     pub metadata: Metadata,
     pub tables: Vec<TestTable>,
@@ -158,13 +159,17 @@ impl Test {
         })
     }
 
+    /// Used to just provide the grade information on a graded test. Call the grade method first.
     pub fn grade_summary(&self) -> Result<TestGradeSummary, String> {
+        // Check that the test is graded
+        self.metadata.is_graded.ok_or("Cannot give a grade summary on an ungraded test.".to_string())?;
+
         Ok(TestGradeSummary {
-            achieved_score: self.metadata.achieved_score.expect("Invariant that graded tests all have an achieved score violated in get_test_results fn"),
-            achieved_percent: self.metadata.achieved_score.expect("Invariant that graded tests all have an achieved score violated in get_test_results fn") as f32 / self.metadata.max_score as f32,
+            achieved_score: self.metadata.achieved_score.ok_or("Invariant that graded tests all have an achieved score violated in get_test_results fn")?,
+            achieved_percent: self.metadata.achieved_score.ok_or("Invariant that graded tests all have an achieved score violated in get_test_results fn")? as f32 / self.metadata.max_score as f32,
             max_score: self.metadata.max_score,
             minimum_percent: self.metadata.minimum_percent,
-            is_passing: self.metadata.is_passing.expect("Invariant that graded tests all have is_passing violated in get_test_results fn"),
+            is_passing: self.metadata.is_passing.ok_or("Invariant that graded tests all have is_passing violated in get_test_results fn")?,
             failure_explanation: self.metadata.failure_explanation.clone()
         })
     }
@@ -202,9 +207,16 @@ pub struct Metadata {
     pub achieved_score: Option<i32>,
     pub testee: Option<Testee>,
     pub test_date: Option<NaiveDateTime>,
-    pub is_graded: Option<()>, // An option being used as a bool. So that serde_yaml parses the data
+    pub is_graded: Option<()>, // An option being used as a bool. So that serde_yaml parses the data and I don't have to do hella if statements in the askama templates
     pub is_passing: Option<bool>,
     pub failure_explanation: Option<Vec<String>>,
+    pub config_settings: TestConfig,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct TestConfig {
+    pub live_grading: bool,
+    pub show_point_values: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

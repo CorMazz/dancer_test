@@ -21,7 +21,9 @@
                 {% match test.metadata.is_graded %}{% when Some with (_) %}disabled{% when None %}{% endmatch %}
                 >
                 <label for="bonus_index--{{ loop.index0}}" class="inline-flex items-center justify-center w-full h-12 p-2 text-sm font-medium text-gray-900 bg-white border-2 border-gray-300 rounded-lg cursor-pointer peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-transparent hover:bg-gray-100 hover:shadow-sm transition duration-300">
-                    + {{ bonus_item.score }}
+                    {% if test.metadata.config_settings.show_point_values %}
+                        + {{ bonus_item.score }}
+                    {% endif %}
                 </label>
             </td>
         </tr>

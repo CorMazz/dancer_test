@@ -91,7 +91,9 @@
                             for="table_index---{{ table_index }}---section_index---{{ section_index }}---item_index---{{ item_index }}---scoring_category_index---{{ scoring_category_index }}---scoring_category_label_index---{{ loop.index0 }}---{{ point }}" 
                             class="inline-flex items-center justify-center w-full h-12 p-2 text-sm font-medium text-gray-900 bg-white border-2 border-gray-300 rounded-lg cursor-pointer peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-transparent hover:bg-gray-100 hover:shadow-sm transition duration-300"
                         >
-                            {{ point }}
+                            {% if test.metadata.config_settings.show_point_values %}
+                                {{ point }}
+                            {% endif %}
                         </label>
                     </td>
                 {% endfor %}

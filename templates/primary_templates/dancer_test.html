@@ -30,12 +30,15 @@
                         {% include "../partial_templates/test_grade.html" %} 
 
                     {% when None %}
-                        <div 
-                            hx-post="/private/grade-test/{{ test_index }}" 
-                            hx-trigger="load, change from:form"
-                            hx-debounce="0.25s"
-                        >
-                        </div>
+
+                        {% if test.metadata.config_settings.live_grading %}
+                            <div 
+                                hx-post="/private/grade-test/{{ test_index }}" 
+                                hx-trigger="load, change from:form"
+                                hx-debounce="0.25s"
+                            >
+                            </div>
+                        {% endif %}
 
                         <div class="flex flex-col text-center">
                             <input type="submit" value={% if is_demo_mode %}"Submission Disabled for Demo"{% else %}Submit{% endif %} class="{% if is_demo_mode %}bg-gray-300 text-gray-900{% else %}bg-blue-500 hover:bg-blue-700 text-white{% endif %} mx-auto font-bold py-2 px-4 mb-4 rounded" {% if is_demo_mode %}disabled{% else %}{% endif %}>

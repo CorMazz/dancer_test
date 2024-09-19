@@ -2,7 +2,7 @@ use chrono::Local;
 use sqlx::{Error, PgPool};
 use std::{collections::HashMap, fs::File, io::Read};
 use crate::exam::models::{
-    AchievedScoreLabel, BonusItem, Competency, FailingScoreLabels, Metadata, ScoringCategory, Test, TestDefinitionYaml, TestSection, FullTestSummary, TestTable, Testee, TestGradeSummary
+    AchievedScoreLabel, BonusItem, Competency, FailingScoreLabels, Metadata, ScoringCategory, Test, TestDefinitionYaml, TestSection, FullTestSummary, TestTable, Testee, TestGradeSummary, TestConfig
 };
 
 
@@ -480,6 +480,7 @@ pub async fn fetch_test_results_by_id(pool: &PgPool, test_id: i32) -> Result<Opt
         is_graded: Some(()),
         is_passing: Some(raw_metadata.is_passing),
         failure_explanation: raw_metadata.failure_explanation,
+        config_settings: TestConfig {live_grading: false, show_point_values:false}, // this is not used in tests that have already been administers
     };
 
     // Fetch test tables

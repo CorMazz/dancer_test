@@ -2,6 +2,9 @@ tests:
   -
     metadata:
       test_name: "Standard Leader Test"
+      config_settings:
+        live_grading: true
+        show_point_values: true
       minimum_percent: 0.60
       max_score: 23
 
@@ -73,7 +76,9 @@ tests:
   -
     metadata:
       test_name: "Standard Follower Test"
-      test_type: "follower"
+      config_settings:
+        live_grading: false
+        show_point_values: false
       minimum_percent: 0.60
       max_score: 23
 
@@ -134,7 +139,7 @@ tests:
                 - scoring_category_name: ""
                   values: ["Perpendicular", "Flat"]
 
-    bonus_section: 
+    bonus_items: 
       - name: "No Thumbs"
         score: 1
       - name: "Clear Turn Signal"
