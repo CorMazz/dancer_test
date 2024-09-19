@@ -28,5 +28,17 @@
 
 
 ## Last Thing I Was Doing
-Working on the test summaries.
-In insert test metadata in the save test to database add failure reason and is_passing
+Refactor the failure reason to give the parts to make the desired sentence instead of storing the whole sentence, because I cannot add formatting within the sentence to the html. 
+
+
+Test this in the validate_failing_header_labels
+    // Create a hashmap of the header labels so that we can correspond failing score labels on the graded item to the true header labels
+    let mut score_label_hm: HashMap<String, Vec<String>> = HashMap::new();
+    for score_label in score_labels {
+        if let Some(duplicate_name) = score_label_hm.insert(score_label.name.clone(), score_label.values.clone()) {
+            return Err(format!(
+                "On the test named '{},' the scoring category name '{:#?}' is not unique within its section.",
+                test_name, duplicate_name
+            ))
+        };
+    }

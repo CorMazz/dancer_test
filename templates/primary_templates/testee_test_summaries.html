@@ -36,15 +36,15 @@
                 </thead>
                 <tbody>
                     {% for summary in test_summaries %}
-                        {% if summary.achieved_percent > summary.minimum_percent %}
+                        {% if summary.grade_summary.is_passing %}
                             <tr class="border-b bg-green-100 hover:bg-green-200">
                         {% else %}
                             <tr class="border-b bg-red-100 hover:bg-red-200">
                         {% endif %}
                             <td class="py-2 px-4"><a href="/test-results/{{ summary.test_id }}" class="block py-2 px-4 hover:underline">{{ summary.test_date|trim_end_chars(10) }}</a></td>
                             <td class="py-2 px-4"><a href="/test-results/{{ summary.test_id }}" class="block py-2 px-4 hover:underline">{{ summary.test_name }}</a></td>
-                            <td class="py-2 px-4"><a href="/test-results/{{ summary.test_id }}" class="block py-2 px-4 hover:underline">{{ summary.achieved_score }} / {{ summary.max_score }} = {{ format!("{:.0}" , summary.achieved_percent * 100.0) }}% </a></td>
-                            <td class="py-2 px-4"><a href="/test-results/{{ summary.test_id }}" class="block py-2 px-4 hover:underline">{{ format!("{:.0}", summary.minimum_percent * 100.0) }}%</a></td>
+                            <td class="py-2 px-4"><a href="/test-results/{{ summary.test_id }}" class="block py-2 px-4 hover:underline">{{ summary.grade_summary.achieved_score }} / {{ summary.grade_summary.max_score }} = {{ "{:.0}"|format(summary.grade_summary.achieved_percent * 100.0) }}% </a></td>
+                            <td class="py-2 px-4"><a href="/test-results/{{ summary.test_id }}" class="block py-2 px-4 hover:underline">{{ "{:.0}"|format(summary.grade_summary.minimum_percent * 100.0) }}%</a></td>
                         </tr>
                     {% endfor %}
                 </tbody>

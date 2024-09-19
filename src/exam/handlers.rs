@@ -2,8 +2,10 @@ use chrono::Local;
 use sqlx::{Error, PgPool};
 use std::{collections::HashMap, fs::File, io::Read};
 use crate::exam::models::{
-    AchievedScoreLabel, BonusItem, Competency, FailingScoreLabels, Metadata, ScoringCategory, Test, TestDefinitionYaml, TestSection, TestSummary, TestTable, Testee
+    AchievedScoreLabel, BonusItem, Competency, FailingScoreLabels, Metadata, ScoringCategory, Test, TestDefinitionYaml, TestSection, FullTestSummary, TestTable, Testee, TestGradeSummary
 };
+
+
 
 
 
@@ -611,7 +613,7 @@ pub async fn fetch_test_results_by_id(pool: &PgPool, test_id: i32) -> Result<Opt
 pub async fn fetch_testee_tests_by_id(
     pool: &PgPool, 
     testee_id: i32
-) -> Result<Option<Vec<TestSummary>>, TestError> {
+) -> Result<Option<Vec<FullTestSummary>>, TestError> {
 
     let testee = match fetch_testee_by_id(pool, testee_id).await? {
         Some(data) => data,
@@ -631,16 +633,18 @@ pub async fn fetch_testee_tests_by_id(
     .fetch_all(pool)
     .await?
     .into_iter()
-    .map(|record| TestSummary {
+    .map(|record| FullTestSummary {
         test_id: record.test_id, 
         test_date: record.test_date,
         test_name: record.test_name,
-        achieved_score: record.achieved_score,
-        achieved_percent: record.achieved_score as f32 / record.max_score as f32,
-        max_score: record.max_score,
-        minimum_percent: record.minimum_percent,
-        is_passing: record.is_passing,
-        failure_explanation: record.failure_explanation
+        grade_summary: TestGradeSummary {
+            achieved_score: record.achieved_score,
+            achieved_percent: record.achieved_score as f32 / record.max_score as f32,
+            max_score: record.max_score,
+            minimum_percent: record.minimum_percent,
+            is_passing: record.is_passing,
+            failure_explanation: record.failure_explanation
+        }
     }
     ).collect()))
 

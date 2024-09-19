@@ -102,7 +102,8 @@ impl Test {
                                 )?;
 
                             if failing_score_label.values.contains(&achieved_score_label_value) {
-                                let explanation = if competency.achieved_score_labels.as_ref().unwrap().len() > 1 {
+                                // TODO refactor this to give the raw parts of the string instead of the formatted string
+                                let explanation = if section.scoring_categories.len() > 1 {
                                     format!(
                                         "Competency '{}' is failing because a label of '{}' was achieved for the '{}' category, and the label(s) '{}' fail the test.",
                                         competency.name,
@@ -142,6 +143,30 @@ impl Test {
 
         // Return the total score for the test
         Ok((total_score, is_passing, (!failure_explanation.is_empty()).then_some(failure_explanation)))
+    }
+
+
+    pub fn full_summary(&self) -> Result<FullTestSummary, String> {
+        
+        let grade_summary = self.grade_summary()?;
+
+        Ok(FullTestSummary {
+            test_id: self.metadata.test_id.ok_or("No test id on this test to summarize. Has this test been graded yet?")?, 
+            test_date: self.metadata.test_date.ok_or("No test date on this test to summarize. Has this test been graded?")?,
+            test_name: self.metadata.test_name.clone(),
+            grade_summary
+        })
+    }
+
+    pub fn grade_summary(&self) -> Result<TestGradeSummary, String> {
+        Ok(TestGradeSummary {
+            achieved_score: self.metadata.achieved_score.expect("Invariant that graded tests all have an achieved score violated in get_test_results fn"),
+            achieved_percent: self.metadata.achieved_score.expect("Invariant that graded tests all have an achieved score violated in get_test_results fn") as f32 / self.metadata.max_score as f32,
+            max_score: self.metadata.max_score,
+            minimum_percent: self.metadata.minimum_percent,
+            is_passing: self.metadata.is_passing.expect("Invariant that graded tests all have is_passing violated in get_test_results fn"),
+            failure_explanation: self.metadata.failure_explanation.clone()
+        })
     }
 }
 
@@ -820,10 +845,16 @@ pub struct Testee {
 
 #[derive(Debug, Serialize, Deserialize)]
 /// Passing may be failed even if the achieved percent is above the minimum percent if a competency with a failing score label was graded as failing. 
-pub struct TestSummary {
+pub struct FullTestSummary {
     pub test_id: i32,
     pub test_date: NaiveDateTime,
     pub test_name: String,  // This probably should've been labeled test_type, but I'm lazy here...
+    pub grade_summary: TestGradeSummary,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+/// Passing may be failed even if the achieved percent is above the minimum percent if a competency with a failing score label was graded as failing. 
+pub struct TestGradeSummary {
     pub achieved_score: i32,
     pub achieved_percent: f32,
     pub max_score: i32,

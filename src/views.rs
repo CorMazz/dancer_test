@@ -15,7 +15,7 @@ use crate::{
         model::User
     }, exam::{
         handlers::{create_testee, enqueue_testee, fetch_test_results_by_id, fetch_testee_by_id, fetch_testee_tests_by_id, parse_test_form_data, retrieve_queue, save_test_to_database, search_for_testee, TestError}, 
-        models::{Test, TestSummary, Testee}
+        models::{FullTestSummary, Test, TestGradeSummary, Testee}
     }, filters, AppState
 };
 
@@ -228,7 +228,8 @@ pub async fn get_dashboard_page(State(data): State<Arc<AppState>>) -> impl IntoR
 pub struct DancerTestPageTemplate {
     test: Test,
     prefilled_user_info: PrefilledTestData,
-    test_summary: Option<TestSummary>,
+    test_summary: Option<FullTestSummary>,
+    test_index: i32, // Used for on the fly test grading
     is_demo_mode: bool,
 }
 
@@ -250,6 +251,7 @@ pub async fn get_test_page(
             test: test.clone(),
             prefilled_user_info,
             test_summary: None,
+            test_index,
             is_demo_mode: data.env.is_demo_mode,
         };
         (StatusCode::OK, Html(template.render().unwrap()))
@@ -287,28 +289,44 @@ pub async fn post_test_form(
 // test_grade.html
 // #######################################################################################################################################################
 
-// #[derive(Template)]
-// #[template(path = "./partial_templates/test_grade.html")] 
-// pub struct GradeTestTemplate {
-//     score: u32,
-//     passing_score: u32,
-//     max_score: u32,
-// }
+#[derive(Template)]
+#[template(path = "./partial_templates/test_grade.html")] 
+pub struct GradeTestTemplate {
+    grade_summary: TestGradeSummary
+}
 
-// pub async fn post_grade_test(
-//     State(data): State<Arc<AppState>>,
-//     Form(test): Form<HashMap<String, String>>,
-// ) -> impl IntoResponse {
-//     let graded_test = parse_test_form_data(test, TestType::Leader, generate_leader_test());
 
-//     let template = GradeTestTemplate {
-//         score: graded_test.score,
-//         passing_score: graded_test.passing_score,
-//         max_score: graded_test.max_score
-//     };
-    
-//     (StatusCode::OK, Html(template.render().unwrap()))
-// }
+pub async fn post_grade_test(
+    State(data): State<Arc<AppState>>,
+    Path(test_index): Path<i32>,
+    Form(test): Form<HashMap<String, String>>,
+) -> impl IntoResponse {
+    if let Some(test_definition) = data.test_configurations.tests.get(test_index as usize) {
+        match parse_test_form_data(test, test_definition.clone()) {
+            Ok(mut parsed_test) => {
+                
+                match parsed_test.grade() {
+                    Ok(_) => (),
+                    Err(e) => return error_response(&format!("Error grading test in post_grade_test function: {:?}", e)).into_response()
+                };
+                
+                let grade_summary = match parsed_test.grade_summary() {
+                    Ok(summary) => summary,
+                    Err(e) => return error_response(&format!("Error summarizing test in post_grade_test function: {:?}", e)).into_response()
+                };
+
+                let template = GradeTestTemplate {
+                    grade_summary
+                };
+
+                return (StatusCode::OK, Html(template.render().unwrap())).into_response()
+            },
+            Err(e) => return error_response(&format!("Error parsing test form data: {:?}", e)).into_response()
+        }
+    } else {
+        return error_response(&format!("Invalid test index ({}) in URL", test_index)).into_response()
+    };
+}
 
 
 
@@ -339,7 +357,8 @@ pub async fn post_test_form(
 #[template(path = "./primary_templates/dancer_test.html")] 
 pub struct GradedTestTemplate {
     test: Test,
-    test_summary: Option<TestSummary>,
+    test_summary: Option<FullTestSummary>,
+    test_index: i32, // Unused for this template
     prefilled_user_info: PrefilledTestData,
     is_demo_mode: bool
 }
@@ -357,22 +376,15 @@ pub async fn get_test_results(
                 email: Some(test.metadata.testee.clone().expect("Invariant that graded tests all have Testees violated in get_test_results fn").email)
             };
 
-            let test_summary = Some(TestSummary {
-                test_id: test.metadata.test_id.expect("Invariant that graded tests all have a test_id violated in get_test_results fn"), 
-                test_date: test.metadata.test_date.expect("Invariant that graded tests all have a test date violated in get_test_results fn"),
-                test_name: test.metadata.test_name.clone(),
-                achieved_score: test.metadata.achieved_score.expect("Invariant that graded tests all have an achieved score violated in get_test_results fn"),
-                achieved_percent: test.metadata.achieved_score.expect("Invariant that graded tests all have an achieved score violated in get_test_results fn") as f32 / test.metadata.max_score as f32,
-                max_score: test.metadata.max_score,
-                minimum_percent: test.metadata.minimum_percent,
-                is_passing: test.metadata.is_passing.expect("Invariant that graded tests all have is_passing violated in get_test_results fn"),
-                failure_explanation: test.metadata.failure_explanation.clone()
-            });
-
+            let test_summary = match test.full_summary() {
+                Ok(summary) => Some(summary),
+                Err(e) => return error_response(&format!("Error summarizing test in post_grade_test function: {:?}", e)).into_response()
+            };
 
             let template = GradedTestTemplate {
                 test,
                 prefilled_user_info,
+                test_index: -1,
                 test_summary,
                 is_demo_mode: data.env.is_demo_mode
             };
@@ -431,7 +443,7 @@ pub async fn get_search_testee_form(
 #[derive(Template)]
 #[template(path = "./primary_templates/testee_test_summaries.html")] 
 pub struct TestSummariesTemplate {
-    option_test_summaries: Option<Vec<TestSummary>>,
+    option_test_summaries: Option<Vec<FullTestSummary>>,
     option_testee: Option<Testee>,
 }
 
