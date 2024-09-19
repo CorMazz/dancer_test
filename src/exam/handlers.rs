@@ -1,7 +1,6 @@
-use chrono::{Local, NaiveDateTime};
-use sqlx::{query, Error, PgPool};
-use strum_macros::Display;
-use std::{collections::HashMap, fmt::Display, fs::File, io::Read};
+use chrono::Local;
+use sqlx::{Error, PgPool};
+use std::{collections::HashMap, fs::File, io::Read};
 use crate::exam::models::{
     AchievedScoreLabel, BonusItem, Competency, FailingScoreLabels, Metadata, ScoringCategory, Test, TestDefinitionYaml, TestSection, TestSummary, TestTable, Testee
 };

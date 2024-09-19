@@ -7,7 +7,7 @@ mod exam;
 
 use config::SecretsConfig;
 use exam::{handlers::parse_test_definition, models::{TestDefinitionYaml}};
-use std::{fs::File, io::Read, sync::Arc};
+use std::sync::Arc;
 
 use axum::http::{
     header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},

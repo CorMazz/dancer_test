@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use askama_axum::Template; // bring trait in scope
 use axum::{
-    extract::{Path, Query, State}, http::{HeaderMap, StatusCode}, response::{Html, IntoResponse, Redirect}, Extension, Form, Json
+    extract::{Path, Query, State}, http::StatusCode, response::{Html, IntoResponse, Redirect}, Extension, Form, Json
 };
 use axum_extra::extract::CookieJar;
 use serde::Deserialize;
@@ -220,7 +220,7 @@ pub async fn get_dashboard_page(State(data): State<Arc<AppState>>) -> impl IntoR
 
 
 // #######################################################################################################################################################
-// leader_test.html
+// dancer_test.html
 // #######################################################################################################################################################
 
 #[derive(Template)]
@@ -228,6 +228,7 @@ pub async fn get_dashboard_page(State(data): State<Arc<AppState>>) -> impl IntoR
 pub struct DancerTestPageTemplate {
     test: Test,
     prefilled_user_info: PrefilledTestData,
+    test_summary: Option<TestSummary>,
     is_demo_mode: bool,
 }
 
@@ -248,6 +249,7 @@ pub async fn get_test_page(
         let template = DancerTestPageTemplate {
             test: test.clone(),
             prefilled_user_info,
+            test_summary: None,
             is_demo_mode: data.env.is_demo_mode,
         };
         (StatusCode::OK, Html(template.render().unwrap()))
@@ -285,13 +287,13 @@ pub async fn post_test_form(
 // test_grade.html
 // #######################################################################################################################################################
 
-#[derive(Template)]
-#[template(path = "./partial_templates/test_grade.html")] 
-pub struct GradeTestTemplate {
-    score: u32,
-    passing_score: u32,
-    max_score: u32,
-}
+// #[derive(Template)]
+// #[template(path = "./partial_templates/test_grade.html")] 
+// pub struct GradeTestTemplate {
+//     score: u32,
+//     passing_score: u32,
+//     max_score: u32,
+// }
 
 // pub async fn post_grade_test(
 //     State(data): State<Arc<AppState>>,
@@ -337,6 +339,7 @@ pub struct GradeTestTemplate {
 #[template(path = "./primary_templates/dancer_test.html")] 
 pub struct GradedTestTemplate {
     test: Test,
+    test_summary: Option<TestSummary>,
     prefilled_user_info: PrefilledTestData,
     is_demo_mode: bool
 }
@@ -354,9 +357,23 @@ pub async fn get_test_results(
                 email: Some(test.metadata.testee.clone().expect("Invariant that graded tests all have Testees violated in get_test_results fn").email)
             };
 
+            let test_summary = Some(TestSummary {
+                test_id: test.metadata.test_id.expect("Invariant that graded tests all have a test_id violated in get_test_results fn"), 
+                test_date: test.metadata.test_date.expect("Invariant that graded tests all have a test date violated in get_test_results fn"),
+                test_name: test.metadata.test_name.clone(),
+                achieved_score: test.metadata.achieved_score.expect("Invariant that graded tests all have an achieved score violated in get_test_results fn"),
+                achieved_percent: test.metadata.achieved_score.expect("Invariant that graded tests all have an achieved score violated in get_test_results fn") as f32 / test.metadata.max_score as f32,
+                max_score: test.metadata.max_score,
+                minimum_percent: test.metadata.minimum_percent,
+                is_passing: test.metadata.is_passing.expect("Invariant that graded tests all have is_passing violated in get_test_results fn"),
+                failure_explanation: test.metadata.failure_explanation.clone()
+            });
+
+
             let template = GradedTestTemplate {
                 test,
                 prefilled_user_info,
+                test_summary,
                 is_demo_mode: data.env.is_demo_mode
             };
             match template.render() {

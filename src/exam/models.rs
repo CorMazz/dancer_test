@@ -1,11 +1,7 @@
-use std::{array, collections::{HashMap, HashSet}};
-use askama::Template;
-use axum::{http::header, routing::head};
+use std::collections::HashMap;
 use chrono::NaiveDateTime;
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
 
-use strum_macros::{Display, EnumString};
-use crate::filters;
 
 
 // #######################################################################################################################################################
@@ -106,16 +102,37 @@ impl Test {
                                 )?;
 
                             if failing_score_label.values.contains(&achieved_score_label_value) {
+                                let explanation = if competency.achieved_score_labels.as_ref().unwrap().len() > 1 {
+                                    format!(
+                                        "Competency '{}' is failing because a label of '{}' was achieved for the '{}' category, and the label(s) '{}' fail the test.",
+                                        competency.name,
+                                        achieved_score_label_value,
+                                        &failing_score_label.scoring_category_name,
+                                        failing_score_label.values.join(", ")
+                                    )
+                                } else {
+                                    format!(
+                                        "Competency '{}' is failing because a label of '{}' was achieved, and the label(s) '{}' fail the test.",
+                                        competency.name,
+                                        achieved_score_label_value,
+                                        failing_score_label.values.join(", ")
+                                    )
+                                };
+                                
                                 is_passing = false;
-                                failure_explanation.push(
-                                    format!("Competency {} is failing because a label of {} was achieved, and the labels '{}' fail the test.",
-                                    competency.name, achieved_score_label_value, failing_score_label.values.join(", "))
-                                );
+                                failure_explanation.push(explanation);
                             }
                         };
                     };
                 };
             };
+        }
+
+        // Check if the achieved percent is above the minimum percent
+        if ((total_score as f32) / (self.metadata.max_score as f32)) < self.metadata.minimum_percent {
+            is_passing = false;
+            failure_explanation.push(format!("Your score of {:.1}% is lower than the minimum passing score of {:.1}%.",
+            ((total_score as f32) / (self.metadata.max_score as f32)) * 100.0, self.metadata.minimum_percent * 100.0 ));
         }
 
         self.metadata.achieved_score = Some(total_score);
