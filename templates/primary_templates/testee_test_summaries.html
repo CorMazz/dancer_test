@@ -43,8 +43,8 @@
                         {% endif %}
                             <td class="py-2 px-4"><a href="/test-results/{{ summary.test_id }}" class="block py-2 px-4 hover:underline">{{ summary.test_date|trim_end_chars(10) }}</a></td>
                             <td class="py-2 px-4"><a href="/test-results/{{ summary.test_id }}" class="block py-2 px-4 hover:underline">{{ summary.test_name }}</a></td>
-                            <td class="py-2 px-4"><a href="/test-results/{{ summary.test_id }}" class="block py-2 px-4 hover:underline">{{ summary.achieved_score }} / {{ summary.max_score }} = {{ summary.achieved_percent }} </a></td>
-                            <td class="py-2 px-4"><a href="/test-results/{{ summary.test_id }}" class="block py-2 px-4 hover:underline">{{ summary.minimum_percent }}</a></td>
+                            <td class="py-2 px-4"><a href="/test-results/{{ summary.test_id }}" class="block py-2 px-4 hover:underline">{{ summary.achieved_score }} / {{ summary.max_score }} = {{ format!("{:.0}" , summary.achieved_percent * 100.0) }}% </a></td>
+                            <td class="py-2 px-4"><a href="/test-results/{{ summary.test_id }}" class="block py-2 px-4 hover:underline">{{ format!("{:.0}", summary.minimum_percent * 100.0) }}%</a></td>
                         </tr>
                     {% endfor %}
                 </tbody>

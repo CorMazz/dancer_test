@@ -3,7 +3,7 @@ use sqlx::{query, Error, PgPool};
 use strum_macros::Display;
 use std::{collections::HashMap, fmt::Display, fs::File, io::Read};
 use crate::exam::models::{
-    BonusItem, Competency, FailingScoreLabels, Metadata, ScoringCategory, Test, TestDefinitionYaml, TestSection, TestSummary, TestTable, Testee
+    AchievedScoreLabel, BonusItem, Competency, FailingScoreLabels, Metadata, ScoringCategory, Test, TestDefinitionYaml, TestSection, TestSummary, TestTable, Testee
 };
 
 
@@ -57,12 +57,7 @@ pub fn parse_test_definition(file_path: &str) -> Result<TestDefinitionYaml, serd
 /// 
 /// Takes in a test_template which it will then mutate, adding the results so that it is graded.
 pub fn parse_test_form_data(test: HashMap<String, String>, mut test_template: Test) -> Result<Test, TestError> {
-    // graded_item_map must be a hash map because each graded item has multiple keys in the test dict whose information must be combined
-    // Keys of this map will be tuples of the form (table_index, section_index, item_index, scoring_category_index) and the values will be GradedItemToBeGraded
-    println!("{:#?}", test_template);
-    println!("##########################################################################\n#################################################################");
-    
-    
+
     let mut user_info = HashMap::new();
 
     // Sort the keys so that the graded test gets reconstructed in the same order as the test definition
@@ -89,6 +84,10 @@ pub fn parse_test_form_data(test: HashMap<String, String>, mut test_template: Te
                     ) {
                         (Ok(table_index), Ok(section_index), Ok(item_index), Ok(scoring_category_index), Ok(scoring_category_label_index), Ok(points)) => {
 
+                            let scoring_category_name = test_template.tables[table_index]
+                                .sections[section_index]
+                                .scoring_categories[scoring_category_index].name.clone();
+
                             let label = test_template.tables[table_index]
                                 .sections[section_index]
                                 .scoring_categories[scoring_category_index]
@@ -104,7 +103,10 @@ pub fn parse_test_form_data(test: HashMap<String, String>, mut test_template: Te
                                                
                             item.achieved_score_labels
                                 .get_or_insert_with(Vec::new)
-                                .push(label);
+                                .push(AchievedScoreLabel {
+                                     scoring_category_name,
+                                     value: label, 
+                                    });
                         }
                         },
 
@@ -124,8 +126,8 @@ pub fn parse_test_form_data(test: HashMap<String, String>, mut test_template: Te
                 match key_parts.len() {
                     2 => {
                         match (key_parts[1].parse::<usize>(), value.parse::<i64>()) {
-                            (Ok(bonus_index), Ok(points)) => {
-                                bonus_items[bonus_index].achieved.get_or_insert(true);
+                            (Ok(bonus_index), Ok(_)) => {
+                                bonus_items[bonus_index].achieved.insert(true);
                             },
                             (Err(e), _) => eprintln!("Failed to parse bonus index from key '{}': {:?}", key, e),
                             (_, Err(e)) => eprintln!("Failed to parse points from value '{}': {:?}", value, e),
@@ -311,18 +313,19 @@ pub async fn save_test_to_database(
     .id;
 
     // Insert test metadata
-    sqlx::query(
-        "INSERT INTO test_metadata (test_id, test_name, minimum_percent, max_score, achieved_score, testee_id, test_date)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)"
-    )
-    .bind(test_id)
-    .bind(graded_test.metadata.test_name)
-    .bind(graded_test.metadata.minimum_percent)
-    .bind(graded_test.metadata.max_score)
-    .bind(graded_test.metadata.achieved_score)
-    .bind(testee.id)
-    .bind(Local::now().naive_utc())
-    .execute(pool)
+    sqlx::query!(
+        "INSERT INTO test_metadata (test_id, test_name, minimum_percent, max_score, achieved_score, testee_id, test_date, is_passing, failure_explanation)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+        test_id,
+        graded_test.metadata.test_name,
+        graded_test.metadata.minimum_percent,
+        graded_test.metadata.max_score,
+        graded_test.metadata.achieved_score,
+        testee.id,
+        Local::now().naive_utc(),
+        graded_test.metadata.is_passing,
+        graded_test.metadata.failure_explanation.as_deref()
+    ).execute(pool)
     .await?;
 
     // Insert test tables, sections, scoring categories, and competencies
@@ -348,31 +351,29 @@ pub async fn save_test_to_database(
             .id;
 
             for scoring_category in section.scoring_categories {
-                sqlx::query(
+                sqlx::query!(
                     "INSERT INTO scoring_categories (section_id, name, values)
                     VALUES ($1, $2, $3)",
-                )
-                .bind(section_id)
-                .bind(&scoring_category.name)
-                .bind(&scoring_category.values)
-                .execute(pool)
+                    section_id,
+                    &scoring_category.name,
+                    &scoring_category.values,
+                ).execute(pool)
                 .await?;
             };
 
             for competency in section.competencies {
-                sqlx::query(
+                sqlx::query!(
                     "INSERT INTO competencies (section_id, name, scores, subtext, antithesis, achieved_scores, achieved_score_labels, failing_score_labels)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
-                )
-                .bind(section_id)
-                .bind(&competency.name)
-                .bind(&serde_json::to_value(&competency.scores)?) // Convert Vec<Vec<i64>> to JSON
-                .bind(&competency.subtext)
-                .bind(&competency.antithesis)
-                .bind(&serde_json::to_value(competency.achieved_scores)?) // Convert Option<Vec<i64>> to JSON
-                .bind(&serde_json::to_value(competency.achieved_score_labels)?) // Convert Option<Vec<String>> to JSON
-                .bind(&serde_json::to_value(&competency.failing_score_labels)?) // Convert Option<Vec<FailingScoreLabels>> to JSON
-                .execute(pool)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+                section_id,
+                &competency.name,
+                &serde_json::to_value(&competency.scores)?, // Convert Vec<Vec<i64>> to JSON
+                competency.subtext.as_deref(),
+                competency.antithesis.as_deref(),
+                &serde_json::to_value(competency.achieved_scores)?, // Convert Option<Vec<i64>> to JSON
+                &serde_json::to_value(competency.achieved_score_labels)?,// Convert Option<Vec<String>> to JSON
+                &serde_json::to_value(&competency.failing_score_labels)?, // Convert Option<Vec<FailingScoreLabels>> to JSON
+                ).execute(pool)
                 .await?;
             };
         };
@@ -445,7 +446,7 @@ pub async fn fetch_test_results_by_id(pool: &PgPool, test_id: i32) -> Result<Opt
     // Fetch test metadata
     let raw_metadata = match sqlx::query!(
         r#"
-        SELECT test_id, test_name, minimum_percent, max_score, achieved_score, testee_id, test_date
+        SELECT test_id, test_name, minimum_percent, max_score, achieved_score, testee_id, test_date, is_passing, failure_explanation
         FROM test_metadata
         WHERE test_id = $1
         "#,
@@ -476,6 +477,8 @@ pub async fn fetch_test_results_by_id(pool: &PgPool, test_id: i32) -> Result<Opt
         testee: Some(testee),
         test_date: Some(raw_metadata.test_date),
         is_graded: Some(()),
+        is_passing: Some(raw_metadata.is_passing),
+        failure_explanation: raw_metadata.failure_explanation,
     };
 
     // Fetch test tables
@@ -539,18 +542,18 @@ pub async fn fetch_test_results_by_id(pool: &PgPool, test_id: i32) -> Result<Opt
             .await?;
 
             let mut competency_vec: Vec<Competency> = Vec::new();
-            for competency in raw_competencies {
-                let scores: Vec<Vec<i32>> = serde_json::from_value(competency.scores)?;
-                let achieved_scores: Option<Vec<i32>> = serde_json::from_value(competency.achieved_scores)?;
-                let achieved_score_labels: Option<Vec<String>> = serde_json::from_value(competency.achieved_score_labels)?;
-                let failing_score_labels: Option<Vec<FailingScoreLabels>> = serde_json::from_value(competency.failing_score_labels)?;
+            for raw_competency in raw_competencies {
+                let scores: Vec<Vec<i32>> = serde_json::from_value(raw_competency.scores)?;
+                let achieved_scores: Option<Vec<i32>> = serde_json::from_value(raw_competency.achieved_scores)?;
+                let achieved_score_labels: Option<Vec<AchievedScoreLabel>> = serde_json::from_value(raw_competency.achieved_score_labels)?;
+                let failing_score_labels: Option<Vec<FailingScoreLabels>> = serde_json::from_value(raw_competency.failing_score_labels)?;
 
                 competency_vec.push(Competency {
-                    section_id: Some(competency.section_id),
-                    name: competency.name,
+                    section_id: Some(raw_competency.section_id),
+                    name: raw_competency.name,
                     scores,
-                    subtext: competency.subtext,
-                    antithesis: competency.antithesis,
+                    subtext: raw_competency.subtext,
+                    antithesis: raw_competency.antithesis,
                     achieved_scores,
                     achieved_score_labels,
                     failing_score_labels,
@@ -591,19 +594,11 @@ pub async fn fetch_test_results_by_id(pool: &PgPool, test_id: i32) -> Result<Opt
         })
         .collect::<Vec<_>>();
 
-    println!("Bonus Items:\n{:#?}", bonus_items);
-
-    let bonus_items = if bonus_items.is_empty() {
-        None
-    } else {
-        Some(bonus_items)
-    };
-
     // Construct the Test object
     Ok(Some(Test {
         metadata,
         tables: test_tables,
-        bonus_items: bonus_items,
+        bonus_items: (!bonus_items.is_empty()).then_some(bonus_items),
     }))
 }
 
@@ -627,7 +622,7 @@ pub async fn fetch_testee_tests_by_id(
     // By virtue of there being a testee, they have taken at least one test.
     Ok(Some(sqlx::query!(
         "
-        SELECT test_id, test_name, test_date, achieved_score, minimum_percent, max_score 
+        SELECT test_id, test_name, test_date, achieved_score, minimum_percent, max_score, is_passing, failure_explanation 
         FROM test_metadata 
         WHERE testee_id = $1
         ORDER BY test_date DESC
@@ -644,7 +639,9 @@ pub async fn fetch_testee_tests_by_id(
         achieved_score: record.achieved_score,
         achieved_percent: record.achieved_score as f32 / record.max_score as f32,
         max_score: record.max_score,
-        minimum_percent: record.minimum_percent
+        minimum_percent: record.minimum_percent,
+        is_passing: record.is_passing,
+        failure_explanation: record.failure_explanation
     }
     ).collect()))
 

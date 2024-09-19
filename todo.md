@@ -4,6 +4,9 @@
 - Add HTMX functionality to everything
 - Send emails to testees once their tests are graded
 - Add the "failing score label" functionality (as well as an explanation to the user)
+- Add test config to allow point values to be shown on questions or not
+- Add test config to allow on the fly grading to be shown while proctoring or not
+
 
 ## Additional Possible Functionality
 - Add "most recent testee" to the dashboard
@@ -26,3 +29,4 @@
 
 ## Last Thing I Was Doing
 Working on the test summaries.
+In insert test metadata in the save test to database add failure reason and is_passing

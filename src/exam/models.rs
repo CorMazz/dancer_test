@@ -71,26 +71,60 @@ impl Test {
         Ok(())
     }
 
-    pub fn grade(& mut self) -> Result<i32, String> {
+    pub fn grade(& mut self) -> Result<(i32, bool, Option<Vec<String>>), String> {
         let mut total_score: i32= 0;
+        let mut is_passing: bool = true;
+        let mut failure_explanation: Vec<String> = Vec::new();
 
         for table in &self.tables {
             for section in &table.sections {
+
                 for competency in &section.competencies {
                     let competency_score: i32 = match &competency.achieved_scores {
                         Some(scores) => scores.iter().sum(),
-                        None => return Err(format!("Missing scores for competency '{}'", competency.name)),
+                        None => return Err(format!("Missing scores for competency '{}' when grading the test.", competency.name)),
                     };
 
                     total_score += competency_score;
-                }
-            }
+
+                    // Check to see if a competency is failing and if it is, set the test to failing
+                    if let Some(failing_score_labels_items) = &competency.failing_score_labels {
+
+                        // Create a hashmap of the header labels so that we can correspond failing score labels on the graded item to the true header labels
+                        let mut achieved_scoring_category_hm: HashMap<String, String> = HashMap::new();
+                        for achieved_score_label in competency.achieved_score_labels.clone().ok_or(
+                            format!("Missing score labels for competency '{}' when grading the test.", competency.name),
+                        )? {
+                            achieved_scoring_category_hm.insert(achieved_score_label.scoring_category_name.clone(), achieved_score_label.value.clone());
+                        };
+
+                        for failing_score_label in failing_score_labels_items {
+                            let achieved_score_label_value = achieved_scoring_category_hm
+                                .get(&failing_score_label.scoring_category_name)
+                                .ok_or(format!("Failing score label '{}' for competency '{}' does not match the achieved scoring category names for that section: {:?} (meaning your test definition was invalid).",
+                                    failing_score_label.scoring_category_name, competency.name, achieved_scoring_category_hm.keys())
+                                )?;
+
+                            if failing_score_label.values.contains(&achieved_score_label_value) {
+                                is_passing = false;
+                                failure_explanation.push(
+                                    format!("Competency {} is failing because a label of {} was achieved, and the labels '{}' fail the test.",
+                                    competency.name, achieved_score_label_value, failing_score_label.values.join(", "))
+                                );
+                            }
+                        };
+                    };
+                };
+            };
         }
 
         self.metadata.achieved_score = Some(total_score);
+        self.metadata.is_passing = Some(is_passing);
+        self.metadata.failure_explanation = (!failure_explanation.is_empty()).then_some(failure_explanation.clone());
+        self.metadata.is_graded = Some(());
 
         // Return the total score for the test
-        Ok(total_score)
+        Ok((total_score, is_passing, (!failure_explanation.is_empty()).then_some(failure_explanation)))
     }
 }
 
@@ -127,6 +161,8 @@ pub struct Metadata {
     pub testee: Option<Testee>,
     pub test_date: Option<NaiveDateTime>,
     pub is_graded: Option<()>, // An option being used as a bool. So that serde_yaml parses the data
+    pub is_passing: Option<bool>,
+    pub failure_explanation: Option<Vec<String>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -136,11 +172,18 @@ pub struct ScoringCategory {
     pub values: Vec<String>,
 }
 
+/// This is used to hold the score labels that cause a failure
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FailingScoreLabels {
-    pub competency_id: Option<i32>,
     pub scoring_category_name: String,
     pub values: Vec<String>, 
+}
+
+/// This is used to hold the score label that the proctor gave for a competency during a test.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AchievedScoreLabel {
+    pub scoring_category_name: String,
+    pub value: String, 
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -152,7 +195,7 @@ pub struct Competency {
     pub failing_score_labels: Option<Vec<FailingScoreLabels>>,
     pub antithesis: Option<String>,
     pub achieved_scores: Option<Vec<i32>>,
-    pub achieved_score_labels: Option<Vec<String>>
+    pub achieved_score_labels: Option<Vec<AchievedScoreLabel>>
 }
 
 
@@ -220,7 +263,12 @@ fn validate_failing_score_labels(graded_items: &[Competency], score_labels: &[Sc
     // Create a hashmap of the header labels so that we can correspond failing score labels on the graded item to the true header labels
     let mut score_label_hm: HashMap<String, Vec<String>> = HashMap::new();
     for score_label in score_labels {
-        score_label_hm.insert(score_label.name.clone(), score_label.values.clone());
+        if let Some(duplicate_name) = score_label_hm.insert(score_label.name.clone(), score_label.values.clone()) {
+            return Err(format!(
+                "On the test named '{},' the scoring category name '{:#?}' is not unique within its section.",
+                test_name, duplicate_name
+            ))
+        };
     }
 
     for item in graded_items {
@@ -684,20 +732,20 @@ pub struct Testee {
     pub email: String,
 }
 
-impl From<HashMap<String, String>> for Testee {
-    fn from(mut map: HashMap<String, String>) -> Self {
-        let first_name = map.remove("first_name").unwrap_or_default();
-        let last_name = map.remove("last_name").unwrap_or_default();
-        let email = map.remove("email").unwrap_or_default();
+// impl From<HashMap<String, String>> for Testee {
+//     fn from(mut map: HashMap<String, String>) -> Self {
+//         let first_name = map.remove("first_name").unwrap_or_default();
+//         let last_name = map.remove("last_name").unwrap_or_default();
+//         let email = map.remove("email").unwrap_or_default();
 
-        Testee {
-            id: None,  // ID is None when parsed from form data
-            first_name,
-            last_name,
-            email,
-        }
-    }
-}
+//         Testee {
+//             id: None,  // ID is None when parsed from form data
+//             first_name,
+//             last_name,
+//             email,
+//         }
+//     }
+// }
 
 // #[derive(Debug, Serialize, Deserialize)]
 // pub struct GradedTest {
@@ -754,6 +802,7 @@ impl From<HashMap<String, String>> for Testee {
 // }
 
 #[derive(Debug, Serialize, Deserialize)]
+/// Passing may be failed even if the achieved percent is above the minimum percent if a competency with a failing score label was graded as failing. 
 pub struct TestSummary {
     pub test_id: i32,
     pub test_date: NaiveDateTime,
@@ -762,6 +811,8 @@ pub struct TestSummary {
     pub achieved_percent: f32,
     pub max_score: i32,
     pub minimum_percent: f32,
+    pub is_passing: bool,
+    pub failure_explanation: Option<Vec<String>>,
 }
 
 // // #######################################################################################################################################################

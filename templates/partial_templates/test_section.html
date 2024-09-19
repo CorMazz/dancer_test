@@ -78,7 +78,7 @@
                             {% match test.metadata.is_graded %}{% when Some with (_) %}
                                 {% match item.achieved_score_labels %}
                                     {% when Some with (achieved_score_labels) %}
-                                        {% if achieved_score_labels[scoring_category_index] == scoring_category.values[loop.index0] %}checked{% endif %}
+                                        {% if achieved_score_labels[scoring_category_index].value == scoring_category.values[loop.index0] %}checked{% endif %}
                                     {% when None %}
                                     Error: This shouldn't be possible
                                 {% endmatch %}
