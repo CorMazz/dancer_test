@@ -3,7 +3,7 @@
 ## Required TODO
 - Add HTMX functionality to everything
 - Send emails to testees once their tests are graded
-- Refactor the failure reason to give the parts to make the desired sentence instead of storing the whole sentence, because I cannot add formatting within the sentence to the html. 
+
 
 
 ## Additional Possible Functionality
@@ -18,18 +18,21 @@
 ## Security TODO
 - Serverside disable form submission for the demo mode
     - Frontend the submit button can be re-enabled by the user and used to submit forms. This is a security vulnerability.
+- Add functionality to require a licensing code to enter the queue
 
 
 ## Would be Nice TODO
 - Refactor the error handling to use the anyhow crate
 - Separate the test parsing into a separate crate that I can provide as an executable so that other people can work on creating valid tests
 - Go through and make composable classes to remove a lot of the Option<> types on my Test class that makes the logic a little funky. This would enable me to have all the funky logic in one place as we move from one class type to another. 
+- Add a command upon the server restarting to clear the queue. 
+- Add a command to clear the queue after a certain amount of time.
+- Refactor the failure reason to give the parts to make the desired sentence instead of storing the whole sentence, because I cannot add formatting within the sentence to the html. 
 
 
 ## Last Thing I Was Doing
 - Fix the queue
 - Define the rest of the tests
-- Put the test date on the graded tests
 - Next thing to do is add the email functionality. 
 
 

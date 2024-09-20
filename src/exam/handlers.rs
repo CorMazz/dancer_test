@@ -693,13 +693,13 @@ pub async fn create_testee(pool: &PgPool, first_name: &str, last_name: &str, ema
 // Enqueue Testee
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
-pub async fn enqueue_testee(pool: &PgPool, testee_id: i32, role: &str) -> Result<(), TestError> {
+pub async fn enqueue_testee(pool: &PgPool, testee_id: i32, test_definition_index: i32) -> Result<(), TestError> {
     sqlx::query!(
-        "INSERT INTO queue (testee_id, role)
+        "INSERT INTO queue (testee_id, test_definition_index)
         VALUES ($1, $2)
-        ON CONFLICT (testee_id, role) DO NOTHING",
+        ON CONFLICT (testee_id, test_definition_index) DO NOTHING",
         testee_id,
-        role
+        test_definition_index,
     )
     .execute(pool)
     .await
@@ -708,86 +708,86 @@ pub async fn enqueue_testee(pool: &PgPool, testee_id: i32, role: &str) -> Result
     Ok(())
 }
 
-// // -------------------------------------------------------------------------------------------------------------------------------------------------------
-// // Dequeue Testee 
-// // -------------------------------------------------------------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
+// Dequeue Testee 
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
 
-// /// Remove and return the next person on the queue plus the role of their desired test.
-// /// If a testee_id is given, remove that person, (or throw an error if not found)
-// pub async fn dequeue_testee(
-//     pool: &PgPool,
-//     testee_id: Option<i32>,
-//     test_index: Option<usize>,
-// ) -> Result<Option<(Testee, String)>, TestError> {
+/// Remove and return the next person on the queue plus the test_definition_index of their desired test.
+/// If a testee_id is given, remove that person, (or throw an error if not found)
+pub async fn dequeue_testee(
+    pool: &PgPool,
+    testee_id: Option<i32>,
+    test_definition_index: Option<i32>,
+) -> Result<Option<(Testee, i32)>, TestError> {
 
-//     // Handle different cases based on the presence of testee_id and role
-//     let (testee_id, role) = match (testee_id, test_index) {
-//         (Some(id), Some(r)) => {
-//             // Both testee_id and role are provided; delete the specific entry
-//             match sqlx::query!(
-//                 "DELETE FROM queue WHERE testee_id = $1 AND role = $2 RETURNING role",
-//                 id, r.to_string()
-//             )
-//             .fetch_optional(pool)
-//             .await? {
-//                 Some(result) => (id, result.role),
-//                 None => return Ok(None),
-//             }
-//         }
-//         (Some(id), None) => {
-//             // Only testee_id is provided; delete the oldest entry for that testee_id
-//             match sqlx::query!(
-//                 "DELETE FROM queue WHERE ctid = (
-//                     SELECT ctid FROM queue WHERE testee_id = $1 ORDER BY added_at LIMIT 1
-//                 ) RETURNING role",
-//                 id
-//             )
-//             .fetch_optional(pool)
-//             .await? {
-//                 Some(result) => (id, result.role),
-//                 None => return Ok(None),
-//             }
-//         }
-//         (None, None) => {
-//             // Neither testee_id nor role is provided; delete the oldest queue item
-//             match sqlx::query!(
-//                 "DELETE FROM queue WHERE ctid = (
-//                     SELECT ctid FROM queue ORDER BY added_at LIMIT 1
-//                 ) RETURNING testee_id, role"
-//             )
-//             .fetch_optional(pool)
-//             .await? {
-//                 Some(result) => (result.testee_id, result.role),
-//                 None => return Ok(None),
-//             }
-//         }
-//         (None, Some(_)) => {
-//             // Only role is provided, which is an invalid case
-//             return Err(TestError::InternalServerError("Test index specified without testee_id when trying to dequeue.".into()));
-//         }
-//     };
+    // Handle different cases based on the presence of testee_id and test_definition_index
+    let (testee_id, test_definition_index) = match (testee_id, test_definition_index) {
+        (Some(id), Some(r)) => {
+            // Both testee_id and test_definition_index are provided; delete the specific entry
+            match sqlx::query!(
+                "DELETE FROM queue WHERE testee_id = $1 AND test_definition_index = $2 RETURNING test_definition_index",
+                id, r
+            )
+            .fetch_optional(pool)
+            .await? {
+                Some(result) => (id, result.test_definition_index),
+                None => return Ok(None),
+            }
+        }
+        (Some(id), None) => {
+            // Only testee_id is provided; delete the oldest entry for that testee_id
+            match sqlx::query!(
+                "DELETE FROM queue WHERE ctid = (
+                    SELECT ctid FROM queue WHERE testee_id = $1 ORDER BY added_at LIMIT 1
+                ) RETURNING test_definition_index",
+                id
+            )
+            .fetch_optional(pool)
+            .await? {
+                Some(result) => (id, result.test_definition_index),
+                None => return Ok(None),
+            }
+        }
+        (None, None) => {
+            // Neither testee_id nor test_definition_index is provided; delete the oldest queue item
+            match sqlx::query!(
+                "DELETE FROM queue WHERE ctid = (
+                    SELECT ctid FROM queue ORDER BY added_at LIMIT 1
+                ) RETURNING testee_id, test_definition_index"
+            )
+            .fetch_optional(pool)
+            .await? {
+                Some(result) => (result.testee_id, result.test_definition_index),
+                None => return Ok(None),
+            }
+        }
+        (None, Some(_)) => {
+            // Only test_definition_index is provided, which is an invalid case
+            return Err(TestError::InternalServerError("Test index specified without testee_id when trying to dequeue.".into()));
+        }
+    };
 
-//     // Fetch the testee details
-//     let testee = sqlx::query_as!(
-//         Testee,
-//         "SELECT id, first_name, last_name, email FROM testees WHERE id = $1",
-//         testee_id
-//     )
-//     .fetch_one(pool)
-//     .await?;
+    // Fetch the testee details
+    let testee = sqlx::query_as!(
+        Testee,
+        "SELECT id, first_name, last_name, email FROM testees WHERE id = $1",
+        testee_id
+    )
+    .fetch_one(pool)
+    .await?;
 
-//     Ok(Some((testee, role)))
-// }
+    Ok(Some((testee, test_definition_index)))
+}
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 // Get Queue
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
-pub async fn retrieve_queue(pool: &PgPool) -> Result<Vec<(Testee, String)>, TestError> {
+pub async fn retrieve_queue(pool: &PgPool) -> Result<Vec<(Testee, i32)>, TestError> {
     let rows = sqlx::query!(
         "
         SELECT 
-            t.id, t.first_name, t.last_name, t.email, q.role 
+            t.id, t.first_name, t.last_name, t.email, q.test_definition_index
         FROM 
             queue q
         JOIN 
@@ -801,7 +801,7 @@ pub async fn retrieve_queue(pool: &PgPool) -> Result<Vec<(Testee, String)>, Test
     .fetch_all(pool)
     .await?;
 
-    // Map the result into a Vec of (Testee, role) tuples
+    // Map the result into a Vec of (Testee, test_name) tuples
     let queue = rows.into_iter().map(|row| {
         (
             Testee {
@@ -810,7 +810,7 @@ pub async fn retrieve_queue(pool: &PgPool) -> Result<Vec<(Testee, String)>, Test
                 last_name: row.last_name,
                 email: row.email,
             },
-            row.role,
+            row.test_definition_index,
         )
     }).collect();
 

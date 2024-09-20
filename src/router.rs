@@ -2,14 +2,14 @@ use std::sync::Arc;
 
 use axum::{
     middleware,
-    routing::{get, post},
+    routing::{delete, get, post},
     Router,
 };
 
 use crate::{
     auth::middleware::{check_auth_middleware, require_auth_middleware}, 
     views::{
-        get_contact_page, get_dashboard_page, get_home_page, get_login_page, get_logout_page, get_queue, get_search_testee_form, get_signup_page, get_test_page, get_test_results, get_test_summaries, get_user_dropdown, post_grade_test, post_login_form, post_queue, post_signup_form, post_test_form
+        delete_dequeue, get_contact_page, get_dashboard_page, get_home_page, get_login_page, get_logout_page, get_queue, get_search_testee_form, get_signup_page, get_test_page, get_test_results, get_test_summaries, get_user_dropdown, post_grade_test, post_login_form, post_queue, post_signup_form, post_test_form
     },
     AppState
 };
@@ -27,7 +27,7 @@ pub fn create_router(app_state: Arc<AppState>) -> Router {
         .route("/test-results/:test_index", get(get_test_results))
         .route("/search-testee", get(get_search_testee_form))
         .route("/test-summaries/:testee_id", get(get_test_summaries))
-        // .route("/queue/dequeue", delete(delete_dequeue))
+        .route("/queue/dequeue", delete(delete_dequeue))
 
         
     .route_layer(middleware::from_fn_with_state(app_state.clone(), require_auth_middleware))

@@ -97,9 +97,8 @@ CREATE TABLE bonus_items (
 );
 
 CREATE TABLE queue (
-    testee_id INT NOT NULL,
-    role VARCHAR(10) CHECK (role IN ('leader', 'follower')) NOT NULL,
+    testee_id INT NOT NULL REFERENCES testees(id),
+    test_definition_index INTEGER NOT NULL,
     added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (testee_id, role),
-    FOREIGN KEY (testee_id) REFERENCES testees(id)
+    PRIMARY KEY (testee_id, test_definition_index)
 );

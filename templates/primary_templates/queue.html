@@ -33,20 +33,18 @@
                         class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                 </div>
                 
-                <!-- Role (Radio Buttons) -->
+                <!-- Test Type (Radio Buttons) -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">Role</label>
+                    <label class="block text-sm font-medium text-gray-700">Test Type</label>
                     <div class="mt-2 flex items-center">
-                        <div class="flex items-center mr-2">
-                            <input type="radio" name="role" id="leader" value="leader" required 
-                                class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500">
-                            <label for="leader" class="ml-2 block text-sm font-medium text-gray-700">Leader</label>
-                        </div>
-                        <div class="flex items-center ml-2">
-                            <input type="radio" name="role" id="follower" value="follower" required 
-                                class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500">
-                            <label for="follower" class="ml-2 block text-sm font-medium text-gray-700">Follower</label>
-                        </div>
+                        {% for test_name in test_names %}
+                            <div class="flex items-center mr-2">
+                                {# This loop index corresponds to the test_index in the parsed test definition Vec #}
+                                <input type="radio" name="test_definition_index" id="{{ loop.index0 }}"" value="{{ loop.index0 }}" required 
+                                    class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500">
+                                <label for="{{ loop.index0 }}" class="ml-2 block text-sm font-medium text-gray-700">{{ test_name }}</label>
+                            </div>
+                        {% endfor %}
                     </div>
                 </div>
                 
@@ -68,7 +66,7 @@
                 <tr>
                     <th class="py-2 text-sm md:text-lg font-semibold text-gray-800">First Name</th>
                     <th class="py-2 text-sm md:text-lg font-semibold text-gray-800">Last Name</th>
-                    <th class="py-2 text-sm md:text-lg font-semibold text-gray-800">Role</th>
+                    <th class="py-2 text-sm md:text-lg font-semibold text-gray-800">Test Name</th>
                     {% if admin_user %}
                         <th class="py-2 text-sm md:text-lg font-semibold text-gray-800">
                             <p>Actions</p>
@@ -79,16 +77,16 @@
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-                {% for (testee, role) in queue %}
+                {% for (testee, test_definition_index) in queue %}
                 <tr>
                     <td class="py-2 px-4">{{ testee.first_name }}</td>
                     <td class="py-2 px-4">{{ testee.last_name }}</td>
-                    <td class="py-2 px-4">{{ role|capitalize }}</td>
+                    <td class="py-2 px-4">{{ test_names[test_definition_index.clone()] }}</td>
                     {% if admin_user %}
                     <td class="py-2 px-4">
                         <button
                         id="administer-test-button"   {# ID is used in HX-Trigger response header parsing #}
-                        hx-delete="/queue/dequeue?testee_id={{ testee.id.unwrap() }}&role={{ role }}" 
+                        hx-delete="/queue/dequeue?testee_id={{ testee.id.unwrap() }}&test_definition_index={{ test_definition_index }}" 
                         hx-swap="outerHTML"
                         hx-select="#primary-content"
                         hx-target="#primary-content"
@@ -99,7 +97,7 @@
                         >Administer Test</button> 
                         <span>|</span>
                         <button 
-                        hx-delete="/queue/dequeue?testee_id={{ testee.id.unwrap() }}&role={{ role }}" 
+                        hx-delete="/queue/dequeue?testee_id={{ testee.id.unwrap() }}&test_definition_index={{ test_definition_index }}" 
                         hx-swap="outerHTML"
                         hx-confirm="Are you sure you want to delete {{ testee.first_name }} {{testee.last_name}} from the queue?"
                         hx-target="closest tr"

@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use askama_axum::Template; // bring trait in scope
 use axum::{
-    extract::{Path, Query, State}, http::StatusCode, response::{Html, IntoResponse, Redirect}, Extension, Form, Json
+    extract::{Path, Query, State}, http::{HeaderMap, StatusCode}, response::{Html, IntoResponse, Redirect}, Extension, Form, Json
 };
 use axum_extra::extract::CookieJar;
 use chrono::NaiveDateTime;
@@ -15,7 +15,7 @@ use crate::{
         middleware::{AuthError, AuthStatus},
         model::User
     }, exam::{
-        handlers::{create_testee, enqueue_testee, fetch_test_results_by_id, fetch_testee_by_id, fetch_testee_tests_by_id, parse_test_form_data, retrieve_queue, save_test_to_database, search_for_testee, TestError}, 
+        handlers::{create_testee, dequeue_testee, enqueue_testee, fetch_test_results_by_id, fetch_testee_by_id, fetch_testee_tests_by_id, parse_test_form_data, retrieve_queue, save_test_to_database, search_for_testee, TestError}, 
         models::{FullTestSummary, Test, TestGradeSummary, Testee}
     }, filters, AppState
 };
@@ -487,7 +487,8 @@ pub async fn get_test_summaries(
 #[template(path = "./primary_templates/queue.html")] 
 pub struct QueueTemplate {
     admin_user: bool,
-    queue: Vec<(Testee, String)>,
+    test_names: Vec<String>,
+    queue: Vec<(Testee, usize)>,
     is_demo_mode: bool,
 }
 
@@ -500,17 +501,25 @@ pub async fn get_queue(
         AuthStatus::Authorized(_) => true,
         AuthStatus::Unauthorized(_) => false
     };
+ 
 
     let queue = match retrieve_queue(&data.db).await {
-        Ok(q) => q,
+        Ok(q) => q.into_iter()
+            .map(|(testee, index)| (testee, index as usize))  // Convert i32 to usize
+            .collect(),
         Err(e) => {
             return (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error: {:?}</h1>", e))).into_response()
         }
     };
+    let test_names = data.test_configurations.tests
+        .iter()
+        .map(|test| test.metadata.test_name.clone())
+        .collect::<Vec<String>>();
 
     let template = QueueTemplate {
-        admin_user: admin_user,
-        queue: queue,
+        admin_user,
+        queue,
+        test_names,
         is_demo_mode: data.env.is_demo_mode
     };
 
@@ -522,7 +531,7 @@ pub struct EnqueueForm {
     first_name: String,
     last_name: String,
     email: String,
-    role: String,
+    test_definition_index: i32,
 }
 
 pub async fn post_queue(
@@ -541,58 +550,57 @@ pub async fn post_queue(
     };
 
     // Create testee 100% returns a testee with a testee id, so I can call unwrap on this
-    if let Err(e) = enqueue_testee(&data.db, testee.id.unwrap(), user_info.role.as_str()).await {
+    if let Err(e) = enqueue_testee(&data.db, testee.id.unwrap(), user_info.test_definition_index).await {
         return (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error enqueuing testee: {:?}</h1>", e))).into_response();
     }
     
     Redirect::to("/queue").into_response()
 }
 
-// // #######################################################################################################################################################
-// // dequeue
-// // #######################################################################################################################################################
+// #######################################################################################################################################################
+// dequeue
+// #######################################################################################################################################################
 
-// #[derive(Deserialize, Debug)]
-// pub struct DequeueParams {
-//     testee_id: Option<i32>,
-//     role: Option<TestType>,
-// }
+#[derive(Deserialize, Debug)]
+pub struct DequeueParams {
+    testee_id: Option<i32>,
+    test_definition_index: Option<i32>,
+}
 
-// /// Removes a user from the queue upon receiving a delete request. If called with a request header HX-Trigger equal to 
-// /// "administer-test-button", will redirect to the proper (leader or follower) administer test page with the query parameters
-// /// equal to the queue user's information. If there is no response header, just deletes the user and returns empty html.
-// pub async fn delete_dequeue(
-//     State(data): State<Arc<AppState>>,
-//     Query(params): Query<DequeueParams>,
-//     headers: HeaderMap,
-// ) -> impl IntoResponse {
+/// Removes a user from the queue upon receiving a delete request. If called with a request header HX-Trigger equal to 
+/// "administer-test-button", will redirect to the proper administer test page with the query parameters
+/// equal to the queue user's information. If there is no response header, just deletes the user and returns empty html.
+pub async fn delete_dequeue(
+    State(data): State<Arc<AppState>>,
+    Query(params): Query<DequeueParams>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
 
-//     let (testee, role) = match dequeue_testee(&data.db, params.testee_id, params.role).await {
-//         Ok(option) => match option {
-//             Some(result) => (result.0, result.1),
-//             None => return (StatusCode::OK, Html("<h1 id=\"primary-content\">Error: No testee with that ID found --> Perhaps the queue was empty.</h1>")).into_response(),
-//         },
-//         Err(e) => {
-//             return (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error dequeuing testee: {:?}</h1>", e))).into_response();
-//         }
-//     };
+    let (testee, test_definition_index) = match dequeue_testee(&data.db, params.testee_id, params.test_definition_index).await {
+        Ok(option) => match option {
+            Some(result) => (result.0, result.1),
+            None => return (StatusCode::OK, Html("<h1 id=\"primary-content\">Error: No testee with that ID found --> Perhaps the queue was empty.</h1>")).into_response(),
+        },
+        Err(e) => {
+            return (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error dequeuing testee: {:?}</h1>", e))).into_response();
+        }
+    };
 
-//     if let Some(header_value) = headers.get("HX-Trigger") {
-//         if header_value == "administer-test-button" {
-//             // Convert the role and testee fields to strings for use in the URL
-//             let role = role.to_string();
-//             let first_name = testee.first_name.to_string();
-//             let last_name = testee.last_name.to_string();
-//             let email = testee.email.to_string();
+    if let Some(header_value) = headers.get("HX-Trigger") {
+        if header_value == "administer-test-button" {
+            // Convert the role and testee fields to strings for use in the URL
+            let first_name = testee.first_name.to_string();
+            let last_name = testee.last_name.to_string();
+            let email = testee.email.to_string();
 
-//             let redirect_url = format!(
-//                 "/{}-test?first_name={}&last_name={}&email={}",
-//                 role, first_name, last_name, email
-//             );
+            let redirect_url = format!(
+                "/administer-test/{}?first_name={}&last_name={}&email={}",
+                test_definition_index, first_name, last_name, email
+            );
 
-//             return Redirect::to(&redirect_url).into_response();
-//         }
-//     }
+            return Redirect::to(&redirect_url).into_response();
+        }
+    }
 
-//     (StatusCode::OK, Html("")).into_response()
-// }
+    (StatusCode::OK, Html("")).into_response()
+}
