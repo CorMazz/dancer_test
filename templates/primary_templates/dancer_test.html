@@ -26,6 +26,7 @@
                 {% match test_summary %}
                     {% when Some with (summary) %}
                     {% let grade_summary = summary.grade_summary.clone() %}
+                    {% let test_date = Some(summary.test_date.clone()) %}
                     <!-- Test Results Section -->
                         {% include "../partial_templates/test_grade.html" %} 
 

@@ -1,0 +1,70 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT test_id, test_name, minimum_percent, max_score, achieved_score, testee_id, test_date, is_passing, failure_explanation\n        FROM test_metadata\n        WHERE test_id = $1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "test_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "test_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "minimum_percent",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 3,
+        "name": "max_score",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "achieved_score",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "testee_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "test_date",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 7,
+        "name": "is_passing",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "failure_explanation",
+        "type_info": "TextArray"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "ba10608e70976344d020d571a51bb46e07ebae0f291c94864187b94700e0096a"
+}

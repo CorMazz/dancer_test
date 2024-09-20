@@ -5,6 +5,7 @@ use axum::{
     extract::{Path, Query, State}, http::StatusCode, response::{Html, IntoResponse, Redirect}, Extension, Form, Json
 };
 use axum_extra::extract::CookieJar;
+use chrono::NaiveDateTime;
 use serde::Deserialize;
 use serde_json::json;
 
@@ -292,10 +293,11 @@ pub async fn post_test_form(
 #[derive(Template)]
 #[template(path = "./partial_templates/test_grade.html")] 
 pub struct GradeTestTemplate {
-    grade_summary: TestGradeSummary
+    grade_summary: TestGradeSummary,
+    test_date: Option<NaiveDateTime>,
 }
 
-
+/// Used to grade a test on the fly.
 pub async fn post_grade_test(
     State(data): State<Arc<AppState>>,
     Path(test_index): Path<i32>,
@@ -316,7 +318,9 @@ pub async fn post_grade_test(
                 };
 
                 let template = GradeTestTemplate {
-                    grade_summary
+                    grade_summary,
+                    test_date: None // Feed in no test date because we don't need the current date when administering a test
+                    // Since this function is used to grade a test on the fly
                 };
 
                 return (StatusCode::OK, Html(template.render().unwrap())).into_response()
@@ -350,7 +354,7 @@ pub async fn post_grade_test(
 // }
 
 // #######################################################################################################################################################
-// graded_test.html
+// dancer_test.html
 // #######################################################################################################################################################
 
 #[derive(Template)]

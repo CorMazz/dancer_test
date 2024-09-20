@@ -9,6 +9,11 @@
 
 
     <h2 class="text-2xl font-semibold">Scoring Information</h2>
+    {% match test_date %}
+    {% when Some with (date) %}
+        <p class="text-xl"><strong>Test Date: </strong>{{ date|trim_end_chars(10) }}</p>
+    {% when None %}
+    {% endmatch %}
     <p class="text-xl"><strong>Score: </strong> {{ grade_summary.achieved_score }} / {{ grade_summary.max_score }} = {{ "{:.0}"|format(grade_summary.achieved_percent * 100.0) }}%</p> 
     <p class="text-xl"><strong>Passing Score: </strong>{{ "{:.0}"|format(grade_summary.minimum_percent * 100.0) }}%</p>
 

@@ -23,9 +23,13 @@
 ## Would be Nice TODO
 - Refactor the error handling to use the anyhow crate
 - Separate the test parsing into a separate crate that I can provide as an executable so that other people can work on creating valid tests
+- Go through and make composable classes to remove a lot of the Option<> types on my Test class that makes the logic a little funky. This would enable me to have all the funky logic in one place as we move from one class type to another. 
 
 
 ## Last Thing I Was Doing
+- Fix the queue
+- Define the rest of the tests
+- Put the test date on the graded tests
 - Next thing to do is add the email functionality. 
 
 

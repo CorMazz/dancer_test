@@ -19,7 +19,7 @@ CLIENT_ORIGIN=http://localhost:3000
 
 REDIS_URL=redis://redis:6379/
 
-ACCESS_TOKEN_PRIVATE_KEY= put an RSA 256 key pair b64 encoded
+ACCESS_TOKEN_PRIVATE_KEY= put an RSA 256 key pair b64 encoded --> include the --- begin key here --- part
 ACCESS_TOKEN_PUBLIC_KEY=
 ACCESS_TOKEN_EXPIRED_IN=120m
 ACCESS_TOKEN_MAXAGE=120

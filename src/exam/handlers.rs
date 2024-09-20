@@ -480,7 +480,7 @@ pub async fn fetch_test_results_by_id(pool: &PgPool, test_id: i32) -> Result<Opt
         is_graded: Some(()),
         is_passing: Some(raw_metadata.is_passing),
         failure_explanation: raw_metadata.failure_explanation,
-        config_settings: TestConfig {live_grading: false, show_point_values:false}, // this is not used in tests that have already been administers
+        config_settings: TestConfig {live_grading: true, show_point_values:true}, // must be true to show results on graded test page
     };
 
     // Fetch test tables

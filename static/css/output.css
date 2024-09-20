@@ -758,10 +758,6 @@ video {
   min-height: 100vh;
 }
 
-.w-1\/4 {
-  width: 25%;
-}
-
 .w-1\/5 {
   width: 20%;
 }
@@ -1137,6 +1133,11 @@ video {
   line-height: 2.5rem;
 }
 
+.text-6xl {
+  font-size: 3.75rem;
+  line-height: 1;
+}
+
 .text-base {
   font-size: 1rem;
   line-height: 1.5rem;
@@ -1474,10 +1475,6 @@ video {
     margin-inline-end: 0px;
   }
 
-  .md\:ml-2 {
-    margin-left: 0.5rem;
-  }
-
   .md\:mr-2 {
     margin-right: 0.5rem;
   }
@@ -1532,11 +1529,6 @@ video {
     padding: 0px;
   }
 
-  .md\:text-base {
-    font-size: 1rem;
-    line-height: 1.5rem;
-  }
-
   .md\:text-lg {
     font-size: 1.125rem;
     line-height: 1.75rem;
@@ -1582,10 +1574,5 @@ video {
 @media (min-width: 1280px) {
   .xl\:h-96 {
     height: 24rem;
-  }
-
-  .xl\:text-2xl {
-    font-size: 1.5rem;
-    line-height: 2rem;
   }
 }

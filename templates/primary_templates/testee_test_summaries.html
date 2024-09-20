@@ -30,8 +30,7 @@
                     <tr class="bg-gray-100 border-b hover:bg-gray-200 transition duration-300">
                         <th class="py-2 px-4">Test Date</th>
                         <th class="py-2 px-4">Test Name</th>
-                        <th class="py-2 px-4">Score</th>
-                        <th class="py-2 px-4">Passing Percent</th>
+                        <th class="py-2 px-4">Pass/Fail</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -43,8 +42,7 @@
                         {% endif %}
                             <td class="py-2 px-4"><a href="/test-results/{{ summary.test_id }}" class="block py-2 px-4 hover:underline">{{ summary.test_date|trim_end_chars(10) }}</a></td>
                             <td class="py-2 px-4"><a href="/test-results/{{ summary.test_id }}" class="block py-2 px-4 hover:underline">{{ summary.test_name }}</a></td>
-                            <td class="py-2 px-4"><a href="/test-results/{{ summary.test_id }}" class="block py-2 px-4 hover:underline">{{ summary.grade_summary.achieved_score }} / {{ summary.grade_summary.max_score }} = {{ "{:.0}"|format(summary.grade_summary.achieved_percent * 100.0) }}% </a></td>
-                            <td class="py-2 px-4"><a href="/test-results/{{ summary.test_id }}" class="block py-2 px-4 hover:underline">{{ "{:.0}"|format(summary.grade_summary.minimum_percent * 100.0) }}%</a></td>
+                            <td class="py-2 px-4"><a href="/test-results/{{ summary.test_id }}" class="block py-2 px-4 hover:underline">{% if summary.grade_summary.is_passing %}<span class="text-green-700 font-bold">Pass</span>{% else %} <span class="text-red-700 font-bold">Fail</span>{% endif %}  </a></td>
                         </tr>
                     {% endfor %}
                 </tbody>

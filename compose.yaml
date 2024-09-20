@@ -15,6 +15,8 @@ services:
     build:
       context: .
       target: final
+    volumes:
+      - ./test_definitions.yaml:/test_definitions.yaml 
     ports:
       - ${DOCKER_PORT_MAPPING:?error}:${SERVER_PORT:?error}
     env_file:
