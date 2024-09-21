@@ -1,0 +1,116 @@
+{% extends "../extensible_templates/nav_on_top.html" %}
+
+{% block title %}Queue{% endblock %}
+
+{% block content %}
+
+<!-- View Queue -->
+
+<div class="text-center mt-4 mx-4 border-gray-100 bg-gray-50 shadow-lg rounded-lg p-6 hover:bg-gray-100 hover:shadow-xl transition duration-300">
+    <div class="bg-gray-50 shadow-md rounded-lg overflow-hidden hover:bg-gray-100 hover:shadow-xl transition duration-300">
+
+        <div class="p-6">
+            <h2 class="py-2 text-2xl font-bold">Join the Queue</h2>
+            <form action="/queue" method="post" class="space-y-4">
+                <!-- First Name -->
+                <div>
+                    <label for="first_name" class="block text-sm font-medium text-gray-700">First Name</label>
+                    <input type="text" name="first_name" id="first_name" required 
+                        class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                </div>
+                
+                <!-- Last Name -->
+                <div>
+                    <label for="last_name" class="block text-sm font-medium text-gray-700">Last Name</label>
+                    <input type="text" name="last_name" id="last_name" required 
+                        class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                </div>
+                
+                <!-- Email -->
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+                    <input type="email" name="email" id="email" required 
+                        class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                </div>
+                
+                <!-- Test Type (Radio Buttons) -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Test Type</label>
+                    <div class="mt-2 flex items-center">
+                        {% for test_name in test_names %}
+                            <div class="flex items-center mr-2">
+                                {# This loop index corresponds to the test_index in the parsed test definition Vec #}
+                                <input type="radio" name="test_definition_index" id="{{ loop.index0 }}"" value="{{ loop.index0 }}" required 
+                                    class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500">
+                                <label for="{{ loop.index0 }}" class="ml-2 block text-sm font-medium text-gray-700">{{ test_name }}</label>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <!-- Submit Button -->
+                <div>
+                    <button type="submit" 
+                            class="{% if is_demo_mode %}bg-gray-300 text-gray-900{% else %}text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500{% endif %}inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md"
+                            {% if is_demo_mode %}disabled{% else %}{% endif %}>
+                        {% if is_demo_mode %}Submission Disabled for Demo{% else %}Join Queue{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>    
+    <div id="queue" class="overflow-x-auto text-center mt-4 bg-gray-50 shadow-md rounded-lg overflow-hidden hover:bg-gray-100 hover:shadow-xl transition duration-300">
+        <h2 class="py-2 text-2xl font-bold">Testee Queue</h2>
+        <table class="min-w-full bg-white">
+            <thead>
+                <tr>
+                    <th class="py-2 text-sm md:text-lg font-semibold text-gray-800">First Name</th>
+                    <th class="py-2 text-sm md:text-lg font-semibold text-gray-800">Last Name</th>
+                    <th class="py-2 text-sm md:text-lg font-semibold text-gray-800">Test Name</th>
+                    {% if admin_user %}
+                        <th class="py-2 text-sm md:text-lg font-semibold text-gray-800">
+                            <p>Actions</p>
+                            {% if is_demo_mode %}<p class="text-sm text-gray-500 font-normal">Disabled for Demo</p>{% else %}{% endif %}
+                            
+                        </th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for (testee, test_definition_index) in queue %}
+                <tr>
+                    <td class="py-2 px-4">{{ testee.first_name }}</td>
+                    <td class="py-2 px-4">{{ testee.last_name }}</td>
+                    <td class="py-2 px-4">{{ test_names[test_definition_index.clone()] }}</td>
+                    {% if admin_user %}
+                    <td class="py-2 px-4">
+                        <button
+                        id="administer-test-button"   {# ID is used in HX-Trigger response header parsing #}
+                        hx-delete="/queue/dequeue?testee_id={{ testee.id.unwrap() }}&test_definition_index={{ test_definition_index }}" 
+                        hx-swap="outerHTML"
+                        hx-select="#primary-content"
+                        hx-target="#primary-content"
+                        hx-confirm="Administer Test for {{ testee.first_name }} {{testee.last_name}}?"
+                        hx-push-url="true"
+                        class="text-indigo-600 hover:text-indigo-900"
+                        {% if is_demo_mode %}disabled{% else %}{% endif %}
+                        >Administer Test</button> 
+                        <span>|</span>
+                        <button 
+                        hx-delete="/queue/dequeue?testee_id={{ testee.id.unwrap() }}&test_definition_index={{ test_definition_index }}" 
+                        hx-swap="outerHTML"
+                        hx-confirm="Are you sure you want to delete {{ testee.first_name }} {{testee.last_name}} from the queue?"
+                        hx-target="closest tr"
+                        class="text-red-600 hover:text-red-900 hover:underline"
+                        {% if is_demo_mode %}disabled{% else %}{% endif %}
+                        >Delete</button>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

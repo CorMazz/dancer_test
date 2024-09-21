@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM queue WHERE ctid = (\n                    SELECT ctid FROM queue ORDER BY added_at LIMIT 1\n                ) RETURNING testee_id, test_definition_index",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "testee_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "test_definition_index",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "7f403fcf2dcd9211c0129e9238aa026a2785c7180e94c13e1f88ca0266ce3591"
+}

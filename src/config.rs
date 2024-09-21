@@ -1,9 +1,9 @@
 fn get_env_var(var_name: &str) -> String {
-    std::env::var(var_name).unwrap_or_else(|_| panic!("{} must be set", var_name))
+    std::env::var(var_name).unwrap_or_else(|_| panic!("{} must be set as an environment variable.", var_name))
 }
 
 #[derive(Debug, Clone)]
-pub struct Config {
+pub struct SecretsConfig {
     pub is_demo_mode: bool,
     pub signup_licensing_key: String,
     pub server_port: i64,
@@ -22,8 +22,8 @@ pub struct Config {
     pub refresh_token_max_age: i64,
 }
 
-impl Config {
-    pub fn init() -> Config {
+impl SecretsConfig {
+    pub fn init() -> SecretsConfig {
         let is_demo_mode = get_env_var("DEMO_MODE_ACTIVE").to_lowercase().trim().parse().expect("DEMO_MODE_ACTIVE should be TRUE or FALSE.");
         let signup_licensing_key = get_env_var("SIGNUP_LICENSING_KEY");
         let server_port = get_env_var("SERVER_PORT").parse::<i64>().expect("Server port (ENV_VAR=SERVER_PORT) should be an integer.");
@@ -41,7 +41,7 @@ impl Config {
         let refresh_token_expires_in = get_env_var("REFRESH_TOKEN_EXPIRED_IN");
         let refresh_token_max_age = get_env_var("REFRESH_TOKEN_MAXAGE");
 
-        Config {
+        SecretsConfig {
             is_demo_mode,
             signup_licensing_key,
             server_port,

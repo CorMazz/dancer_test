@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO test_tables (test_id)\n            VALUES ($1)\n            RETURNING (id)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "1f1b49677e88b4b75883e40eec3ebe9e3cbaa30195d87816cb2dcfe6b7c86e9c"
+}

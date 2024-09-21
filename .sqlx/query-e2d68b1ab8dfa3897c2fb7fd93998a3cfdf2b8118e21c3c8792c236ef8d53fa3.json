@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO queue (testee_id, test_definition_index)\n        VALUES ($1, $2)\n        ON CONFLICT (testee_id, test_definition_index) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e2d68b1ab8dfa3897c2fb7fd93998a3cfdf2b8118e21c3c8792c236ef8d53fa3"
+}

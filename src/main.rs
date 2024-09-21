@@ -5,7 +5,8 @@ mod views;
 mod filters;
 mod exam;
 
-use config::Config;
+use config::SecretsConfig;
+use exam::{handlers::parse_test_definition, models::TestDefinitionYaml};
 use std::sync::Arc;
 
 use axum::http::{
@@ -20,16 +21,24 @@ use tower_http::cors::CorsLayer;
 
 pub struct AppState {
     db: Pool<Postgres>,
-    env: Config,
+    env: SecretsConfig,
     redis_client: Client,
+    test_configurations: TestDefinitionYaml,
 }
 
 
 #[tokio::main]
 async fn main() {
+
     dotenv().ok();
 
-    let config = Config::init();
+    let config = SecretsConfig::init();
+
+    let tests = parse_test_definition("test_definitions.yaml").expect("Error parsing test_definition.yaml");
+
+    for test in &tests.tests {
+        test.validate().expect("Invalid test definition");
+    }
 
     let pool = match PgPoolOptions::new()
         .max_connections(10)
@@ -45,6 +54,8 @@ async fn main() {
             std::process::exit(1);
         }
     };
+
+    // Determine if a new test was loaded
 
     let redis_client = match Client::open(config.redis_url.to_owned()) {
         Ok(client) => {
@@ -67,6 +78,7 @@ async fn main() {
         db: pool.clone(),
         env: config.clone(),
         redis_client: redis_client.clone(),
+        test_configurations: tests,
     }))
     .layer(cors);
 

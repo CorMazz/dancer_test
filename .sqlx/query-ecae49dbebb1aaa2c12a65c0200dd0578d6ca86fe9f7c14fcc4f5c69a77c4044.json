@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, first_name, last_name, email FROM testees WHERE id = (\n            SELECT testee_id FROM tests WHERE id = $1\n        )",
+  "query": "\n        SELECT \n            t.id, t.first_name, t.last_name, t.email, q.test_definition_index\n        FROM \n            queue q\n        JOIN \n            testees t \n        ON \n            q.testee_id = t.id\n        ORDER BY \n            q.added_at\n        ",
   "describe": {
     "columns": [
       {
@@ -22,19 +22,23 @@
         "ordinal": 3,
         "name": "email",
         "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "test_definition_index",
+        "type_info": "Int4"
       }
     ],
     "parameters": {
-      "Left": [
-        "Int4"
-      ]
+      "Left": []
     },
     "nullable": [
+      false,
       false,
       false,
       false,
       false
     ]
   },
-  "hash": "0e8955e7804de3c0606a62dd2774a3f25b5fcbff52915942c6427d9975591139"
+  "hash": "ecae49dbebb1aaa2c12a65c0200dd0578d6ca86fe9f7c14fcc4f5c69a77c4044"
 }

@@ -1,0 +1,334 @@
+tests:
+  -
+    metadata:
+      test_name: "Standard Leader Test"
+      config_settings:
+        live_grading: true
+        show_point_values: true
+      minimum_percent: 0.60
+      max_score: 87
+
+    tables:
+      - sections:
+        - name: "Pattern Scoring"
+          scoring_categories:
+            - name: "Footwork"
+              values: ["Perfect", "Variation?", "Right Concept", "Nope"]
+            - name: "Timing"
+              values: ["On", "Off"]
+          competencies:
+            - name: "Starter Step"
+              scores: 
+                - [3, 2, 1, 0]
+                - [1, 0]
+              failing_score_labels: 
+                - scoring_category_name: "Footwork"
+                  values: ["Nope"]
+            - name: "Left Side Pass from Closed"
+              scores: 
+                - [3, 2, 1, 0]
+                - [1, 0]
+            - name: "Sugar Tuck"
+              scores: 
+                - [3, 2, 1, 0]
+                - [1, 0]
+            - name: "Cutoff Whip"
+              scores: 
+                - [3, 2, 1, 0]
+                - [1, 0]
+            - name: "Left Side Pass"
+              scores: 
+                - [3, 2, 1, 0]
+                - [1, 0]
+            - name: "Whip"
+              scores: 
+                - [3, 2, 1, 0]
+                - [1, 0]
+            - name: "Sugar Push"
+              scores: 
+                - [3, 2, 1, 0]
+                - [1, 0]
+            - name: "Spinning Side Pass"
+              scores: 
+                - [3, 2, 1, 0]
+                - [1, 0]
+            - name: "Right Side Pass"
+              scores: 
+                - [3, 2, 1, 0]
+                - [1, 0]
+            - name: "Basket Whip"
+              scores: 
+                - [3, 2, 1, 0]
+                - [1, 0]
+            - name: "Free Spin"
+              scores: 
+                - [3, 2, 1, 0]
+                - [1, 0]
+
+      - sections:
+        - name: "Technique Scoring"
+          scoring_categories:
+            - name: ""
+              values: ["Consistent >90%", "Present 75%", "Occasional 50%", "Lacking 25%", "Missing <10%"]
+          competencies: 
+            - name: "Body Lead"
+              subtext: "(Week 1)"
+              scores: 
+                - [8, 6, 0, 0, 0]
+              failing_score_labels: 
+                - scoring_category_name: ""
+                  values: ["Missing <10%"]
+              antithesis: "Arm Lead"
+            - name: "Post"
+              subtext: "(Week 1)"
+              scores: 
+                - [6, 4, 0, 0, 0]
+              failing_score_labels: 
+                - scoring_category_name: ""
+                  values: ["Missing <10%"]
+              antithesis: "Floating Anchor"
+            - name: "Strong Frame"
+              subtext: "(Week 2)"
+              scores: 
+                - [6, 4, 2, 0, 0]
+              failing_score_labels: 
+                - scoring_category_name: ""
+                  values: ["Missing <10%"]
+              antithesis: "Weak Frame"
+            - name: "Closed Connection"
+              subtext: "(Week 3/4)"
+              scores: 
+                - [4, 3, 2, 0, 0]
+              failing_score_labels: 
+                - scoring_category_name: ""
+                  values: ["Missing <10%"]
+              antithesis: "Free Hand Only"
+            - name: "Connection Transition"
+              subtext: "(Week 2 - Dimmer Switch)"
+              scores: 
+                - [4, 3, 2, 0, 0]
+              failing_score_labels: 
+                - scoring_category_name: ""
+                  values: ["Missing <10%"]
+              antithesis: "Brick Wall (Toggle Switch)"
+            - name: "On Time"
+              scores: 
+                - [8, 6, 0, 0 ,0]
+              failing_score_labels: 
+                - scoring_category_name: ""
+                  values: ["Missing <10%"]
+              antithesis: "Off Time"
+            - name: "Move Off Slot"
+              scores: 
+                - [4, 3, 0, 0, 0]
+              failing_score_labels: 
+                - scoring_category_name: ""
+                  values: ["Missing <10%"]
+              antithesis: "In the Way"
+            - name: "Safe"
+              scores: 
+                - [8, 0, 0, 0, 0]
+              failing_score_labels: 
+                - scoring_category_name: ""
+                  values: ["Missing <10%"]
+              antithesis: "Unsafe"
+
+        - name: ""
+          scoring_categories:
+            - name: ""
+              values: ["Perpendicular", "Over-Angled", "Angled", "Under-Angled", "Flat"]
+          competencies:
+            - name: "Body Angle"
+              subtext: "(Week 2)"
+              scores: 
+                - [0, 2, 3, 2, 0]
+              failing_score_labels: 
+                - scoring_category_name: ""
+                  values: ["Flat", "Perpendicular"]
+
+        - name: ""
+          scoring_categories:
+            - name: ""
+              values: ["Overkill Prep", "Overprepped", "Prepped", "Under Prepped", "No Prep"]
+          competencies:
+            - name: "Prep"
+              subtext: "(Week 3)"
+              scores: 
+                - [0, 2, 3, 0, 0]
+              failing_score_labels: 
+                - scoring_category_name: ""
+                  values: ["No Prep"]
+
+    bonus_items: 
+      - name: "No Thumbs"
+        score: 1
+      - name: "Clear Turn Signal"
+        score: 1
+      - name: "Swung Triple"
+        score: 4
+
+#######################################################################################################
+# Follower Test
+#######################################################################################################
+  -
+    metadata:
+      test_name: "Standard Follower Test"
+      config_settings:
+        live_grading: true
+        show_point_values: true
+      minimum_percent: 0.60
+      max_score: 91
+
+    tables:
+      - sections:
+        - name: "Follower Pattern Scoring"
+          scoring_categories:
+            - name: "Footwork"
+              values: ["Perfect", "Right Concept", "Nope"]
+            - name: "Timing"
+              values: ["On", "Off"]
+            - name: "Shaping"
+              values: ["Shaped", "Flat"]
+          competencies:
+            - name: "Left Side Pass"
+              scores: 
+                - [2, 1, 0]
+                - [1, 0]
+                - [1, 0]
+              failing_score_labels:
+                - scoring_category_name: "Footwork"
+                  values: ["Nope"]
+            - name: "Right Side Pass"
+              scores:
+                - [2, 1, 0]
+                - [1, 0]
+                - [1, 0]
+            - name: "Whip"
+              scores:
+                - [2, 1, 0]
+                - [1, 0]
+                - [1, 0]
+            - name: "Spinning Side Pass"
+              scores:
+                - [2, 1, 0]
+                - [1, 0]
+                - [1, 0]
+            - name: "Sugar Push"
+              scores:
+                - [2, 1, 0]
+                - [1, 0]
+                - [1, 0]
+
+      - sections:
+        - name: "Technique Scoring"
+          scoring_categories:
+            - name: ""
+              values: ["Consistent >90%", "Present 75%", "Occasional 50%", "Lacking 25%", "Missing <10%"]
+          competencies:
+            - name: "Strong Frame"
+              subtext: "(Week 2)"
+              scores: 
+                - [8, 5, 0, 0, 0]
+              failing_score_labels: 
+                - scoring_category_name: ""
+                  values: ["Missing <10%"]
+              antithesis: "Weak Frame"
+            - name: "Post"
+              subtext: "(Week 2)"
+              scores:
+                - [6, 4, 2, 0, 0]
+              failing_score_labels: 
+                - scoring_category_name: ""
+                  values: ["Missing <10%"]
+              antithesis: "Floating Anchor"
+            - name: "Anchor in 3rd Position"
+              subtext: "(Week 2)"
+              scores:
+                - [8, 0, 0, 0, 0]
+              failing_score_labels: 
+                - scoring_category_name: ""
+                  values: ["Missing <10%"]
+              antithesis: "Rock Step"
+            - name: "Stretch"
+              subtext: "(Week 1/2)"
+              scores:
+                - [6, 4, 2, 0, 0]
+              failing_score_labels: 
+                - scoring_category_name: ""
+                  values: ["Missing <10%"]
+              antithesis: "Over Eager"
+            - name: "Variable Speed"
+              subtext: "(Week 1)"
+              scores:
+                - [4, 3, 2, 1, 0]
+              antithesis: "Monotonous"
+            - name: "Connection Transition"
+              subtext: "(Week 2 - Dimmer Switch)"
+              scores:
+                - [8, 5, 0, 0, 0]
+              failing_score_labels: 
+                - scoring_category_name: ""
+                  values: ["Missing <10%"]
+              antithesis: "Brick Wall (Toggle Switch)"
+            - name: "Connection Hierarchy"
+              subtext: "(Week 4)"
+              scores:
+                - [6, 4, 2, 0, 0]
+              failing_score_labels: 
+                - scoring_category_name: ""
+                  values: ["Missing <10%"]
+              antithesis: "Panic"
+            - name: "Directionality"
+              subtext: "(Week 1/3)"
+              scores:
+                - [6, 4, 0, 0, 0]
+              failing_score_labels: 
+                - scoring_category_name: ""
+                  values: ["Missing <10%"]
+              antithesis: "Directionless"
+            - name: "Kissing Connection"
+              subtext: "(Week 3)"
+              scores:
+                - [6, 4, 2, 0, 0]
+              failing_score_labels: 
+                - scoring_category_name: ""
+                  values: ["Missing <10%"]
+              antithesis: "Disconnected"
+            - name: "Spins"
+              subtext: "(Week 3)"
+              scores:
+                - [4, 3, 0, 0, 0]
+              antithesis: "Unbalanced"
+            - name: "Personal Safety"
+              subtext: ""
+              scores:
+                - [8, 5, 0, 0, 0]
+              antithesis: "Masochist"
+            - name: "Partner Safety"
+              subtext: ""
+              scores:
+                - [8, 0, 0, 0, 0]
+              antithesis: "Abusive"
+
+        - name: ""
+          scoring_categories:
+            - name: ""
+              values: ["Perpendicular", "Over-Angled", "Angled", "Under-Angled", "Flat"]
+          competencies:
+            - name: "Body Angle"
+              subtext: "(Week 2)"
+              scores:
+                - [0, 2, 3, 2, 0]
+              failing_score_labels:
+                - scoring_category_name: ""
+                  values: ["Perpendicular", "Flat"]
+
+    bonus_items: 
+      - name: "No Biceps"
+        score: 1
+      - name: "Spotting"
+        score: 1
+      - name: "Connection in Motion"
+        score: 2
+      - name: "Swung Triple"
+        score: 4

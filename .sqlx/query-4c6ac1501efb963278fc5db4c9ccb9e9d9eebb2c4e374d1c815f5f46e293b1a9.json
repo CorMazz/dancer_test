@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO competencies (section_id, name, scores, subtext, antithesis, achieved_scores, achieved_score_labels, failing_score_labels)\n                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Varchar",
+        "Jsonb",
+        "Text",
+        "Text",
+        "Jsonb",
+        "Jsonb",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4c6ac1501efb963278fc5db4c9ccb9e9d9eebb2c4e374d1c815f5f46e293b1a9"
+}

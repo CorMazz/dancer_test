@@ -39,41 +39,66 @@ CREATE INDEX testees_email_trgm_idx ON testees USING gin (email gin_trgm_ops);
 
 
 CREATE TABLE tests (
-    id SERIAL PRIMARY KEY,
-    testee_id INTEGER NOT NULL,
-    FOREIGN KEY (testee_id) REFERENCES testees(id),
-    role VARCHAR(10) CHECK (role IN ('leader', 'follower')) NOT NULL,
+    id SERIAL PRIMARY KEY
+);
+
+CREATE TABLE test_metadata (
+    id SERIAL PRIMARY KEY,       
+    test_id INTEGER NOT NULL REFERENCES tests(id), 
+    test_name VARCHAR NOT NULL,    
+    minimum_percent REAL NOT NULL,   
+    max_score INTEGER NOT NULL,
+    achieved_score INTEGER NOT NULL,             
+    testee_id INTEGER NOT NULL REFERENCES testees(id),              
     test_date TIMESTAMP NOT NULL,
-    score INTEGER NOT NULL,
-    max_score INTEGER NOT NULL,
-    passing_score INTEGER NOT NULL
+    is_passing BOOLEAN NOT NULL,
+    failure_explanation TEXT[]                 
 );
 
-CREATE TABLE patterns (
+-- TestTable (stores multiple tables associated with a test)
+CREATE TABLE test_tables (
     id SERIAL PRIMARY KEY,
-    test_id INTEGER NOT NULL,
-    pattern TEXT NOT NULL,
-    category TEXT NOT NULL,
-    score INTEGER NOT NULL,
-    max_score INTEGER NOT NULL,
-    FOREIGN KEY (test_id) REFERENCES tests(id)
+    test_id INTEGER NOT NULL REFERENCES tests(id)
 );
 
-CREATE TABLE techniques (
+-- TestSection (stores multiple sections under a table)
+CREATE TABLE test_sections (
     id SERIAL PRIMARY KEY,
-    test_id INTEGER NOT NULL,
-    technique TEXT NOT NULL,
-    score INTEGER NOT NULL,
-    score_header TEXT NOT NULL,
-    max_score INTEGER NOT NULL,
-    FOREIGN KEY (test_id) REFERENCES tests(id)
+    table_id INTEGER REFERENCES test_tables(id), 
+    name VARCHAR NOT NULL
 );
 
-CREATE TABLE bonus_points (
+-- ScoringCategory (stores scoring categories for sections)
+CREATE TABLE scoring_categories (
     id SERIAL PRIMARY KEY,
-    test_id INTEGER NOT NULL,
-    name TEXT NOT NULL,
-    score INTEGER NOT NULL,
-    FOREIGN KEY (test_id) REFERENCES tests(id)
+    section_id INTEGER REFERENCES test_sections(id), 
+    name VARCHAR NOT NULL,
+    values TEXT[] NOT NULL                            
 );
 
+CREATE TABLE competencies (
+    id SERIAL PRIMARY KEY,
+    section_id INTEGER NOT NULL REFERENCES test_sections(id),  
+    name VARCHAR NOT NULL,
+    scores JSONB NOT NULL,                      -- Array of scores (2D array for Vec<Vec<i32>>)
+    subtext TEXT,
+    antithesis TEXT,
+    achieved_scores JSONB NOT NULL,                   
+    achieved_score_labels JSONB NOT NULL,                    
+    failing_score_labels JSONB NOT NULL            
+);
+
+CREATE TABLE bonus_items (
+    id SERIAL PRIMARY KEY,
+    test_id INTEGER NOT NULL REFERENCES tests(id), 
+    name VARCHAR NOT NULL,
+    score INTEGER NOT NULL,
+    achieved BOOLEAN NOT NULL                    
+);
+
+CREATE TABLE queue (
+    testee_id INT NOT NULL REFERENCES testees(id),
+    test_definition_index INTEGER NOT NULL,
+    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (testee_id, test_definition_index)
+);

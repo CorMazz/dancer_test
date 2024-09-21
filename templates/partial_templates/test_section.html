@@ -1,0 +1,109 @@
+{% if section.name != "" %}<h2 class="text-6xl font-bold py-4 px-4 border-b-2 text-center">{{ section.name }}</h2>{% endif %}
+<table class="bg-white w-full mx-1 table-fixed">
+    <col>
+    {% for scoring_category in section.scoring_categories %}
+        <colgroup span="{{ scoring_category.values.len() }}"></colgroup>
+    {% endfor %}
+
+    <!-- Label the Scoring Categories -->
+    <thead class="sticky top-0 bg-white z-10">
+        <!-- Create the Overall Scoring Category Headers -->
+        <tr>
+            <!-- Empty Padding to Align Everything -->
+            <th class="w-1/5"></th>
+
+            {% for scoring_category in section.scoring_categories %}
+                <th class="lg:text-4xl py-2" colspan="{{ scoring_category.values.len() }}" scope="colgroup">
+                    {{ scoring_category.name }} 
+                </th>
+            {% endfor %}
+            <!-- If there is only one scoring category then the item to be graded may have an antithesis. This leaves room for that -->
+            {% if section.scoring_categories.len() == 1 %}
+                <th class="w-[15%]"></th>
+            {% endif %}
+        </tr>
+
+        <!-- Create the Detailed Scoring Headers -->
+        <tr>
+            <!-- Empty Padding to Align Everything -->
+            <th class="w-1/5 border-r"></th>
+
+            {% for scoring_category in section.scoring_categories %}
+                {% for header in scoring_category.values %}
+                    <th class="mt-1 text-gray-600 lg:text-2xl {% if loop.last %}border-r border-gray-300{% endif %}">
+                        {{ header }}
+                    </th>
+                {% endfor %}
+            {% endfor %}
+            <!-- If there is only one scoring category then the item to be graded may have an antithesis. This leaves room for that -->
+            {% if section.scoring_categories.len() == 1 %}
+                <th class="w-[15%]"></th>
+            {% endif %}
+        </tr>
+    </thead>
+
+    <!-- Add the Items -->
+    <tbody>
+        {% for item in section.competencies %}
+        {% let item_index = loop.index0 %}
+        <tr>
+            <!-- Add the Item Name to the Left Column -->
+            <td class="py-2 px-4 border-b border-r font-bold sm:text-sm md:text-xl lg:text-2xl text-right">
+                {{ item.name }}
+                {% match item.subtext %}{% when Some with (subtext) %}<br><span class="text-xs lg:text-base text-gray-400 font-normal">{{ subtext }}</span>{% when None %}{% endmatch %}
+            </td>
+
+            <!-- Add radio buttons for each scoring category -->
+            {% for scoring_category in section.scoring_categories %}
+            {% let scoring_category_index = loop.index0 %}
+                {% for point in item.scores[scoring_category_index] %}
+                    <!-- Add a border between scoring categories for comprehension -->
+                    <td class="py-2 px-1 w-full border-b text-center {% if loop.last %}border-r border-gray-300 last:border-0{% else %}{% endif %}">
+
+                        <!-- 
+                        name: for radio buttons have to all be the same (that is what lets the rendered know only one of each radio can be selected), this is what gets sent with the form as the key
+                        id: must be unique for each element
+                        value: this is the value that gets sent with the key    
+                        -->
+
+                        <input 
+                            type="radio" 
+                            name="table_index---{{ table_index }}---section_index---{{ section_index }}---item_index---{{ item_index }}---scoring_category_index---{{ scoring_category_index }}"
+                            id="table_index---{{ table_index }}---section_index---{{ section_index }}---item_index---{{ item_index }}---scoring_category_index---{{ scoring_category_index }}---scoring_category_label_index---{{ loop.index0 }}---{{ point }}" 
+                            value="scoring_category_label_index---{{ loop.index0 }}---points---{{ point }}" 
+                            class="hidden peer" 
+                            required
+                            
+                            {# This is used to check the achieved scores if the test is graded and we are displaying results. Otherwise, check the last score. #}
+                            {% match test.metadata.is_graded %}{% when Some with (_) %}
+                                {% match item.achieved_score_labels %}
+                                    {% when Some with (achieved_score_labels) %}
+                                        {% if achieved_score_labels[scoring_category_index].value == scoring_category.values[loop.index0] %}checked{% endif %}
+                                    {% when None %}
+                                    Error: This shouldn't be possible
+                                {% endmatch %}
+                            {% when None %}
+                                {% if loop.last %}checked{% endif %}
+                            {% endmatch %}
+                            {% match test.metadata.is_graded %}{% when Some with (_) %}disabled{% when None %}{% endmatch %}
+                        >
+                        <label 
+                            for="table_index---{{ table_index }}---section_index---{{ section_index }}---item_index---{{ item_index }}---scoring_category_index---{{ scoring_category_index }}---scoring_category_label_index---{{ loop.index0 }}---{{ point }}" 
+                            class="inline-flex items-center justify-center w-full h-12 p-2 text-sm font-medium text-gray-900 bg-white border-2 border-gray-300 rounded-lg cursor-pointer peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-transparent hover:bg-gray-100 hover:shadow-sm transition duration-300"
+                        >
+                            {% if test.metadata.config_settings.show_point_values %}
+                                {{ point }}
+                            {% endif %}
+                        </label>
+                    </td>
+                {% endfor %}
+
+                <!-- Add the antithesis to the right of the table -->
+                {% if section.scoring_categories.len() == 1 %}
+                    <td class="py-2 px-4 border-b sm:text-xs text-left break-words">{% match item.antithesis %}{% when Some with (antithesis) %}{{ antithesis }}{% when None %}{% endmatch %}</td>
+                {% endif %}
+                {% endfor %}
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
