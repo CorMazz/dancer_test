@@ -1,10 +1,10 @@
 /// Filters for Askama templates
 
 /// Replace certain characters within a string with others
-pub fn replace<T: std::fmt::Display>(s: T, from: &str, to: &str) -> ::askama::Result<String> {
-    let s = s.to_string();
-    Ok(s.replace(from, to))
-}
+// pub fn replace<T: std::fmt::Display>(s: T, from: &str, to: &str) -> ::askama::Result<String> {
+//     let s = s.to_string();
+//     Ok(s.replace(from, to))
+// }
 
 /// Trims off the last `n` characters from the string.
 pub fn trim_end_chars<T: std::fmt::Display>(s: T, n: usize) -> ::askama::Result<String> {

@@ -63,15 +63,15 @@ pub async fn register_user_handler(
         .map_err(|e| AuthError::InternalServerError(Some(format!("Error while hashing password: {}", e))))
         .map(|hash| hash.to_string())?;
 
-    let user = sqlx::query_as!(
+    sqlx::query_as!(
         User,
-        "INSERT INTO users (first_name,last_name,email,password) VALUES ($1, $2, $3, $4) RETURNING *",
+        "INSERT INTO users (first_name,last_name,email,password) VALUES ($1, $2, $3, $4)",
         first_name,
         last_name,
         email.to_ascii_lowercase(),
         hashed_password
     )
-    .fetch_one(&data.db)
+    .execute(&data.db)
     .await
     .map_err(|e| AuthError::InternalServerError(Some(format!("Database error: {}", e))))?;
     Ok(())

@@ -28,11 +28,10 @@
 - Add a command upon the server restarting to clear the queue. 
 - Add a command to clear the queue after a certain amount of time.
 - Refactor the failure reason to give the parts to make the desired sentence instead of storing the whole sentence, because I cannot add formatting within the sentence to the html. 
+- Put emails on the test summaries page since the email is the primary key for a testee
 
 
 ## Last Thing I Was Doing
-- Fix the queue
-- Define the rest of the tests
 - Next thing to do is add the email functionality. 
 
 

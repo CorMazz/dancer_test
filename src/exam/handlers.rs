@@ -128,7 +128,7 @@ pub fn parse_test_form_data(test: HashMap<String, String>, mut test_template: Te
                     2 => {
                         match (key_parts[1].parse::<usize>(), value.parse::<i64>()) {
                             (Ok(bonus_index), Ok(_)) => {
-                                bonus_items[bonus_index].achieved.insert(true);
+                                let _ = bonus_items[bonus_index].achieved.insert(true);
                             },
                             (Err(e), _) => eprintln!("Failed to parse bonus index from key '{}': {:?}", key, e),
                             (_, Err(e)) => eprintln!("Failed to parse points from value '{}': {:?}", value, e),
@@ -172,121 +172,6 @@ pub fn parse_test_form_data(test: HashMap<String, String>, mut test_template: Te
 
 }
 
-//         if key.starts_with("pattern--") {
-//             // Extract pattern score
-//             let parts: Vec<&str> = key.split("--").collect();
-
-//             match parts.len() {
-//                 6 => {
-//                     match (parts[1].parse::<PatternName>(), parts[3].parse::<ScoringCategoryName>(), parts[5].parse::<u32>()) {
-//                         (Ok(pattern), Ok(category), Ok(max_score)) => {
-//                             match value.parse::<u32>() {
-//                                 Ok(score) => pattern_scores.push(GradedPattern {
-//                                     // id: None,
-//                                     // test_id: None,
-//                                     pattern: pattern,
-//                                     category: category,
-//                                     score: score,
-//                                     max_score: max_score,
-//                                 }),
-//                                 Err(_) => eprintln!("Failed to parse score from value '{}'", value),
-//                             }
-//                         } 
-//                         (Err(e), _, _) => eprintln!("Failed to parse pattern name from key '{}': {:?}", key, e),
-//                         (_, Err(e), _) => eprintln!("Failed to parse category name from key '{}': {:?}", key, e),
-//                         (_, _, Err(e)) => eprintln!("Failed to parse max_score from key '{}': {:?}", key, e),
-//                     }
-//                 }
-//                 _ => eprintln!("The key '{}' should be formatted as follows pattern--pattern_name--scoring_category--scoring_category_name--max_score--num", key),
-//             }
-//         } else if key.starts_with("technique--") {
-//             // Extract technique score
-//             let key_parts: Vec<&str> = key.split("--").collect();
-//             let value_parts: Vec<&str> = value.split("--").collect();
-
-//             match (key_parts.len(), value_parts.len()) {
-//                 (4, 2) => {
-//                     match (key_parts[1].parse::<TechniqueName>(), key_parts[3].parse::<u32>(), value_parts[0].parse::<TechniqueScoringHeaderName>(), value_parts[1].parse::<u32>()) {
-//                         (Ok(technique), Ok(max_score), Ok(score_header), Ok(score)) => {
-//                             technique_scores.push(GradedTechnique {
-//                                 // id: None,
-//                                 // test_id: None,
-//                                 technique: technique,
-//                                 score_header:score_header,
-//                                 score: score,
-//                                 max_score: max_score
-//                             });
-//                         }
-//                         (Err(e), _,  _, _) => eprintln!("Failed to parse technique name from key '{}': {:?}", key, e),
-//                         (_, Err(e), _,  _) => eprintln!("Failed to parse max_score from key '{}': {:?}", key, e),
-//                         (_, _, Err(e), _) => eprintln!("Failed to parse scoring header from value '{}': {:?}", value, e),
-//                         (_, _, _, Err(e)) => eprintln!("Failed to parse score from value '{}': {:?}", value, e),
-//                     }
-//                 }
-//                 _ => eprintln!("The key '{}' and value '{}' should be formatted as follows technique--technique_name--max_score--num: technique_scoring_header--score", key, value),
-//             }
-//         } else if key.starts_with("bonus--") {
-//             // Extract bonus score
-//             let parts: Vec<&str> = key.split("--").collect();
-
-//             match parts.len() {
-//                 2 => {
-//                     match (parts[1].parse::<BonusPointName>(), value.parse::<u32>()) {
-//                         (Ok(name), Ok(score)) => {
-//                             bonus_scores.push(GradedBonusPoint {
-//                                 // id: None,
-//                                 // test_id: None,
-//                                 name,
-//                                 score,
-//                             });
-//                         }
-//                         (Err(e), _) => eprintln!("Failed to parse bonus point name from key '{}': {:?}", key, e),
-//                         (_, Err(e)) => eprintln!("Failed to parse bonus score from value '{}': {}", value, e),
-//                     }
-//                 }
-//                 _ => eprintln!("The key '{}' should be formatted as follows bonus--bonus_point_name: score", key),
-//             }
-//         } else {
-//             // Assume user info
-//             user_info.insert(key.clone(), value.clone());
-//         }
-//     }
-
-//     // Construct the GradedTestee instance from the user_info hashmap
-//     let testee: Testee = match (
-//         user_info.get("first_name").cloned(),
-//         user_info.get("last_name").cloned(),
-//         user_info.get("email").cloned()
-//     ) {
-//         (Some(first_name), Some(last_name), Some(email)) => Testee {
-//             id: -1,
-//             first_name,
-//             last_name,
-//             email,
-//         },
-//         // TODO: This should probably be refactored to propagate an error
-//         _ => {
-//             eprintln!("Missing user information. Please ensure 'first_name', 'last_name', and 'email' are provided.");
-//             Testee {
-//                 id: -1,
-//                 first_name: String::new(),
-//                 last_name: String::new(),
-//                 email: String::new(),
-//             }
-//         }
-//     };
-
-//     GradedTest::new(
-//         testee,
-//         Local::now().naive_utc(),
-//         test_type,
-//         test_template.passing_score,
-//         pattern_scores,
-//         technique_scores,
-//         bonus_scores,
-//     )
-    
-// }
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 // Save Test to Database
