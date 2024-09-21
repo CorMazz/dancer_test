@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT \n            t.id, t.first_name, t.last_name, t.email, q.role \n        FROM \n            queue q\n        JOIN \n            testees t \n        ON \n            q.testee_id = t.id\n        ORDER BY \n            q.added_at\n        ",
+  "query": "\n        SELECT \n            t.id, t.first_name, t.last_name, t.email, q.test_definition_index\n        FROM \n            queue q\n        JOIN \n            testees t \n        ON \n            q.testee_id = t.id\n        ORDER BY \n            q.added_at\n        ",
   "describe": {
     "columns": [
       {
@@ -25,8 +25,8 @@
       },
       {
         "ordinal": 4,
-        "name": "role",
-        "type_info": "Varchar"
+        "name": "test_definition_index",
+        "type_info": "Int4"
       }
     ],
     "parameters": {
@@ -40,5 +40,5 @@
       false
     ]
   },
-  "hash": "ec8d422b636dbffd83b3684546c0b330aecad2688f2925e565b03d7dcbd4c145"
+  "hash": "ecae49dbebb1aaa2c12a65c0200dd0578d6ca86fe9f7c14fcc4f5c69a77c4044"
 }
