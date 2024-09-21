@@ -1,7 +1,7 @@
 tests:
   -
     metadata:
-      test_name: "Leader Test"
+      test_name: "Standard Leader Test"
       config_settings:
         live_grading: true
         show_point_values: true

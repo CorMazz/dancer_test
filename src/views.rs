@@ -268,12 +268,9 @@ pub async fn post_test_form(
     Form(test): Form<HashMap<String, String>>,
 ) -> impl IntoResponse {
 
-    println!("{:#?}", test);
-
     if let Some(test_definition) = data.test_configurations.tests.get(test_index as usize) {
         match parse_test_form_data(test, test_definition.clone()) {
             Ok(graded_test) => {
-                println!("{:#?}", graded_test);
                 match save_test_to_database(&data.db, graded_test).await {
                     Ok(_) => Redirect::to("/dashboard").into_response(),
                     Err(e) => error_response(&format!("Error saving test to database: {:?}", e)).into_response()
@@ -373,7 +370,6 @@ pub async fn get_test_results(
 ) -> impl IntoResponse {
     match fetch_test_results_by_id(&data.db, test_id).await {
         Ok(Some(test)) => {
-            println!("{:#?}", test);
             let prefilled_user_info = PrefilledTestData{
                 first_name: Some(test.metadata.testee.clone().expect("Invariant that graded tests all have Testees violated in get_test_results fn").first_name),
                 last_name: Some(test.metadata.testee.clone().expect("Invariant that graded tests all have Testees violated in get_test_results fn").last_name),
