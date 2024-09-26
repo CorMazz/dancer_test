@@ -206,7 +206,7 @@ pub async fn save_test_to_database(
 
     // Insert test metadata
     sqlx::query!(
-        "INSERT INTO test_metadata (test_id, test_name, minimum_percent, max_score, achieved_score, testee_id, test_date, is_passing, proctor, failure_explanation)
+        "INSERT INTO test_metadata (test_id, test_name, minimum_percent, max_score, achieved_score, testee_id, test_date, is_passing, proctor_id, failure_explanation)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
         test_id,
         graded_test.metadata.test_name,
@@ -335,11 +335,11 @@ pub async fn search_for_testee(
 // Fetch Test Results
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
-pub async fn fetch_test_results_by_id(pool: &PgPool, test_id: i32) -> Result<Option<Test>, TestError> {
+pub async fn fetch_test_results_by_id(pool: &PgPool, test_id: Uuid) -> Result<Option<Test>, TestError> {
     // Fetch test metadata
     let raw_metadata = match sqlx::query!(
         r#"
-        SELECT test_id, test_name, minimum_percent, max_score, achieved_score, testee_id, test_date, is_passing, proctor, failure_explanation
+        SELECT test_id, test_name, minimum_percent, max_score, achieved_score, testee_id, test_date, is_passing, proctor_id, failure_explanation
         FROM test_metadata
         WHERE test_id = $1
         "#,
@@ -358,7 +358,7 @@ pub async fn fetch_test_results_by_id(pool: &PgPool, test_id: i32) -> Result<Opt
         FROM users 
         WHERE id = $1
         ",
-        raw_metadata.proctor
+        raw_metadata.proctor_id
     ).fetch_one(pool)
     .await?;
 
@@ -388,7 +388,7 @@ pub async fn fetch_test_results_by_id(pool: &PgPool, test_id: i32) -> Result<Opt
     };
 
     // Fetch test tables
-    let table_ids: Vec<i32> = sqlx::query!(
+    let table_ids: Vec<Uuid> = sqlx::query!(
         "SELECT id FROM test_tables WHERE test_id = $1
         ORDER BY id ASC",
         test_id
@@ -517,7 +517,7 @@ pub async fn fetch_test_results_by_id(pool: &PgPool, test_id: i32) -> Result<Opt
 /// By virtue of there being a testee, they have taken at least one test.
 pub async fn fetch_testee_tests_by_id(
     pool: &PgPool, 
-    testee_id: i32
+    testee_id: Uuid
 ) -> Result<Option<Vec<FullTestSummary>>, TestError> {
 
     let testee = match fetch_testee_by_id(pool, testee_id).await? {
@@ -541,7 +541,7 @@ pub async fn fetch_testee_tests_by_id(
             u.first_name, 
             u.last_name
         FROM test_metadata tm
-        JOIN users u ON tm.proctor = u.id
+        JOIN users u ON tm.proctor_id = u.id
         WHERE tm.testee_id = $1
         ORDER BY tm.test_date DESC
         ",
@@ -573,7 +573,7 @@ pub async fn fetch_testee_tests_by_id(
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
 /// Fetch a testee from the testees table by their id
-pub async fn fetch_testee_by_id(pool: &PgPool, testee_id: i32) -> Result<Option<Testee>, TestError> {
+pub async fn fetch_testee_by_id(pool: &PgPool, testee_id: Uuid) -> Result<Option<Testee>, TestError> {
     let testee = sqlx::query_as!(
         Testee,
         "SELECT id, first_name, last_name, email FROM testees WHERE id = $1",
@@ -610,7 +610,7 @@ pub async fn create_testee(pool: &PgPool, first_name: &str, last_name: &str, ema
 // Enqueue Testee
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
-pub async fn enqueue_testee(pool: &PgPool, testee_id: i32, test_definition_index: i32) -> Result<(), TestError> {
+pub async fn enqueue_testee(pool: &PgPool, testee_id: Uuid, test_definition_index: i32) -> Result<(), TestError> {
     sqlx::query!(
         "INSERT INTO queue (testee_id, test_definition_index)
         VALUES ($1, $2)
@@ -633,7 +633,7 @@ pub async fn enqueue_testee(pool: &PgPool, testee_id: i32, test_definition_index
 /// If a testee_id is given, remove that person, (or throw an error if not found)
 pub async fn dequeue_testee(
     pool: &PgPool,
-    testee_id: Option<i32>,
+    testee_id: Option<Uuid>,
     test_definition_index: Option<i32>,
 ) -> Result<Option<(Testee, i32)>, TestError> {
 
@@ -733,3 +733,9 @@ pub async fn retrieve_queue(pool: &PgPool) -> Result<Vec<(Testee, i32)>, TestErr
 
     Ok(queue)
 }
+
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
+// Create PDF of Test
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
+
+

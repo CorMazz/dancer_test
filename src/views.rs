@@ -8,6 +8,7 @@ use axum_extra::extract::CookieJar;
 use chrono::NaiveDateTime;
 use serde::Deserialize;
 use serde_json::json;
+use uuid::Uuid;
 
 use crate::{
     auth::{
@@ -377,7 +378,7 @@ pub struct GradedTestTemplate {
 
 pub async fn get_test_results(
     State(data): State<Arc<AppState>>,
-    Path(test_id): Path<i32>,
+    Path(test_id): Path<Uuid>,
 ) -> impl IntoResponse {
     match fetch_test_results_by_id(&data.db, test_id).await {
         Ok(Some(test)) => {
@@ -460,7 +461,7 @@ pub struct TestSummariesTemplate {
 
 pub async fn get_test_summaries(
     State(data): State<Arc<AppState>>,
-    Path(testee_id): Path<i32>,
+    Path(testee_id): Path<Uuid>,
 ) -> impl IntoResponse {
 
     let option_test_summaries = match fetch_testee_tests_by_id(&data.db, testee_id).await {
@@ -570,7 +571,7 @@ pub async fn post_queue(
 
 #[derive(Deserialize, Debug)]
 pub struct DequeueParams {
-    testee_id: Option<i32>,
+    testee_id: Option<Uuid>,
     test_definition_index: Option<i32>,
 }
 
