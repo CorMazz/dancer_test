@@ -4,13 +4,11 @@
 - Add HTMX functionality to everything
 - Send emails to testees once their tests are graded
 - Figure out how to export the passing/failing test results so front of house can confirm class attendance
-- Record the proctor (have an account for every proctor and just record the account that recorded the test)
 
 
 
 ## Additional Possible Functionality
 - Add "most recent testee" to the dashboard
-- Add dynamic form validation to leader/follower test pages
 - Add dynamic form validation to the sign up/login pages
 - Add pagination/active search to the test summary list page
 
@@ -34,7 +32,7 @@
 
 
 ## Last Thing I Was Doing
-- Next thing to do is add the email functionality. 
+- Next thing to do is add the email functionality. Just email a link with the results of all the tests that a user has taken.  
 
 
 Test this in the validate_failing_header_labels
