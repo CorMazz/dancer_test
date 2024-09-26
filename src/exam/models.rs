@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+
+use crate::auth::model::User;
 
 
 
@@ -155,6 +158,7 @@ impl Test {
             test_id: self.metadata.test_id.ok_or("No test id on this test to summarize. Has this test been graded yet?")?, 
             test_date: self.metadata.test_date.ok_or("No test date on this test to summarize. Has this test been graded?")?,
             test_name: self.metadata.test_name.clone(),
+            proctor: self.metadata.proctor.clone().ok_or("No proctor on this test to summarize. Has this test been graded?")?,
             grade_summary
         })
     }
@@ -209,6 +213,7 @@ pub struct Metadata {
     pub test_date: Option<NaiveDateTime>,
     pub is_graded: Option<()>, // An option being used as a bool. So that serde_yaml parses the data and I don't have to do hella if statements in the askama templates
     pub is_passing: Option<bool>,
+    pub proctor: Option<Proctor>,
     pub failure_explanation: Option<Vec<String>>,
     pub config_settings: TestConfig,
 }
@@ -861,6 +866,7 @@ pub struct FullTestSummary {
     pub test_id: i32,
     pub test_date: NaiveDateTime,
     pub test_name: String,  // This probably should've been labeled test_type, but I'm lazy here...
+    pub proctor: Proctor,
     pub grade_summary: TestGradeSummary,
 }
 
@@ -874,6 +880,14 @@ pub struct TestGradeSummary {
     pub is_passing: bool,
     pub failure_explanation: Option<Vec<String>>,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Proctor {
+    pub id: Uuid,
+    pub first_name: String,
+    pub last_name: String,
+}
+
 
 // // #######################################################################################################################################################
 // // #######################################################################################################################################################

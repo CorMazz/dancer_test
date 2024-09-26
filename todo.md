@@ -3,6 +3,8 @@
 ## Required TODO
 - Add HTMX functionality to everything
 - Send emails to testees once their tests are graded
+- Figure out how to export the passing/failing test results so front of house can confirm class attendance
+- Record the proctor (have an account for every proctor and just record the account that recorded the test)
 
 
 

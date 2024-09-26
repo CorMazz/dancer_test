@@ -14,6 +14,17 @@
         <p class="text-xl"><strong>Test Date: </strong>{{ date|trim_end_chars(10) }}</p>
     {% when None %}
     {% endmatch %}
+
+    {% match proctor_first_name %}
+    {% when Some with (first_name) %}
+        {% match proctor_last_name %}
+        {% when Some with (last_name) %}
+        <p class="text-xl"><strong>Proctor: </strong>{{ first_name }} {{ last_name }}</p>
+        {% when None %}
+        {% endmatch %}
+    {% when None %}
+    {% endmatch %}
+
     <p class="text-xl"><strong>Score: </strong> {{ grade_summary.achieved_score }} / {{ grade_summary.max_score }} = {{ "{:.0}"|format(grade_summary.achieved_percent * 100.0) }}%</p> 
     <p class="text-xl"><strong>Passing Score: </strong>{{ "{:.0}"|format(grade_summary.minimum_percent * 100.0) }}%</p>
 

@@ -1,9 +1,12 @@
 -- Add down migration script here
 
 DROP TABLE IF EXISTS queue;
-DROP TABLE IF EXISTS bonus_points;
-DROP TABLE IF EXISTS techniques;
-DROP TABLE IF EXISTS patterns;
+DROP TABLE IF EXISTS bonus_items;
+DROP TABLE IF EXISTS competencies;
+DROP TABLE IF EXISTS scoring_categories;
+DROP TABLE IF EXISTS test_sections;
+DROP TABLE IF EXISTS test_tables;
+DROP TABLE IF EXISTS test_metadata;
 DROP TABLE IF EXISTS tests;
 DROP INDEX IF EXISTS testees_email_trgm_idx;
 DROP INDEX IF EXISTS testees_last_name_trgm_idx;

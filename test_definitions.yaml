@@ -174,8 +174,8 @@ tests:
     metadata:
       test_name: "Standard Follower Test"
       config_settings:
-        live_grading: true
-        show_point_values: true
+        live_grading: false
+        show_point_values: false
       minimum_percent: 0.60
       max_score: 91
 
