@@ -16,7 +16,7 @@ use crate::{
         model::User
     }, exam::{
         handlers::{create_testee, dequeue_testee, enqueue_testee, fetch_test_results_by_id, fetch_testee_by_id, fetch_testee_tests_by_id, parse_test_form_data, retrieve_queue, save_test_to_database, search_for_testee, TestError}, 
-        models::{FullTestSummary, Test, TestGradeSummary, Testee}
+        models::{FullTestSummary, Proctor, Test, TestGradeSummary, Testee}
     }, filters, AppState
 };
 
@@ -264,12 +264,18 @@ pub async fn get_test_page(
 
 pub async fn post_test_form(
     State(data): State<Arc<AppState>>,
+    Extension(auth_status): Extension<AuthStatus>,
     Path(test_index): Path<i32>,
     Form(test): Form<HashMap<String, String>>,
 ) -> impl IntoResponse {
 
+    let proctor = match auth_status {
+        AuthStatus::Authorized(user) => Proctor { id: user.user.id, first_name: user.user.first_name, last_name: user.user.last_name},
+        AuthStatus::Unauthorized(e) => return error_response(&format!("Unauthorized: {:?}", e)).into_response()
+    };
+
     if let Some(test_definition) = data.test_configurations.tests.get(test_index as usize) {
-        match parse_test_form_data(test, test_definition.clone()) {
+        match parse_test_form_data(test, test_definition.clone(), Some(proctor)) {
             Ok(graded_test) => {
                 match save_test_to_database(&data.db, graded_test).await {
                     Ok(_) => Redirect::to("/dashboard").into_response(),
@@ -292,6 +298,8 @@ pub async fn post_test_form(
 pub struct GradeTestTemplate {
     grade_summary: TestGradeSummary,
     test_date: Option<NaiveDateTime>,
+    proctor_first_name: Option<String>,
+    proctor_last_name: Option<String>,
 }
 
 /// Used to grade a test on the fly.
@@ -301,7 +309,7 @@ pub async fn post_grade_test(
     Form(test): Form<HashMap<String, String>>,
 ) -> impl IntoResponse {
     if let Some(test_definition) = data.test_configurations.tests.get(test_index as usize) {
-        match parse_test_form_data(test, test_definition.clone()) {
+        match parse_test_form_data(test, test_definition.clone(), None) {
             Ok(mut parsed_test) => {
                 
                 match parsed_test.grade() {
@@ -316,8 +324,11 @@ pub async fn post_grade_test(
 
                 let template = GradeTestTemplate {
                     grade_summary,
-                    test_date: None // Feed in no test date because we don't need the current date when administering a test
+                     // Feed in None for the following stuff because we don't need it when administering a test
                     // Since this function is used to grade a test on the fly
+                    test_date: None,
+                    proctor_first_name: None,
+                    proctor_last_name: None
                 };
 
                 return (StatusCode::OK, Html(template.render().unwrap())).into_response()
@@ -378,7 +389,7 @@ pub async fn get_test_results(
 
             let test_summary = match test.full_summary() {
                 Ok(summary) => Some(summary),
-                Err(e) => return error_response(&format!("Error summarizing test in post_grade_test function: {:?}", e)).into_response()
+                Err(e) => return error_response(&format!("Error summarizing test in get_test_results function: {:?}", e)).into_response()
             };
 
             let template = GradedTestTemplate {

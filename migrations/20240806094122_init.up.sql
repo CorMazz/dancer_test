@@ -52,6 +52,7 @@ CREATE TABLE test_metadata (
     testee_id INTEGER NOT NULL REFERENCES testees(id),              
     test_date TIMESTAMP NOT NULL,
     is_passing BOOLEAN NOT NULL,
+    proctor UUID NOT NULL REFERENCES users(id),
     failure_explanation TEXT[]                 
 );
 

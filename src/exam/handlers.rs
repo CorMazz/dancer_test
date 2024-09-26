@@ -1,8 +1,9 @@
 use chrono::Local;
 use sqlx::{Error, PgPool};
+use uuid::Uuid;
 use std::{collections::HashMap, fs::File, io::Read};
 use crate::exam::models::{
-    AchievedScoreLabel, BonusItem, Competency, FailingScoreLabels, Metadata, ScoringCategory, Test, TestDefinitionYaml, TestSection, FullTestSummary, TestTable, Testee, TestGradeSummary, TestConfig
+    AchievedScoreLabel, BonusItem, Competency, FailingScoreLabels, Metadata, ScoringCategory, Test, TestDefinitionYaml, TestSection, FullTestSummary, TestTable, Testee, TestGradeSummary, TestConfig, Proctor
 };
 
 
@@ -57,7 +58,7 @@ pub fn parse_test_definition(file_path: &str) -> Result<TestDefinitionYaml, serd
 /// Parses the test form data, which should have a format of a hashmap more or less like this
 /// 
 /// Takes in a test_template which it will then mutate, adding the results so that it is graded.
-pub fn parse_test_form_data(test: HashMap<String, String>, mut test_template: Test) -> Result<Test, TestError> {
+pub fn parse_test_form_data(test: HashMap<String, String>, mut test_template: Test, proctor: Option<Proctor>) -> Result<Test, TestError> {
 
     let mut user_info = HashMap::new();
 
@@ -167,7 +168,9 @@ pub fn parse_test_form_data(test: HashMap<String, String>, mut test_template: Te
         return Err(TestError::InternalServerError(e)); // Return the error
     }
 
-    println!("Graded Test:\n{:#?}", test_template);
+    // Assign the proctor
+    test_template.metadata.proctor = proctor;
+
     Ok(test_template)
 
 }
@@ -182,12 +185,15 @@ pub async fn save_test_to_database(
     pool: &PgPool,
     graded_test: Test,
 ) -> Result<(), TestError> {
-    // Insert the testee or get the testee ID if the testee already exists
+
+    // Insert the testee in the database or get the testee ID if the testee already exists
+    // Since the graded_test has a testee that currently has None for its ID
+
     let testee = create_testee(
-        pool, 
-        &graded_test.metadata.testee.clone().expect("If this error was thrown, the invariant in the docstring of save_test_to_database was violated.").first_name, 
-        &graded_test.metadata.testee.clone().expect("If this error was thrown, the invariant in the docstring of save_test_to_database was violated.").last_name,
-        &graded_test.metadata.testee.clone().expect("If this error was thrown, the invariant in the docstring of save_test_to_database was violated.").email,
+        pool,  // The following garbage could be refactored TODO
+        &graded_test.metadata.testee.clone().ok_or_else(|| TestError::InternalServerError("If this error was thrown, the invariant in the docstring of save_test_to_database was violated.".to_string()))?.first_name, 
+        &graded_test.metadata.testee.clone().ok_or_else(|| TestError::InternalServerError("If this error was thrown, the invariant in the docstring of save_test_to_database was violated.".to_string()))?.last_name,
+        &graded_test.metadata.testee.clone().ok_or_else(|| TestError::InternalServerError("If this error was thrown, the invariant in the docstring of save_test_to_database was violated.".to_string()))?.email,
     ).await?;
 
     // Insert a new test record
@@ -200,8 +206,8 @@ pub async fn save_test_to_database(
 
     // Insert test metadata
     sqlx::query!(
-        "INSERT INTO test_metadata (test_id, test_name, minimum_percent, max_score, achieved_score, testee_id, test_date, is_passing, failure_explanation)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+        "INSERT INTO test_metadata (test_id, test_name, minimum_percent, max_score, achieved_score, testee_id, test_date, is_passing, proctor, failure_explanation)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
         test_id,
         graded_test.metadata.test_name,
         graded_test.metadata.minimum_percent,
@@ -210,6 +216,7 @@ pub async fn save_test_to_database(
         testee.id,
         Local::now().naive_utc(),
         graded_test.metadata.is_passing,
+        graded_test.metadata.proctor.ok_or_else(|| TestError::InternalServerError("If this error was thrown, the invariant in the docstring of save_test_to_database was violated.".to_string()))?.id,
         graded_test.metadata.failure_explanation.as_deref()
     ).execute(pool)
     .await?;
@@ -332,7 +339,7 @@ pub async fn fetch_test_results_by_id(pool: &PgPool, test_id: i32) -> Result<Opt
     // Fetch test metadata
     let raw_metadata = match sqlx::query!(
         r#"
-        SELECT test_id, test_name, minimum_percent, max_score, achieved_score, testee_id, test_date, is_passing, failure_explanation
+        SELECT test_id, test_name, minimum_percent, max_score, achieved_score, testee_id, test_date, is_passing, proctor, failure_explanation
         FROM test_metadata
         WHERE test_id = $1
         "#,
@@ -343,6 +350,17 @@ pub async fn fetch_test_results_by_id(pool: &PgPool, test_id: i32) -> Result<Opt
         Some(data) => data,
         None => return Ok(None)
     };
+
+    let proctor = sqlx::query_as!(
+        Proctor,
+        "
+        SELECT id, first_name, last_name 
+        FROM users 
+        WHERE id = $1
+        ",
+        raw_metadata.proctor
+    ).fetch_one(pool)
+    .await?;
 
     // Fetch the testee
     let testee = sqlx::query_as!(
@@ -364,6 +382,7 @@ pub async fn fetch_test_results_by_id(pool: &PgPool, test_id: i32) -> Result<Opt
         test_date: Some(raw_metadata.test_date),
         is_graded: Some(()),
         is_passing: Some(raw_metadata.is_passing),
+        proctor: Some(proctor),
         failure_explanation: raw_metadata.failure_explanation,
         config_settings: TestConfig {live_grading: true, show_point_values:true}, // must be true to show results on graded test page
     };
@@ -509,10 +528,22 @@ pub async fn fetch_testee_tests_by_id(
     // By virtue of there being a testee, they have taken at least one test.
     Ok(Some(sqlx::query!(
         "
-        SELECT test_id, test_name, test_date, achieved_score, minimum_percent, max_score, is_passing, failure_explanation 
-        FROM test_metadata 
-        WHERE testee_id = $1
-        ORDER BY test_date DESC
+        SELECT 
+            tm.test_id, 
+            tm.test_name, 
+            tm.test_date, 
+            tm.achieved_score, 
+            tm.minimum_percent, 
+            tm.max_score, 
+            tm.is_passing, 
+            tm.failure_explanation,
+            u.id,
+            u.first_name, 
+            u.last_name
+        FROM test_metadata tm
+        JOIN users u ON tm.proctor = u.id
+        WHERE tm.testee_id = $1
+        ORDER BY tm.test_date DESC
         ",
         testee.id
     )
@@ -523,6 +554,7 @@ pub async fn fetch_testee_tests_by_id(
         test_id: record.test_id, 
         test_date: record.test_date,
         test_name: record.test_name,
+        proctor: Proctor { id: record.id, first_name: record.first_name, last_name: record.last_name },
         grade_summary: TestGradeSummary {
             achieved_score: record.achieved_score,
             achieved_percent: record.achieved_score as f32 / record.max_score as f32,
