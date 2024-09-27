@@ -15,10 +15,7 @@ use crate::{
         handlers::{login_user_handler, logout_handler, register_user_handler}, 
         middleware::{AuthError, AuthStatus},
         model::User
-    }, exam::{
-        handlers::{create_testee, dequeue_testee, enqueue_testee, fetch_test_results_by_id, fetch_testee_by_id, fetch_testee_tests_by_id, parse_test_form_data, retrieve_queue, save_test_to_database, search_for_testee, TestError}, 
-        models::{FullTestSummary, Proctor, Test, TestGradeSummary, Testee}
-    }, filters, AppState
+    }, exam::models::{FullTestSummary, Proctor, Test, TestGradeSummary, Testee}, filters, AppState
 };
 
 /// A helper function to handle errors consistently
@@ -222,13 +219,13 @@ pub async fn get_dashboard_page(State(data): State<Arc<AppState>>) -> impl IntoR
 
 
 // #######################################################################################################################################################
-// dancer_test.html
+// graded_or_ungraded_test.html
 // #######################################################################################################################################################
 
 #[derive(Template)]
-#[template(path = "./primary_templates/dancer_test.html")] 
+#[template(path = "./primary_templates/graded_or_ungraded_test.html")] 
 pub struct DancerTestPageTemplate {
-    test: Test,
+    test_enum: Test,
     prefilled_user_info: PrefilledTestData,
     test_summary: Option<FullTestSummary>,
     test_index: i32, // Used for on the fly test grading
@@ -250,7 +247,7 @@ pub async fn get_test_page(
 
     if let Some(test) = data.test_configurations.tests.get(test_index as usize) {
         let template = DancerTestPageTemplate {
-            test: test.clone(),
+            test_enum: Test::Ungraded(test.clone()),
             prefilled_user_info,
             test_summary: None,
             test_index,
@@ -263,83 +260,83 @@ pub async fn get_test_page(
     }
 }
 
-pub async fn post_test_form(
-    State(data): State<Arc<AppState>>,
-    Extension(auth_status): Extension<AuthStatus>,
-    Path(test_index): Path<i32>,
-    Form(test): Form<HashMap<String, String>>,
-) -> impl IntoResponse {
+// pub async fn post_test_form(
+//     State(data): State<Arc<AppState>>,
+//     Extension(auth_status): Extension<AuthStatus>,
+//     Path(test_index): Path<i32>,
+//     Form(test): Form<HashMap<String, String>>,
+// ) -> impl IntoResponse {
 
-    let proctor = match auth_status {
-        AuthStatus::Authorized(user) => Proctor { id: user.user.id, first_name: user.user.first_name, last_name: user.user.last_name},
-        AuthStatus::Unauthorized(e) => return error_response(&format!("Unauthorized: {:?}", e)).into_response()
-    };
+//     let proctor = match auth_status {
+//         AuthStatus::Authorized(user) => Proctor { id: user.user.id, first_name: user.user.first_name, last_name: user.user.last_name},
+//         AuthStatus::Unauthorized(e) => return error_response(&format!("Unauthorized: {:?}", e)).into_response()
+//     };
 
-    if let Some(test_definition) = data.test_configurations.tests.get(test_index as usize) {
-        match parse_test_form_data(test, test_definition.clone(), Some(proctor)) {
-            Ok(graded_test) => {
-                match save_test_to_database(&data.db, graded_test).await {
-                    Ok(_) => Redirect::to("/dashboard").into_response(),
-                    Err(e) => error_response(&format!("Error saving test to database: {:?}", e)).into_response()
-                }
-            },
-            Err(e) => error_response(&format!("Error parsing test form data: {:?}", e)).into_response()
-        }
-    } else {
-        error_response(&format!("Invalid test index ({}) in URL", test_index)).into_response()
-    }
-}
+//     if let Some(test_definition) = data.test_configurations.tests.get(test_index as usize) {
+//         match parse_test_form_data(test, test_definition.clone(), Some(proctor)) {
+//             Ok(graded_test) => {
+//                 match save_test_to_database(&data.db, graded_test).await {
+//                     Ok(_) => Redirect::to("/dashboard").into_response(),
+//                     Err(e) => error_response(&format!("Error saving test to database: {:?}", e)).into_response()
+//                 }
+//             },
+//             Err(e) => error_response(&format!("Error parsing test form data: {:?}", e)).into_response()
+//         }
+//     } else {
+//         error_response(&format!("Invalid test index ({}) in URL", test_index)).into_response()
+//     }
+// }
 
 // #######################################################################################################################################################
 // test_grade.html
 // #######################################################################################################################################################
 
-#[derive(Template)]
-#[template(path = "./partial_templates/test_grade.html")] 
-pub struct GradeTestTemplate {
-    grade_summary: TestGradeSummary,
-    test_date: Option<NaiveDateTime>,
-    proctor_first_name: Option<String>,
-    proctor_last_name: Option<String>,
-}
+// #[derive(Template)]
+// #[template(path = "./partial_templates/test_grade.html")] 
+// pub struct GradeTestTemplate {
+//     grade_summary: TestGradeSummary,
+//     test_date: Option<NaiveDateTime>,
+//     proctor_first_name: Option<String>,
+//     proctor_last_name: Option<String>,
+// }
 
-/// Used to grade a test on the fly.
-pub async fn post_grade_test(
-    State(data): State<Arc<AppState>>,
-    Path(test_index): Path<i32>,
-    Form(test): Form<HashMap<String, String>>,
-) -> impl IntoResponse {
-    if let Some(test_definition) = data.test_configurations.tests.get(test_index as usize) {
-        match parse_test_form_data(test, test_definition.clone(), None) {
-            Ok(mut parsed_test) => {
+// /// Used to grade a test on the fly.
+// pub async fn post_grade_test(
+//     State(data): State<Arc<AppState>>,
+//     Path(test_index): Path<i32>,
+//     Form(test): Form<HashMap<String, String>>,
+// ) -> impl IntoResponse {
+//     if let Some(test_definition) = data.test_configurations.tests.get(test_index as usize) {
+//         match parse_test_form_data(test, test_definition.clone(), None) {
+//             Ok(mut parsed_test) => {
                 
-                match parsed_test.grade() {
-                    Ok(_) => (),
-                    Err(e) => return error_response(&format!("Error grading test in post_grade_test function: {:?}", e)).into_response()
-                };
+//                 match parsed_test.grade() {
+//                     Ok(_) => (),
+//                     Err(e) => return error_response(&format!("Error grading test in post_grade_test function: {:?}", e)).into_response()
+//                 };
                 
-                let grade_summary = match parsed_test.grade_summary() {
-                    Ok(summary) => summary,
-                    Err(e) => return error_response(&format!("Error summarizing test in post_grade_test function: {:?}", e)).into_response()
-                };
+//                 let grade_summary = match parsed_test.grade_summary() {
+//                     Ok(summary) => summary,
+//                     Err(e) => return error_response(&format!("Error summarizing test in post_grade_test function: {:?}", e)).into_response()
+//                 };
 
-                let template = GradeTestTemplate {
-                    grade_summary,
-                     // Feed in None for the following stuff because we don't need it when administering a test
-                    // Since this function is used to grade a test on the fly
-                    test_date: None,
-                    proctor_first_name: None,
-                    proctor_last_name: None
-                };
+//                 let template = GradeTestTemplate {
+//                     grade_summary,
+//                      // Feed in None for the following stuff because we don't need it when administering a test
+//                     // Since this function is used to grade a test on the fly
+//                     test_date: None,
+//                     proctor_first_name: None,
+//                     proctor_last_name: None
+//                 };
 
-                return (StatusCode::OK, Html(template.render().unwrap())).into_response()
-            },
-            Err(e) => return error_response(&format!("Error parsing test form data: {:?}", e)).into_response()
-        }
-    } else {
-        return error_response(&format!("Invalid test index ({}) in URL", test_index)).into_response()
-    };
-}
+//                 return (StatusCode::OK, Html(template.render().unwrap())).into_response()
+//             },
+//             Err(e) => return error_response(&format!("Error parsing test form data: {:?}", e)).into_response()
+//         }
+//     } else {
+//         return error_response(&format!("Invalid test index ({}) in URL", test_index)).into_response()
+//     };
+// }
 
 
 
@@ -366,249 +363,249 @@ pub async fn post_grade_test(
 // dancer_test.html
 // #######################################################################################################################################################
 
-#[derive(Template)]
-#[template(path = "./primary_templates/dancer_test.html")] 
-pub struct GradedTestTemplate {
-    test: Test,
-    test_summary: Option<FullTestSummary>,
-    test_index: i32, // Unused for this template
-    prefilled_user_info: PrefilledTestData,
-    is_demo_mode: bool
-}
+// #[derive(Template)]
+// #[template(path = "./primary_templates/dancer_test.html")] 
+// pub struct GradedTestTemplate {
+//     test: Test,
+//     test_summary: Option<FullTestSummary>,
+//     test_index: i32, // Unused for this template
+//     prefilled_user_info: PrefilledTestData,
+//     is_demo_mode: bool
+// }
 
-pub async fn get_test_results(
-    State(data): State<Arc<AppState>>,
-    Path(test_id): Path<Uuid>,
-) -> impl IntoResponse {
-    match fetch_test_results_by_id(&data.db, test_id).await {
-        Ok(Some(test)) => {
-            let prefilled_user_info = PrefilledTestData{
-                first_name: Some(test.metadata.testee.clone().expect("Invariant that graded tests all have Testees violated in get_test_results fn").first_name),
-                last_name: Some(test.metadata.testee.clone().expect("Invariant that graded tests all have Testees violated in get_test_results fn").last_name),
-                email: Some(test.metadata.testee.clone().expect("Invariant that graded tests all have Testees violated in get_test_results fn").email)
-            };
+// pub async fn get_test_results(
+//     State(data): State<Arc<AppState>>,
+//     Path(test_id): Path<Uuid>,
+// ) -> impl IntoResponse {
+//     match fetch_test_results_by_id(&data.db, test_id).await {
+//         Ok(Some(test)) => {
+//             let prefilled_user_info = PrefilledTestData{
+//                 first_name: Some(test.metadata.testee.clone().expect("Invariant that graded tests all have Testees violated in get_test_results fn").first_name),
+//                 last_name: Some(test.metadata.testee.clone().expect("Invariant that graded tests all have Testees violated in get_test_results fn").last_name),
+//                 email: Some(test.metadata.testee.clone().expect("Invariant that graded tests all have Testees violated in get_test_results fn").email)
+//             };
 
-            let test_summary = match test.full_summary() {
-                Ok(summary) => Some(summary),
-                Err(e) => return error_response(&format!("Error summarizing test in get_test_results function: {:?}", e)).into_response()
-            };
+//             let test_summary = match test.full_summary() {
+//                 Ok(summary) => Some(summary),
+//                 Err(e) => return error_response(&format!("Error summarizing test in get_test_results function: {:?}", e)).into_response()
+//             };
 
-            let template = GradedTestTemplate {
-                test,
-                prefilled_user_info,
-                test_index: -1,
-                test_summary,
-                is_demo_mode: data.env.is_demo_mode
-            };
-            match template.render() {
-                Ok(rendered) => Html(rendered).into_response(),
-                Err(e) => {
-                    (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error: {:?}</h1>", e))).into_response()
-                }
-            }
-        },
-        Ok(None) => error_response(&format!("No test found for test id ({}) in URL", test_id)).into_response(),
-        Err(TestError::InternalServerError(err)) => {
-            (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error: {:?}<h1>", err))).into_response()
-        }
-    }
-}
+//             let template = GradedTestTemplate {
+//                 test,
+//                 prefilled_user_info,
+//                 test_index: -1,
+//                 test_summary,
+//                 is_demo_mode: data.env.is_demo_mode
+//             };
+//             match template.render() {
+//                 Ok(rendered) => Html(rendered).into_response(),
+//                 Err(e) => {
+//                     (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error: {:?}</h1>", e))).into_response()
+//                 }
+//             }
+//         },
+//         Ok(None) => error_response(&format!("No test found for test id ({}) in URL", test_id)).into_response(),
+//         Err(TestError::InternalServerError(err)) => {
+//             (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error: {:?}<h1>", err))).into_response()
+//         }
+//     }
+// }
 
 // #######################################################################################################################################################
 // search_testee.html
 // #######################################################################################################################################################
 
-#[derive(Template)]
-#[template(path = "./primary_templates/search_testee.html")] 
-pub struct SearchTesteeTemplate {
-    is_demo_mode: bool,
-    search_results: Option<Vec<Testee>>,
-}
+// #[derive(Template)]
+// #[template(path = "./primary_templates/search_testee.html")] 
+// pub struct SearchTesteeTemplate {
+//     is_demo_mode: bool,
+//     search_results: Option<Vec<Testee>>,
+// }
 
-#[derive(Deserialize)]
-pub struct SearchQuery {
-    query: Option<String>,
-}
+// #[derive(Deserialize)]
+// pub struct SearchQuery {
+//     query: Option<String>,
+// }
 
-pub async fn get_search_testee_form(
-    State(data): State<Arc<AppState>>,
-    Query(search_query): Query<SearchQuery>,
-) -> impl IntoResponse {
+// pub async fn get_search_testee_form(
+//     State(data): State<Arc<AppState>>,
+//     Query(search_query): Query<SearchQuery>,
+// ) -> impl IntoResponse {
 
-    let search_results = if let Some(query) = search_query.query {
-        search_for_testee(query, &data.db).await.ok().flatten()
-    } else {
-        None
-    };
+//     let search_results = if let Some(query) = search_query.query {
+//         search_for_testee(query, &data.db).await.ok().flatten()
+//     } else {
+//         None
+//     };
 
-    let template = SearchTesteeTemplate { 
-        is_demo_mode: data.env.is_demo_mode, 
-        search_results: search_results
-    };
-    (StatusCode::OK, Html(template.render().unwrap())).into_response()
-}
+//     let template = SearchTesteeTemplate { 
+//         is_demo_mode: data.env.is_demo_mode, 
+//         search_results: search_results
+//     };
+//     (StatusCode::OK, Html(template.render().unwrap())).into_response()
+// }
 
 // #######################################################################################################################################################
 // testee_test_summaries.html
 // #######################################################################################################################################################
 
-#[derive(Template)]
-#[template(path = "./primary_templates/testee_test_summaries.html")] 
-pub struct TestSummariesTemplate {
-    option_test_summaries: Option<Vec<FullTestSummary>>,
-    option_testee: Option<Testee>,
-}
+// #[derive(Template)]
+// #[template(path = "./primary_templates/testee_test_summaries.html")] 
+// pub struct TestSummariesTemplate {
+//     option_test_summaries: Option<Vec<FullTestSummary>>,
+//     option_testee: Option<Testee>,
+// }
 
-pub async fn get_test_summaries(
-    State(data): State<Arc<AppState>>,
-    Path(testee_id): Path<Uuid>,
-) -> impl IntoResponse {
+// pub async fn get_test_summaries(
+//     State(data): State<Arc<AppState>>,
+//     Path(testee_id): Path<Uuid>,
+// ) -> impl IntoResponse {
 
-    let option_test_summaries = match fetch_testee_tests_by_id(&data.db, testee_id).await {
-        Ok(option) => option,
-        Err(e) => match e {
-            TestError::InternalServerError(msg) => return (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error: {:?}</h1>", msg))).into_response(),
-            _ => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": "Undefined behavior. This should never happen." }))).into_response()
-        }
-    };
+//     let option_test_summaries = match fetch_testee_tests_by_id(&data.db, testee_id).await {
+//         Ok(option) => option,
+//         Err(e) => match e {
+//             TestError::InternalServerError(msg) => return (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error: {:?}</h1>", msg))).into_response(),
+//             _ => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": "Undefined behavior. This should never happen." }))).into_response()
+//         }
+//     };
 
-    let option_testee = match fetch_testee_by_id(&data.db, testee_id).await {
-        Ok(option) => option,
-        Err(e) => match e {
-            TestError::InternalServerError(msg) => return (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error: {:?}</h1>", msg))).into_response(),
-            _ => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": "Undefined behavior. This should never happen." }))).into_response()
-        }
-    };
+//     let option_testee = match fetch_testee_by_id(&data.db, testee_id).await {
+//         Ok(option) => option,
+//         Err(e) => match e {
+//             TestError::InternalServerError(msg) => return (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error: {:?}</h1>", msg))).into_response(),
+//             _ => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": "Undefined behavior. This should never happen." }))).into_response()
+//         }
+//     };
 
-    let template = TestSummariesTemplate {
-        option_test_summaries,
-        option_testee,
-    };
-    (StatusCode::OK, Html(template.render().unwrap())).into_response()
-}
+//     let template = TestSummariesTemplate {
+//         option_test_summaries,
+//         option_testee,
+//     };
+//     (StatusCode::OK, Html(template.render().unwrap())).into_response()
+// }
 
 // #######################################################################################################################################################
 // queue.html
 // #######################################################################################################################################################
 
-#[derive(Template)]
-#[template(path = "./primary_templates/queue.html")] 
-pub struct QueueTemplate {
-    admin_user: bool,
-    test_names: Vec<String>,
-    queue: Vec<(Testee, usize)>,
-    is_demo_mode: bool,
-}
+// #[derive(Template)]
+// #[template(path = "./primary_templates/queue.html")] 
+// pub struct QueueTemplate {
+//     admin_user: bool,
+//     test_names: Vec<String>,
+//     queue: Vec<(Testee, usize)>,
+//     is_demo_mode: bool,
+// }
 
-pub async fn get_queue(
-    State(data): State<Arc<AppState>>,
-    Extension(auth_status): Extension<AuthStatus>,
-) -> impl IntoResponse {
+// pub async fn get_queue(
+//     State(data): State<Arc<AppState>>,
+//     Extension(auth_status): Extension<AuthStatus>,
+// ) -> impl IntoResponse {
     
-    let admin_user = match auth_status {
-        AuthStatus::Authorized(_) => true,
-        AuthStatus::Unauthorized(_) => false
-    };
+//     let admin_user = match auth_status {
+//         AuthStatus::Authorized(_) => true,
+//         AuthStatus::Unauthorized(_) => false
+//     };
  
 
-    let queue = match retrieve_queue(&data.db).await {
-        Ok(q) => q.into_iter()
-            .map(|(testee, index)| (testee, index as usize))  // Convert i32 to usize
-            .collect(),
-        Err(e) => {
-            return (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error: {:?}</h1>", e))).into_response()
-        }
-    };
-    let test_names = data.test_configurations.tests
-        .iter()
-        .map(|test| test.metadata.test_name.clone())
-        .collect::<Vec<String>>();
+//     let queue = match retrieve_queue(&data.db).await {
+//         Ok(q) => q.into_iter()
+//             .map(|(testee, index)| (testee, index as usize))  // Convert i32 to usize
+//             .collect(),
+//         Err(e) => {
+//             return (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error: {:?}</h1>", e))).into_response()
+//         }
+//     };
+//     let test_names = data.test_configurations.tests
+//         .iter()
+//         .map(|test| test.metadata.test_name.clone())
+//         .collect::<Vec<String>>();
 
-    let template = QueueTemplate {
-        admin_user,
-        queue,
-        test_names,
-        is_demo_mode: data.env.is_demo_mode
-    };
+//     let template = QueueTemplate {
+//         admin_user,
+//         queue,
+//         test_names,
+//         is_demo_mode: data.env.is_demo_mode
+//     };
 
-    (StatusCode::OK, Html(template.render().unwrap())).into_response()
-}
+//     (StatusCode::OK, Html(template.render().unwrap())).into_response()
+// }
 
-#[derive(Deserialize)]
-pub struct EnqueueForm {
-    first_name: String,
-    last_name: String,
-    email: String,
-    test_definition_index: i32,
-}
+// #[derive(Deserialize)]
+// pub struct EnqueueForm {
+//     first_name: String,
+//     last_name: String,
+//     email: String,
+//     test_definition_index: i32,
+// }
 
-pub async fn post_queue(
-    State(data): State<Arc<AppState>>,
-    Form(user_info): Form<EnqueueForm>,
-) -> impl IntoResponse {
+// pub async fn post_queue(
+//     State(data): State<Arc<AppState>>,
+//     Form(user_info): Form<EnqueueForm>,
+// ) -> impl IntoResponse {
 
 
-    let testee = match create_testee(
-        &data.db, user_info.first_name.as_str(), user_info.last_name.as_str(), user_info.email.as_str()
-    ).await {
-        Ok(person) => person,
-        Err(e) => {
-            return (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error: {:?}</h1>", e))).into_response()
-        }
-    };
+//     let testee = match create_testee(
+//         &data.db, user_info.first_name.as_str(), user_info.last_name.as_str(), user_info.email.as_str()
+//     ).await {
+//         Ok(person) => person,
+//         Err(e) => {
+//             return (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error: {:?}</h1>", e))).into_response()
+//         }
+//     };
 
-    // Create testee 100% returns a testee with a testee id, so I can call unwrap on this
-    if let Err(e) = enqueue_testee(&data.db, testee.id.unwrap(), user_info.test_definition_index).await {
-        return (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error enqueuing testee: {:?}</h1>", e))).into_response();
-    }
+//     // Create testee 100% returns a testee with a testee id, so I can call unwrap on this
+//     if let Err(e) = enqueue_testee(&data.db, testee.id.unwrap(), user_info.test_definition_index).await {
+//         return (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error enqueuing testee: {:?}</h1>", e))).into_response();
+//     }
     
-    Redirect::to("/queue").into_response()
-}
+//     Redirect::to("/queue").into_response()
+// }
 
 // #######################################################################################################################################################
 // dequeue
 // #######################################################################################################################################################
 
-#[derive(Deserialize, Debug)]
-pub struct DequeueParams {
-    testee_id: Option<Uuid>,
-    test_definition_index: Option<i32>,
-}
+// #[derive(Deserialize, Debug)]
+// pub struct DequeueParams {
+//     testee_id: Option<Uuid>,
+//     test_definition_index: Option<i32>,
+// }
 
-/// Removes a user from the queue upon receiving a delete request. If called with a request header HX-Trigger equal to 
-/// "administer-test-button", will redirect to the proper administer test page with the query parameters
-/// equal to the queue user's information. If there is no response header, just deletes the user and returns empty html.
-pub async fn delete_dequeue(
-    State(data): State<Arc<AppState>>,
-    Query(params): Query<DequeueParams>,
-    headers: HeaderMap,
-) -> impl IntoResponse {
+// /// Removes a user from the queue upon receiving a delete request. If called with a request header HX-Trigger equal to 
+// /// "administer-test-button", will redirect to the proper administer test page with the query parameters
+// /// equal to the queue user's information. If there is no response header, just deletes the user and returns empty html.
+// pub async fn delete_dequeue(
+//     State(data): State<Arc<AppState>>,
+//     Query(params): Query<DequeueParams>,
+//     headers: HeaderMap,
+// ) -> impl IntoResponse {
 
-    let (testee, test_definition_index) = match dequeue_testee(&data.db, params.testee_id, params.test_definition_index).await {
-        Ok(option) => match option {
-            Some(result) => (result.0, result.1),
-            None => return (StatusCode::OK, Html("<h1 id=\"primary-content\">Error: No testee with that ID found --> Perhaps the queue was empty.</h1>")).into_response(),
-        },
-        Err(e) => {
-            return (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error dequeuing testee: {:?}</h1>", e))).into_response();
-        }
-    };
+//     let (testee, test_definition_index) = match dequeue_testee(&data.db, params.testee_id, params.test_definition_index).await {
+//         Ok(option) => match option {
+//             Some(result) => (result.0, result.1),
+//             None => return (StatusCode::OK, Html("<h1 id=\"primary-content\">Error: No testee with that ID found --> Perhaps the queue was empty.</h1>")).into_response(),
+//         },
+//         Err(e) => {
+//             return (StatusCode::OK, Html(format!("<h1 id=\"primary-content\">Error dequeuing testee: {:?}</h1>", e))).into_response();
+//         }
+//     };
 
-    if let Some(header_value) = headers.get("HX-Trigger") {
-        if header_value == "administer-test-button" {
-            // Convert the role and testee fields to strings for use in the URL
-            let first_name = testee.first_name.to_string();
-            let last_name = testee.last_name.to_string();
-            let email = testee.email.to_string();
+//     if let Some(header_value) = headers.get("HX-Trigger") {
+//         if header_value == "administer-test-button" {
+//             // Convert the role and testee fields to strings for use in the URL
+//             let first_name = testee.first_name.to_string();
+//             let last_name = testee.last_name.to_string();
+//             let email = testee.email.to_string();
 
-            let redirect_url = format!(
-                "/administer-test/{}?first_name={}&last_name={}&email={}",
-                test_definition_index, first_name, last_name, email
-            );
+//             let redirect_url = format!(
+//                 "/administer-test/{}?first_name={}&last_name={}&email={}",
+//                 test_definition_index, first_name, last_name, email
+//             );
 
-            return Redirect::to(&redirect_url).into_response();
-        }
-    }
+//             return Redirect::to(&redirect_url).into_response();
+//         }
+//     }
 
-    (StatusCode::OK, Html("")).into_response()
-}
+//     (StatusCode::OK, Html("")).into_response()
+// }

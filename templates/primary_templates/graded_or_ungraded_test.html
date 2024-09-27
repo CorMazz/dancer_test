@@ -1,0 +1,54 @@
+{# This template is used both for administering the test and displaying the graded test. #}
+
+{% extends "./extensible_templates/nav_on_top.html" %}
+
+
+{% block title %}
+    {% match test_enum %}
+        {% when Test::Ungraded with (test) %}
+            Take the {{ test.metadata.test_name }}
+        {% when Test::Graded with (test) %}
+            Graded {{ test.metadata.ungraded_metadata.test_name }}
+    {% endmatch %}
+{% endblock %}
+
+
+{% block content %}
+
+{# Set up all the different variables so that the template renders correctly regardless if it is fed a graded or ungraded test. #}
+{% match test_enum %}
+    {% when Test::Ungraded with (ungraded_test) %}
+        {# This means we are displaying the test administration form. #}
+        {% let metadata = ungraded_test.metadata.clone() %}
+        {% let test = ungraded_test %}
+        {% let is_graded = false %}
+        <p>Ungraded</p>
+        <p>Rendering {{ metadata.test_name }}</p>
+
+        {% match ungraded_test %}
+            {% when UngradedTest %}
+                <p>Ungraded Test</p>
+        {% endmatch %}
+
+
+        {#
+        {% include "../partial_templates/test.html" %} 
+        #}
+
+    {% when Test::Graded with (graded_test) %}
+        {# This means we are simply displaying a graded test --> shouldn't be editable by the user. #}
+
+        {# Grab the composed sub-structs and ensure their names match what the template expects. #}
+        {% let metadata = graded_test.metadata.ungraded_metadata.clone() %}
+        {% let test = graded_test %}
+        {% let is_graded = true %}
+
+        <p>Graded</p>
+{% endmatch %}
+
+{% endblock %}
+
+{#
+
+{% endblock %}
+#}

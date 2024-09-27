@@ -1,0 +1,72 @@
+<div class="mx-auto p-4"></div>
+    <h2 class="text-4xl font-bold mb-4 text-center">{{ test.metadata.test_name }}</h2>
+    <form method="post" class="bg-white p-6 rounded shadow-md">
+
+        <!-- User Info Section -->
+        <div class="card block shadow-md rounded border border-gray-300 mb-6 p-4">
+            {% include "./partial_templates/testee_info.html" %}
+        </div>
+
+        <!-- Tiny Screen Warning -->
+        <div class="sm:hidden mt-4 p-4 border border-gray-300 rounded-lg shadow-lg bg-gray-100">
+            <h1 class="text-xl font-semibold text-gray-700 mb-2">Screen Too Small</h1>
+            <p class="text-gray-600">For the best experience, please use a larger screen or switch to landscape mode on your mobile device.</p>
+        </div>
+
+        
+        <div class="hidden sm:block justify-center">
+            {% match test_summary %}
+                {% when Some with (summary) %}
+                {% let grade_summary = summary.grade_summary.clone() %}
+                {% let test_date = Some(summary.test_date.clone()) %}
+                {% let proctor_first_name = Some(summary.proctor.first_name.clone()) %}
+                {% let proctor_last_name = Some(summary.proctor.last_name.clone()) %}
+                <!-- Test Results Section -->
+                    {% include "./partial_templates/test_grade.html" %} 
+
+                {% when None %}
+
+                    {% if test.metadata.config_settings.live_grading %}
+                        <div 
+                            hx-post="/private/grade-test/{{ test_index }}" 
+                            hx-trigger="load, change from:form"
+                            hx-debounce="0.25s"
+                        >
+                        </div>
+                    {% endif %}
+
+                    <div class="flex flex-col text-center">
+                        <input type="submit" value={% if is_demo_mode %}"Submission Disabled for Demo"{% else %}Submit{% endif %} class="{% if is_demo_mode %}bg-gray-300 text-gray-900{% else %}bg-blue-500 hover:bg-blue-700 text-white{% endif %} mx-auto font-bold py-2 px-4 mb-4 rounded" {% if is_demo_mode %}disabled{% else %}{% endif %}>
+                    </div>
+            {% endmatch %}
+
+
+            {#
+            <!-- Loop to Add Test Sections -->
+            {% for table in test.tables %}
+                {% let table_index = loop.index0 %}
+                <div class="card shadow-md rounded border border-gray-300 mb-6 p-4">
+
+                    <!-- test.sections is a list of lists. The outer list says which sections are on the same table, and the inner list defines the sections themselves -->
+                    {% for section in table.sections %}
+                        {% let section_index = loop.index0 %}
+                        {% include "./partial_templates/test_section.html" %}
+                    {% endfor %}
+
+                </div>
+            {% endfor %}
+            #}
+
+            {#
+            {% match test.bonus_items %}
+                {% when Some with (bonus_items) %}
+                    <!-- Bonus Points Table -->
+                    <div class="card shadow-md rounded border border-gray-300 mb-6 p-4">
+                        {% include "./partial_templates/bonus_section.html" %}
+                    </div>
+                {% when None %}
+            {% endmatch %}
+            #}
+        </div>
+    </form>
+</div>

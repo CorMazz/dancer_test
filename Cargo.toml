@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+anyhow = "1.0.89"
 argon2 = "0.5.3"
 askama = "0.12.1"
 askama_axum = "0.4.0"
