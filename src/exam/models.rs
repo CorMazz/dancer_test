@@ -200,6 +200,7 @@ pub struct UngradedTestSection {
     pub competencies: Vec<UngradedCompetency>,
 }
 
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GradedTestSection {
     pub table_id: Uuid,
@@ -210,6 +211,16 @@ pub struct GradedTestSection {
 pub struct UngradedBonusItem {
     pub name: String,
     pub score: i32,
+}
+
+impl UngradedBonusItem {
+    pub fn grade(self, achieved: bool, test_id: Uuid) -> GradedBonusItem {
+        GradedBonusItem {
+            test_id,
+            achieved,
+            ungraded_bonus_item: self
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
