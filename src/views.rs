@@ -507,6 +507,7 @@ pub async fn get_test_summaries(
 #[template(path = "./primary_templates/queue.html")] 
 pub struct QueueTemplate {
     admin_user: bool,
+    signup_key_required: bool,
     test_names: Vec<String>,
     queue: Vec<(Testee, usize)>,
     is_demo_mode: bool,
@@ -538,6 +539,7 @@ pub async fn get_queue(
 
     let template = QueueTemplate {
         admin_user,
+        signup_key_required: (data.env.queue_signup_key != ""),
         queue,
         test_names,
         is_demo_mode: data.env.is_demo_mode
@@ -551,6 +553,7 @@ pub struct EnqueueForm {
     first_name: String,
     last_name: String,
     email: String,
+    signup_key: String,
     test_definition_index: i32,
 }
 
@@ -559,6 +562,13 @@ pub async fn post_queue(
     Form(user_info): Form<EnqueueForm>,
 ) -> impl IntoResponse {
 
+    let signup_key_required = data.env.queue_signup_key != "";
+    
+    if signup_key_required {
+        if user_info.signup_key != data.env.queue_signup_key {
+            return error_response("Invalid sign-up key. Refresh the page and try again.").into_response()
+        }
+    }
 
     let testee = match create_testee(
         &data.db, user_info.first_name.as_str(), user_info.last_name.as_str(), user_info.email.as_str()

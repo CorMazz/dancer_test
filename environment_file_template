@@ -2,6 +2,10 @@
 DEMO_MODE_ACTIVE=false
 SIGNUP_LICENSING_KEY=coryisthebest
 
+# Set to empty strings after the equal sign if not requiring a queue licensing key (recommended to have a key)
+QUEUE_SIGNUP_KEY=""
+
+
 # Set to empty strings after the equal sign if not enabling email functionality
 SMTP_SERVER_HOST=smtp.gmail.com
 SMTP_USER_LOGIN=
