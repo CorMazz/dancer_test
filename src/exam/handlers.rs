@@ -15,6 +15,8 @@ use crate::filters;
 
 
 
+
+
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 // Custom Error Enum
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -775,14 +777,15 @@ pub async fn send_email(
     .render()
     .map_err(|e| TestError::InternalServerError(format!("Error rendering email template: {}", e)))?;
 
-
     let email = Message::builder()
         .from(smtp_config.user_email.parse().map_err(|e| TestError::InternalServerError(format!("Error: Unable to parse SMTP config user_email \"{}\": {}", smtp_config.user_email, e)))?)
         .to(testee.email.parse().map_err(|e| TestError::InternalServerError(format!("Error: Unable to parse testee email \"{}\": {}", testee.email, e)))?)
         .subject("Your Dancexam Results")
         .header(ContentType::TEXT_HTML)
         .body(email_body)
+
         .map_err(|e| TestError::InternalServerError(format!("Error: Unable to create email: {}", e)))?;
+
 
     // Send the email
     smtp_mailer.send(email)
