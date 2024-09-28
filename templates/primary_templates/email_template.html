@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dancexam Test Results</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        h1 {
+            color: #4A90E2;
+            text-align: center;
+        }
+        p {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        th, td {
+            border: 1px solid #dddddd;
+            padding: 12px;
+            text-align: center; 
+        }
+        th {
+            background-color: #4A90E2;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        a {
+            color: #4A90E2;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .no-results {
+            text-align: center;
+            font-style: italic;
+            color: #777;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Dancexam Test Results</h1>
+    <p>Thank you for taking a test with us. You can access your most recent test results below.</p>
+    <table>
+        <tr>
+            <th>Test Name</th>
+            <th>Test Date</th>
+            <th>Proctor</th>
+            <th>Access Test</th>
+        </tr>
+        {% if tests.len() == 0 %}
+            <tr>
+                <td colspan="4" class="no-results">You have no test results available. If someone didn't manually activate email sending for you, something is wrong.</td>
+            </tr>
+        {% else %}
+            {% for test in tests %}
+                <tr>
+                    <td>{{ test.test_name }}</td>
+                    <td>{{ test.test_date|trim_end_chars(10) }}</td>
+                    <td>{{ test.proctor.first_name }} {{ test.proctor.last_name }}</td>
+                    <td>
+                        <a href="{{ server_root_url }}/test-results/{{ test.test_id }}">View Results</a>
+                    </td>
+                </tr>
+            {% endfor %}
+        {% endif %}
+    </table>
+</body>
+</html>

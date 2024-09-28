@@ -20,22 +20,7 @@
     - Frontend the submit button can be re-enabled by the user and used to submit forms. This is a security vulnerability.
 - Add functionality to require a licensing code to enter the queue
 
-
-## Would be Nice TODO
-- Refactor the error handling to use the anyhow crate
-- Separate the test parsing into a separate crate that I can provide as an executable so that other people can work on creating valid tests
-- Go through and make composable classes to remove a lot of the Option<> types on my Test class that makes the logic a little funky. This would enable me to have all the funky logic in one place as we move from one class type to another. 
-- Add a command upon the server restarting to clear the queue. 
-- Add a command to clear the queue after a certain amount of time.
-- Refactor the failure reason to give the parts to make the desired sentence instead of storing the whole sentence, because I cannot add formatting within the sentence to the html. 
-- Put emails on the test summaries page since the email is the primary key for a testee
-
-
-## Last Thing I Was Doing
-- Next thing to do is add the email functionality. Just email a link with the results of all the tests that a user has taken.  
-
-
-Test this in the validate_failing_header_labels
+- Test this in the validate_failing_header_labels
     // Create a hashmap of the header labels so that we can correspond failing score labels on the graded item to the true header labels
     let mut score_label_hm: HashMap<String, Vec<String>> = HashMap::new();
     for score_label in score_labels {
@@ -46,3 +31,20 @@ Test this in the validate_failing_header_labels
             ))
         };
     }
+
+## Would be Nice TODO
+- Refactor the error handling to use the anyhow crate (I started this, it removes some of the nuance of my error handling...)
+- Separate the test parsing into a separate crate that I can provide as an executable so that other people can work on creating valid tests
+- Go through and make composable classes to remove a lot of the Option<> types on my Test class that makes the logic a little funky. This would enable me to have all the funky logic in one place as we move from one class type to another. (4 hours wasted here already...)
+- Add a command upon the server restarting to clear the queue. 
+- Add a command to clear the queue after a certain amount of time.
+- Put emails on the test summaries page since the email is the primary key for a testee
+- Add an option to not send the users an email after taking a test
+- Add an option to manually send a user an email
+
+
+## Last Thing I Was Doing
+- Email is added. Once linode removes the email restriction I need to see if the urls work. If not, just leave them raw.
+- Have ChatGPT give me pretty email formatting. 
+- Refactor the failure reason to give the parts to make the desired sentence instead of storing the whole sentence, because I cannot add formatting within the sentence to the html
+
