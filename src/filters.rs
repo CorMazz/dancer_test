@@ -16,3 +16,8 @@ pub fn trim_end_chars<T: std::fmt::Display>(s: T, n: usize) -> ::askama::Result<
     };
     Ok(trimmed)
 }
+
+///  Used to parse the failure explanations, which are stored as strings that are 3 or 4 elements long delimited by .-.-
+pub fn split(input: &str, delimiter: &str) -> ::askama::Result<Vec<String>> {
+    Ok(input.split(delimiter).map(|s| s.to_string()).collect())
+}

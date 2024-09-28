@@ -8,10 +8,10 @@
 {% endif %}
 
 
-    <h2 class="text-2xl font-semibold">Scoring Information</h2>
+    <h2 class="text-2xl font-bold">Scoring Information</h2>
     {% match test_date %}
     {% when Some with (date) %}
-        <p class="text-xl"><strong>Test Date: </strong>{{ date|trim_end_chars(10) }}</p>
+        <p class="text-xl"><span class="font-semibold">Test Date: </span>{{ date|trim_end_chars(10) }}</p>
     {% when None %}
     {% endmatch %}
 
@@ -19,25 +19,25 @@
     {% when Some with (first_name) %}
         {% match proctor_last_name %}
         {% when Some with (last_name) %}
-        <p class="text-xl"><strong>Proctor: </strong>{{ first_name }} {{ last_name }}</p>
+        <p class="text-xl"><span class="font-semibold">Proctor: </span>{{ first_name }} {{ last_name }}</p>
         {% when None %}
         {% endmatch %}
     {% when None %}
     {% endmatch %}
 
-    <p class="text-xl"><strong>Score: </strong> {{ grade_summary.achieved_score }} / {{ grade_summary.max_score }} = {{ "{:.0}"|format(grade_summary.achieved_percent * 100.0) }}%</p> 
-    <p class="text-xl"><strong>Passing Score: </strong>{{ "{:.0}"|format(grade_summary.minimum_percent * 100.0) }}%</p>
+    <p class="text-xl"><span class="font-semibold">Score: </span> {{ grade_summary.achieved_score }} / {{ grade_summary.max_score }} = {{ "{:.0}"|format(grade_summary.achieved_percent * 100.0) }}%</p> 
+    <p class="text-xl"><span class="font-semibold">Passing Score: </span>{{ "{:.0}"|format(grade_summary.minimum_percent * 100.0) }}%</p>
 
 
         {% if grade_summary.is_passing %}
-            <p class="font-bold text-xl"></p>
+            <p class="font-semibold text-xl"></p>
                 Status: 
-                <span class="text-green-700">Passing</span>
+                <span class="font-bold text-green-700">Passing</span>
             </p>
         {% else %} 
-            <p class="font-bold text-xl">
+            <p class="font-semibold text-xl">
                 Status:
-                <span class="text-red-700">Failing</span> 
+                <span class="font-bold text-red-700">Failing</span> 
             </p>
 
 
@@ -45,7 +45,19 @@
                 {% when Some with (failure_explanations) %}
                 <ul>
                     {% for failure_explanation in failure_explanations %}
-                        <li>{{ failure_explanation }}</li>
+                        <li>
+                        {% let split_vec = failure_explanation|split("-.-.") %}
+                        {% if split_vec.len() == 2 %}
+                            <span class="font-medium">Your score of <span class="text-red-600">{{ split_vec[0] }}</span> is lower than the minimum passing score of <span class="text-red-600">{{ split_vec[1] }}</span></span>
+                        {% else if split_vec.len() == 3 %}
+                            <span class="font-medium">Competency <span class="text-red-600">'{{ split_vec[0] }}'</span> is failing because a label of <span class="text-red-600">'{{ split_vec[1] }}'</span> was achieved, and the label(s) <span class="text-red-600">'{{ split_vec[2] }}'</span> fail the test.</span>
+                        {% else if split_vec.len() == 4 %}
+                            <span class="font-medium">Competency <span class="text-red-600">'{{split_vec[0]}}'</span> is failing because a label of <span class="text-red-600">'{{ split_vec[1] }}'</span> was achieved for the <span class="text-red-600">'{{ split_vec[2] }}'</span> category, and the label(s) <span class="text-red-600">'{{ split_vec[3] }}'</span> fail the test.</span>
+                        {% else %}
+                            <span class="font-medium">Something has gone wrong with the failure explanation. Contact support.</span>
+                        {% endif %}
+                        </li>
+                        
                     {% endfor %}
                 </ul>
                 {% when None %}
