@@ -149,7 +149,7 @@ tests:
         - name: ""
           scoring_categories:
             - name: ""
-              values: ["Overkill Prep", "Overprepped", "Prepped", "Under Prepped", "No Prep"]
+              values: ["Overkill-Prep", "Over-Prepped", "Prepped", "Under-Prepped", "No-Prep"]
           competencies:
             - name: "Prep"
               subtext: "(Week 3)"
@@ -157,7 +157,7 @@ tests:
                 - [0, 2, 3, 0, 0]
               failing_score_labels: 
                 - scoring_category_name: ""
-                  values: ["No Prep"]
+                  values: ["No-Prep"]
 
     bonus_items: 
       - name: "No Thumbs"

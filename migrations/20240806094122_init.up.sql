@@ -53,7 +53,7 @@ CREATE TABLE test_metadata (
     test_date TIMESTAMP NOT NULL,
     is_passing BOOLEAN NOT NULL,
     proctor_id UUID NOT NULL REFERENCES users(id),
-    failure_explanation TEXT[]                 
+    failure_explanation TEXT[]               
 );
 
 -- TestTable (stores multiple tables associated with a test)

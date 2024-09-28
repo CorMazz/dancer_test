@@ -74,6 +74,9 @@ impl Test {
         let mut is_passing: bool = true;
         let mut failure_explanation: Vec<String> = Vec::new();
 
+        let delimiter = "-.-."; // If you change this, also change it on the test_grade.html template.
+
+
         for table in &self.tables {
             for section in &table.sections {
 
@@ -104,22 +107,20 @@ impl Test {
                                 )?;
 
                             if failing_score_label.values.contains(&achieved_score_label_value) {
-                                // TODO refactor this to give the raw parts of the string instead of the formatted string
+                                
                                 let explanation = if section.scoring_categories.len() > 1 {
-                                    format!(
-                                        "Competency '{}' is failing because a label of '{}' was achieved for the '{}' category, and the label(s) '{}' fail the test.",
-                                        competency.name,
-                                        achieved_score_label_value,
-                                        &failing_score_label.scoring_category_name,
+                                        vec![
+                                        competency.name.clone(),
+                                        achieved_score_label_value.to_string(),
+                                        failing_score_label.scoring_category_name.clone(),
                                         failing_score_label.values.join(", ")
-                                    )
+                                        ].join(delimiter)
                                 } else {
-                                    format!(
-                                        "Competency '{}' is failing because a label of '{}' was achieved, and the label(s) '{}' fail the test.",
-                                        competency.name,
-                                        achieved_score_label_value,
+                                    vec![
+                                        competency.name.clone(),
+                                        achieved_score_label_value.to_string(),
                                         failing_score_label.values.join(", ")
-                                    )
+                                    ].join(delimiter)
                                 };
                                 
                                 is_passing = false;
@@ -134,8 +135,10 @@ impl Test {
         // Check if the achieved percent is above the minimum percent
         if ((total_score as f32) / (self.metadata.max_score as f32)) < self.metadata.minimum_percent {
             is_passing = false;
-            failure_explanation.push(format!("Your score of {:.1}% is lower than the minimum passing score of {:.1}%.",
-            ((total_score as f32) / (self.metadata.max_score as f32)) * 100.0, self.metadata.minimum_percent * 100.0 ));
+            failure_explanation.push(vec![
+                format!("{:.1}", ((total_score as f32) / (self.metadata.max_score as f32)) * 100.0 ) , 
+                format!("{:.1}", self.metadata.minimum_percent * 100.0)
+                ].join(delimiter));
         }
 
         self.metadata.achieved_score = Some(total_score);
@@ -338,14 +341,14 @@ fn validate_failing_score_labels(graded_items: &[Competency], score_labels: &[Sc
                     Some(valid_failing_score_labels) => for failing_score_label in &label.values {
                         if !valid_failing_score_labels.contains(&failing_score_label) {
                             return Err(format!(
-                                "On the test named '{},' the graded item named '{}' has a failing score label '{}' that does not correspond to any of the score labels ({:#?}) in the scoring category named '{}'.",
+                                "On the test named '{},' the graded item named '{}' has a failing score label '{}' that does not correspond to any of the score labels ({:?}) in the scoring category named '{}'.",
                                 test_name, item.name, failing_score_label, valid_failing_score_labels, label.scoring_category_name
                             ))
                         }
                     },
                     // The failing score label does not correspond to a valid section
                     None => return Err(format!(
-                        "On the test named '{},' the graded item named '{}' has failing score labels '{:#?}' under the scoring category '{}' that does not correspond to any of the valid scoring category labels ({:#?}).",
+                        "On the test named '{},' the graded item named '{}' has failing score labels '{:#?}' under the scoring category '{}' that does not correspond to any of the valid scoring category labels ({:?}).",
                         test_name, item.name, label.values, label.scoring_category_name, score_label_hm.keys()
                     ))
                 }
