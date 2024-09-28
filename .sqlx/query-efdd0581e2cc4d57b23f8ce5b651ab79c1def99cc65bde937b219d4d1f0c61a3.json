@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO test_metadata (test_id, test_name, minimum_percent, max_score, achieved_score, testee_id, test_date, is_passing, proctor_id, failure_explanation)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Float4",
+        "Int4",
+        "Int4",
+        "Uuid",
+        "Timestamp",
+        "Bool",
+        "Uuid",
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "efdd0581e2cc4d57b23f8ce5b651ab79c1def99cc65bde937b219d4d1f0c61a3"
+}

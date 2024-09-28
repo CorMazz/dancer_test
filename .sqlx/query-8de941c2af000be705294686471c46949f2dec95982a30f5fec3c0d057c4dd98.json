@@ -1,17 +1,17 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT id, section_id, name, scores, subtext, antithesis, achieved_scores, achieved_score_labels, failing_score_labels\n                FROM competencies\n                WHERE section_id = $1\n                ORDER BY id ASC\n                ",
+  "query": "\n                SELECT id, section_id, name, scores, subtext, antithesis, achieved_scores, achieved_score_labels, failing_score_labels\n                FROM competencies\n                WHERE section_id = $1\n                ORDER BY insert_counter ASC\n                ",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
         "name": "id",
-        "type_info": "Int4"
+        "type_info": "Uuid"
       },
       {
         "ordinal": 1,
         "name": "section_id",
-        "type_info": "Int4"
+        "type_info": "Uuid"
       },
       {
         "ordinal": 2,
@@ -51,7 +51,7 @@
     ],
     "parameters": {
       "Left": [
-        "Int4"
+        "Uuid"
       ]
     },
     "nullable": [
@@ -66,5 +66,5 @@
       false
     ]
   },
-  "hash": "32b4714481ded12abd7f3bef541a1978895e99187b5ca01065f7ef268563c02d"
+  "hash": "8de941c2af000be705294686471c46949f2dec95982a30f5fec3c0d057c4dd98"
 }

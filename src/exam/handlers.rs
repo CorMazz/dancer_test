@@ -393,7 +393,7 @@ pub async fn fetch_test_results_by_id(pool: &PgPool, test_id: Uuid) -> Result<Op
     // Fetch test tables
     let table_ids: Vec<Uuid> = sqlx::query!(
         "SELECT id FROM test_tables WHERE test_id = $1
-        ORDER BY id ASC",
+        ORDER BY insert_counter ASC",
         test_id
     )
     .fetch_all(pool)
@@ -408,7 +408,7 @@ pub async fn fetch_test_results_by_id(pool: &PgPool, test_id: Uuid) -> Result<Op
         // Fetch sections for each table
         let sections = sqlx::query!(
             "SELECT id, name FROM test_sections WHERE table_id = $1
-            ORDER BY id ASC",
+            ORDER BY insert_counter ASC",
             table_id
         )
         .fetch_all(pool)
@@ -423,7 +423,7 @@ pub async fn fetch_test_results_by_id(pool: &PgPool, test_id: Uuid) -> Result<Op
                 SELECT id, section_id, name, values
                 FROM scoring_categories
                 WHERE section_id = $1
-                ORDER BY id ASC
+                ORDER BY insert_counter ASC
                 "#,
                 section.id
             )
@@ -443,7 +443,7 @@ pub async fn fetch_test_results_by_id(pool: &PgPool, test_id: Uuid) -> Result<Op
                 SELECT id, section_id, name, scores, subtext, antithesis, achieved_scores, achieved_score_labels, failing_score_labels
                 FROM competencies
                 WHERE section_id = $1
-                ORDER BY id ASC
+                ORDER BY insert_counter ASC
                 "#,
                 section.id
             )
@@ -487,7 +487,7 @@ pub async fn fetch_test_results_by_id(pool: &PgPool, test_id: Uuid) -> Result<Op
     // Fetch bonus items
     let bonus_items = sqlx::query!(
         "SELECT id, test_id, name, score, achieved FROM bonus_items WHERE test_id = $1
-        ORDER BY id ASC",
+        ORDER BY insert_counter ASC",
         test_id
     )
     .fetch_all(pool)

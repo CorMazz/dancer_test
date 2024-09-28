@@ -59,14 +59,16 @@ CREATE TABLE test_metadata (
 -- TestTable (stores multiple tables associated with a test)
 CREATE TABLE test_tables (
     id UUID PRIMARY KEY DEFAULT (uuid_generate_v4()),
-    test_id UUID NOT NULL REFERENCES tests(id)
+    test_id UUID NOT NULL REFERENCES tests(id),
+    insert_counter SERIAL
 );
 
 -- TestSection (stores multiple sections under a table)
 CREATE TABLE test_sections (
     id UUID PRIMARY KEY DEFAULT (uuid_generate_v4()),
     table_id UUID REFERENCES test_tables(id), 
-    name VARCHAR NOT NULL
+    name VARCHAR NOT NULL,
+    insert_counter SERIAL
 );
 
 -- ScoringCategory (stores scoring categories for sections)
@@ -74,7 +76,8 @@ CREATE TABLE scoring_categories (
     id UUID PRIMARY KEY DEFAULT (uuid_generate_v4()),
     section_id UUID REFERENCES test_sections(id), 
     name VARCHAR NOT NULL,
-    values TEXT[] NOT NULL                            
+    values TEXT[] NOT NULL,
+    insert_counter SERIAL
 );
 
 CREATE TABLE competencies (
@@ -86,7 +89,8 @@ CREATE TABLE competencies (
     antithesis TEXT,
     achieved_scores JSONB NOT NULL,                   
     achieved_score_labels JSONB NOT NULL,                    
-    failing_score_labels JSONB NOT NULL            
+    failing_score_labels JSONB NOT NULL,   
+    insert_counter SERIAL
 );
 
 CREATE TABLE bonus_items (
@@ -94,7 +98,8 @@ CREATE TABLE bonus_items (
     test_id UUID NOT NULL REFERENCES tests(id), 
     name VARCHAR NOT NULL,
     score INTEGER NOT NULL,
-    achieved BOOLEAN NOT NULL                    
+    achieved BOOLEAN NOT NULL,                
+    insert_counter SERIAL
 );
 
 CREATE TABLE queue (
