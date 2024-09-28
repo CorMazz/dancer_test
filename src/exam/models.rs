@@ -410,6 +410,13 @@ pub struct Proctor {
     pub last_name: String,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SMTPConfig {
+    pub server_host: String,
+    pub user_login: String,
+    pub user_password: String,
+    pub user_email: String,
+}
 
 
 

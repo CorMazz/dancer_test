@@ -2,10 +2,11 @@ use std::{collections::HashMap, sync::Arc};
 
 use askama_axum::Template; // bring trait in scope
 use axum::{
-    extract::{Path, Query, State}, http::{HeaderMap, StatusCode}, response::{Html, IntoResponse, Redirect}, Extension, Form, Json
+    extract::{Host, Path, Query, State}, http::{HeaderMap, StatusCode}, response::{Html, IntoResponse, Redirect}, Extension, Form, Json
 };
 use axum_extra::extract::CookieJar;
 use chrono::NaiveDateTime;
+use lettre::{transport::smtp::authentication::Credentials, AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor};
 use serde::Deserialize;
 use serde_json::json;
 use uuid::Uuid;
@@ -16,7 +17,7 @@ use crate::{
         middleware::{AuthError, AuthStatus},
         model::User
     }, exam::{
-        handlers::{create_testee, dequeue_testee, enqueue_testee, fetch_test_results_by_id, fetch_testee_by_id, fetch_testee_tests_by_id, parse_test_form_data, retrieve_queue, save_test_to_database, search_for_testee, TestError}, 
+        handlers::{create_testee, dequeue_testee, enqueue_testee, fetch_test_results_by_id, fetch_testee_by_id, fetch_testee_tests_by_id, parse_test_form_data, retrieve_queue, save_test_to_database, search_for_testee, send_email, TestError}, 
         models::{FullTestSummary, Proctor, Test, TestGradeSummary, Testee}
     }, filters, AppState
 };
@@ -263,10 +264,12 @@ pub async fn get_test_page(
     }
 }
 
+/// Handles parsing the test form, saving the graded test to the database, and emailing test results to the testee.
 pub async fn post_test_form(
     State(data): State<Arc<AppState>>,
     Extension(auth_status): Extension<AuthStatus>,
     Path(test_index): Path<i32>,
+    Host(server_root_url): Host,
     Form(test): Form<HashMap<String, String>>,
 ) -> impl IntoResponse {
 
@@ -279,7 +282,16 @@ pub async fn post_test_form(
         match parse_test_form_data(test, test_definition.clone(), Some(proctor)) {
             Ok(graded_test) => {
                 match save_test_to_database(&data.db, graded_test).await {
-                    Ok(_) => Redirect::to("/dashboard").into_response(),
+                    Ok(testee_id) => {
+                        if let (Some(smtp_config), Some(smtp_mailer)) = (data.smtp_config.clone(), data.smtp_mailer.clone()) {
+                            tokio::spawn(async move {
+                                if let Err(e) = send_email(&data.db, &smtp_mailer, smtp_config, testee_id, server_root_url).await {
+                                    eprintln!("Failed to send email: {:?}", e);
+                                }
+                            });
+                        };
+                        Redirect::to("/dashboard").into_response()
+                    },
                     Err(e) => error_response(&format!("Error saving test to database: {:?}", e)).into_response()
                 }
             },
@@ -612,3 +624,48 @@ pub async fn delete_dequeue(
 
     (StatusCode::OK, Html("")).into_response()
 }
+
+// #######################################################################################################################################################
+// get send email
+// #######################################################################################################################################################
+
+
+// /// This is intended to enable you to manually force the server to send someone an email with links to their results.
+// pub async fn post_send_email(State(data): State<Arc<AppState>>) -> impl IntoResponse {
+    
+//     let smtp_config = match &data.smtp_config {
+//         Some(config) => config,
+//         None => return (StatusCode::OK, error_response("SMTP not set up. No email functionality available."))
+//     };
+
+//     // Create the email message
+//     let email = Message::builder()
+//         .from(smtp_config.user_email.parse().unwrap())
+//         .to("paulrcreamer@gmail.com".parse().unwrap()) // Change this to the actual recipient's email
+//         .subject("Test Email")
+//         .body("This is a test email sent using Lettre. Paul if you see this, this means the email functionality is coming together".to_string())
+//         .unwrap();
+
+//     // Set up the SMTP transport
+//     let creds = Credentials::new(
+//         smtp_config.user_login.clone(),
+//         smtp_config.user_password.clone(),
+//     );
+
+//     let mailer: AsyncSmtpTransport<Tokio1Executor> = AsyncSmtpTransport::<Tokio1Executor>::relay(&smtp_config.server_host)
+//         .unwrap()
+//         .credentials(creds)
+//         .build();
+
+//     // Send the email
+//     match mailer.send(email).await {
+//         Ok(_) => {
+//             println!("Email sent successfully!");
+//             return (StatusCode::OK, error_response("Email sent."))
+//         }
+//         Err(e) => {
+//             eprintln!("Failed to send email: {:?}", e);
+//             return (StatusCode::OK, error_response("Email not sent."))
+//         }
+//     }
+// }

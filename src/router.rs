@@ -39,7 +39,6 @@ pub fn create_router(app_state: Arc<AppState>) -> Router {
         .route("/queue", get(get_queue).post(post_queue))
         .route("/private/user-dropdown", get(get_user_dropdown)) 
         .route("/test-results/:test_id", get(get_test_results))
-
     .route_layer(middleware::from_fn_with_state(app_state.clone(), check_auth_middleware))
     // Anything above this line checks if the user is logged in and adds an AuthStatus extension to the request
 

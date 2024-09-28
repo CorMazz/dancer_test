@@ -13,6 +13,7 @@ base64 = "0.22.1"
 chrono = { version = "0.4.38", features = ["serde"] }
 dotenv = "0.15.0"
 jsonwebtoken = "9.3.0"
+lettre = { version = "0.11.9", features = ["smtp-transport", "tokio1", "tokio1-native-tls"] }
 rand_core = { version = "0.6.4", features = ["getrandom"] }
 redis = { version = "0.25.4", features = ["aio", "tokio-comp"] }
 serde = { version = "1.0.204", features = ["derive"] }
