@@ -762,14 +762,14 @@ pub async fn send_email(
     let email_body: String = match testee_tests {
         Some(tests) => {
             let mut body = String::new();
-            body.push_str("<h1>Your Dancexam Results</h1>");
-            body.push_str("<h2>Test Summary</h2>");
+            body.push_str("<h1>Dancexam Test Results</h1>");
+            body.push_str("<p>Thank you for taking a test with us. You can access your most recent test results below.</p>");
             body.push_str("<table style=\"width:100%; border-collapse: collapse;\">");
             body.push_str("<tr><th style=\"border: 1px solid black; padding: 8px;\">Test Name</th><th style=\"border: 1px solid black; padding: 8px;\">Test Date</th><th style=\"border: 1px solid black; padding: 8px;\">Proctor</th><th style=\"border: 1px solid black; padding: 8px;\">Access Test</th></tr>");
 
             for test in tests {
                 body.push_str(&format!(
-                    "<tr><td style=\"border: 1px solid black; padding: 8px;\">{}</td><td style=\"border: 1px solid black; padding: 8px;\">{}</td><td style=\"border: 1px solid black; padding: 8px;\">{} {}</td><td style=\"border: 1px solid black; padding: 8px;\">{}/test-results/{}</td></tr>",
+                    "<tr><td style=\"border: 1px solid black; padding: 8px;\">{}</td><td style=\"border: 1px solid black; padding: 8px;\">{}</td><td style=\"border: 1px solid black; padding: 8px;\">{} {}</td><td style=\"border: 1px solid black; padding: 8px;\"><a href=\"{}/test-results/{}\">View Results</a></td></tr>",
                     test.test_name,
                     test.test_date.format("%Y-%m-%d %H:%M:%S"),
                     test.proctor.first_name,

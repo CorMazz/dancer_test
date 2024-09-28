@@ -8,8 +8,8 @@ mod exam;
 use config::SecretsConfig;
 use exam::{handlers::parse_test_definition, models::{SMTPConfig, TestDefinitionYaml}};
 use lettre::{transport::smtp::authentication::Credentials, AsyncSmtpTransport, Tokio1Executor};
-use uuid::Uuid;
-use std::sync::Arc;
+use lettre::transport::smtp::PoolConfig;
+use std::{sync::Arc, time::Duration};
 
 use axum::http::{
     header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
@@ -81,6 +81,7 @@ async fn main() {
     };
 
     // I can't figure out how to make this more idiomatic. 
+    // Create the SMTP transport connection pool
     let smtp_mailer: Option<AsyncSmtpTransport<Tokio1Executor>> = match &smtp_config {
         Some(config) => {
             let creds = Credentials::new(
@@ -89,7 +90,16 @@ async fn main() {
             );
 
             match AsyncSmtpTransport::<Tokio1Executor>::relay(&config.server_host) {
-                Ok(transport) => Some(transport.credentials(creds).build()),
+                Ok(transport) => Some(
+                    transport
+                    .credentials(creds)
+                    .pool_config(
+                        PoolConfig::new()
+                        .max_size(10)
+                        .idle_timeout(Duration::from_secs(60))
+                    )
+                    .build()
+                ),
                 Err(e) => {
                     eprintln!("Error: Unable to connect to email server: {}", e);
                     None

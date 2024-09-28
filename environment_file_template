@@ -2,7 +2,7 @@
 DEMO_MODE_ACTIVE=false
 SIGNUP_LICENSING_KEY=coryisthebest
 
-# Leave blank after the equal sign if not enabling email functionality
+# Set to empty strings after the equal sign if not enabling email functionality
 SMTP_SERVER_HOST=smtp.gmail.com
 SMTP_USER_LOGIN=
 SMTP_USER_PASSWORD=
