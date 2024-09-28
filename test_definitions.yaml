@@ -155,7 +155,7 @@ tests:
               subtext: "(Week 3)"
               scores: 
                 - [0, 2, 3, 0, 0]
-              failing_score_labels: 
+              failing_score_labels:
                 - scoring_category_name: ""
                   values: ["No-Prep"]
 

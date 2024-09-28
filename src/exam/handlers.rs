@@ -1,3 +1,4 @@
+use askama::Template;
 use chrono::Local;
 use lettre::{message::header::ContentType, transport::smtp::authentication::Credentials, AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor};
 use sqlx::{Error, PgPool};
@@ -6,6 +7,7 @@ use std::{collections::HashMap, fs::File, io::Read};
 use crate::exam::models::{
     AchievedScoreLabel, BonusItem, Competency, FailingScoreLabels, Metadata, ScoringCategory, Test, TestDefinitionYaml, TestSection, FullTestSummary, TestTable, Testee, TestGradeSummary, TestConfig, Proctor, SMTPConfig
 };
+use crate::filters;
 
 
 
@@ -742,6 +744,13 @@ pub async fn retrieve_queue(pool: &PgPool) -> Result<Vec<(Testee, i32)>, TestErr
 // Send Email
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
+#[derive(Template)]
+#[template(path = "./primary_templates/email_template.html")] 
+struct EmailTemplate<'a> {
+    tests: &'a [FullTestSummary],
+    server_root_url: &'a str,
+}
+
 /// Given a testee_id and smtp_config, will generate an email containing all of the 
 pub async fn send_email(
     pool: &PgPool,
@@ -758,32 +767,14 @@ pub async fn send_email(
     let testee_tests: Option<Vec<FullTestSummary>> = fetch_testee_tests_by_id(pool, testee_id)
         .await?;
 
-    // Create the HTML email body
-    let email_body: String = match testee_tests {
-        Some(tests) => {
-            let mut body = String::new();
-            body.push_str("<h1>Dancexam Test Results</h1>");
-            body.push_str("<p>Thank you for taking a test with us. You can access your most recent test results below.</p>");
-            body.push_str("<table style=\"width:100%; border-collapse: collapse;\">");
-            body.push_str("<tr><th style=\"border: 1px solid black; padding: 8px;\">Test Name</th><th style=\"border: 1px solid black; padding: 8px;\">Test Date</th><th style=\"border: 1px solid black; padding: 8px;\">Proctor</th><th style=\"border: 1px solid black; padding: 8px;\">Access Test</th></tr>");
+    // Create the HTML email body using Askama
+    let email_body = EmailTemplate {
+        tests: testee_tests.as_deref().unwrap_or(&[]), // Use an empty slice if None
+        server_root_url: &server_root_url,
+    }
+    .render()
+    .map_err(|e| TestError::InternalServerError(format!("Error rendering email template: {}", e)))?;
 
-            for test in tests {
-                body.push_str(&format!(
-                    "<tr><td style=\"border: 1px solid black; padding: 8px;\">{}</td><td style=\"border: 1px solid black; padding: 8px;\">{}</td><td style=\"border: 1px solid black; padding: 8px;\">{} {}</td><td style=\"border: 1px solid black; padding: 8px;\"><a href=\"{}/test-results/{}\">View Results</a></td></tr>",
-                    test.test_name,
-                    test.test_date.format("%Y-%m-%d %H:%M:%S"),
-                    test.proctor.first_name,
-                    test.proctor.last_name,
-                    server_root_url,
-                    test.test_id,
-                ));
-            }
-
-            body.push_str("</table>");
-            body
-        },
-        _ => "<h1>You have no test results available. If someone didn't manually activate email sending for you, something is wrong.</h1>".to_string(),
-    };
 
     let email = Message::builder()
         .from(smtp_config.user_email.parse().map_err(|e| TestError::InternalServerError(format!("Error: Unable to parse SMTP config user_email \"{}\": {}", smtp_config.user_email, e)))?)
@@ -791,7 +782,7 @@ pub async fn send_email(
         .subject("Your Dancexam Results")
         .header(ContentType::TEXT_HTML)
         .body(email_body)
-        .map_err(|e| TestError::InternalServerError(format!("Error: Unable create email: {}", e)))?;
+        .map_err(|e| TestError::InternalServerError(format!("Error: Unable to create email: {}", e)))?;
 
     // Send the email
     smtp_mailer.send(email)
