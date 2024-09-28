@@ -27,6 +27,8 @@
                     {% when Some with (summary) %}
                     {% let grade_summary = summary.grade_summary.clone() %}
                     {% let test_date = Some(summary.test_date.clone()) %}
+                    {% let proctor_first_name = Some(summary.proctor.first_name.clone()) %}
+                    {% let proctor_last_name = Some(summary.proctor.last_name.clone()) %}
                     <!-- Test Results Section -->
                         {% include "../partial_templates/test_grade.html" %} 
 

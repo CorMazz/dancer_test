@@ -1,9 +1,13 @@
 use chrono::Local;
+use lettre::{message::header::ContentType, transport::smtp::authentication::Credentials, AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor};
 use sqlx::{Error, PgPool};
+use uuid::Uuid;
 use std::{collections::HashMap, fs::File, io::Read};
 use crate::exam::models::{
-    AchievedScoreLabel, BonusItem, Competency, FailingScoreLabels, Metadata, ScoringCategory, Test, TestDefinitionYaml, TestSection, FullTestSummary, TestTable, Testee, TestGradeSummary, TestConfig
+    AchievedScoreLabel, BonusItem, Competency, FailingScoreLabels, Metadata, ScoringCategory, Test, TestDefinitionYaml, TestSection, FullTestSummary, TestTable, Testee, TestGradeSummary, TestConfig, Proctor, SMTPConfig
 };
+
+
 
 
 
@@ -57,7 +61,7 @@ pub fn parse_test_definition(file_path: &str) -> Result<TestDefinitionYaml, serd
 /// Parses the test form data, which should have a format of a hashmap more or less like this
 /// 
 /// Takes in a test_template which it will then mutate, adding the results so that it is graded.
-pub fn parse_test_form_data(test: HashMap<String, String>, mut test_template: Test) -> Result<Test, TestError> {
+pub fn parse_test_form_data(test: HashMap<String, String>, mut test_template: Test, proctor: Option<Proctor>) -> Result<Test, TestError> {
 
     let mut user_info = HashMap::new();
 
@@ -167,7 +171,9 @@ pub fn parse_test_form_data(test: HashMap<String, String>, mut test_template: Te
         return Err(TestError::InternalServerError(e)); // Return the error
     }
 
-    println!("Graded Test:\n{:#?}", test_template);
+    // Assign the proctor
+    test_template.metadata.proctor = proctor;
+
     Ok(test_template)
 
 }
@@ -177,17 +183,20 @@ pub fn parse_test_form_data(test: HashMap<String, String>, mut test_template: Te
 // Save Test to Database
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
-/// Assumes that the graded_test has metadata with a testee object or the code panics.
+/// Assumes that the graded_test has metadata with a testee object or the code panics. Returns the testee id
 pub async fn save_test_to_database(
     pool: &PgPool,
     graded_test: Test,
-) -> Result<(), TestError> {
-    // Insert the testee or get the testee ID if the testee already exists
+) -> Result<Uuid, TestError> {
+
+    // Insert the testee in the database or get the testee ID if the testee already exists
+    // Since the graded_test has a testee that currently has None for its ID
+
     let testee = create_testee(
-        pool, 
-        &graded_test.metadata.testee.clone().expect("If this error was thrown, the invariant in the docstring of save_test_to_database was violated.").first_name, 
-        &graded_test.metadata.testee.clone().expect("If this error was thrown, the invariant in the docstring of save_test_to_database was violated.").last_name,
-        &graded_test.metadata.testee.clone().expect("If this error was thrown, the invariant in the docstring of save_test_to_database was violated.").email,
+        pool,  // The following garbage could be refactored TODO
+        &graded_test.metadata.testee.clone().ok_or_else(|| TestError::InternalServerError("If this error was thrown, the invariant in the docstring of save_test_to_database was violated.".to_string()))?.first_name, 
+        &graded_test.metadata.testee.clone().ok_or_else(|| TestError::InternalServerError("If this error was thrown, the invariant in the docstring of save_test_to_database was violated.".to_string()))?.last_name,
+        &graded_test.metadata.testee.clone().ok_or_else(|| TestError::InternalServerError("If this error was thrown, the invariant in the docstring of save_test_to_database was violated.".to_string()))?.email,
     ).await?;
 
     // Insert a new test record
@@ -200,8 +209,8 @@ pub async fn save_test_to_database(
 
     // Insert test metadata
     sqlx::query!(
-        "INSERT INTO test_metadata (test_id, test_name, minimum_percent, max_score, achieved_score, testee_id, test_date, is_passing, failure_explanation)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+        "INSERT INTO test_metadata (test_id, test_name, minimum_percent, max_score, achieved_score, testee_id, test_date, is_passing, proctor_id, failure_explanation)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
         test_id,
         graded_test.metadata.test_name,
         graded_test.metadata.minimum_percent,
@@ -210,6 +219,7 @@ pub async fn save_test_to_database(
         testee.id,
         Local::now().naive_utc(),
         graded_test.metadata.is_passing,
+        graded_test.metadata.proctor.ok_or_else(|| TestError::InternalServerError("If this error was thrown, the invariant in the docstring of save_test_to_database was violated.".to_string()))?.id,
         graded_test.metadata.failure_explanation.as_deref()
     ).execute(pool)
     .await?;
@@ -281,7 +291,7 @@ pub async fn save_test_to_database(
     };
 
 
-    Ok(())
+    Ok(testee.id.ok_or_else(|| TestError::InternalServerError("If this error was thrown, the invariant in the docstring of save_test_to_database was violated.".to_string()))?)
 }
 
 
@@ -328,11 +338,11 @@ pub async fn search_for_testee(
 // Fetch Test Results
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
-pub async fn fetch_test_results_by_id(pool: &PgPool, test_id: i32) -> Result<Option<Test>, TestError> {
+pub async fn fetch_test_results_by_id(pool: &PgPool, test_id: Uuid) -> Result<Option<Test>, TestError> {
     // Fetch test metadata
     let raw_metadata = match sqlx::query!(
         r#"
-        SELECT test_id, test_name, minimum_percent, max_score, achieved_score, testee_id, test_date, is_passing, failure_explanation
+        SELECT test_id, test_name, minimum_percent, max_score, achieved_score, testee_id, test_date, is_passing, proctor_id, failure_explanation
         FROM test_metadata
         WHERE test_id = $1
         "#,
@@ -343,6 +353,17 @@ pub async fn fetch_test_results_by_id(pool: &PgPool, test_id: i32) -> Result<Opt
         Some(data) => data,
         None => return Ok(None)
     };
+
+    let proctor = sqlx::query_as!(
+        Proctor,
+        "
+        SELECT id, first_name, last_name 
+        FROM users 
+        WHERE id = $1
+        ",
+        raw_metadata.proctor_id
+    ).fetch_one(pool)
+    .await?;
 
     // Fetch the testee
     let testee = sqlx::query_as!(
@@ -364,14 +385,15 @@ pub async fn fetch_test_results_by_id(pool: &PgPool, test_id: i32) -> Result<Opt
         test_date: Some(raw_metadata.test_date),
         is_graded: Some(()),
         is_passing: Some(raw_metadata.is_passing),
+        proctor: Some(proctor),
         failure_explanation: raw_metadata.failure_explanation,
         config_settings: TestConfig {live_grading: true, show_point_values:true}, // must be true to show results on graded test page
     };
 
     // Fetch test tables
-    let table_ids: Vec<i32> = sqlx::query!(
+    let table_ids: Vec<Uuid> = sqlx::query!(
         "SELECT id FROM test_tables WHERE test_id = $1
-        ORDER BY id ASC",
+        ORDER BY insert_counter ASC",
         test_id
     )
     .fetch_all(pool)
@@ -386,7 +408,7 @@ pub async fn fetch_test_results_by_id(pool: &PgPool, test_id: i32) -> Result<Opt
         // Fetch sections for each table
         let sections = sqlx::query!(
             "SELECT id, name FROM test_sections WHERE table_id = $1
-            ORDER BY id ASC",
+            ORDER BY insert_counter ASC",
             table_id
         )
         .fetch_all(pool)
@@ -401,7 +423,7 @@ pub async fn fetch_test_results_by_id(pool: &PgPool, test_id: i32) -> Result<Opt
                 SELECT id, section_id, name, values
                 FROM scoring_categories
                 WHERE section_id = $1
-                ORDER BY id ASC
+                ORDER BY insert_counter ASC
                 "#,
                 section.id
             )
@@ -421,7 +443,7 @@ pub async fn fetch_test_results_by_id(pool: &PgPool, test_id: i32) -> Result<Opt
                 SELECT id, section_id, name, scores, subtext, antithesis, achieved_scores, achieved_score_labels, failing_score_labels
                 FROM competencies
                 WHERE section_id = $1
-                ORDER BY id ASC
+                ORDER BY insert_counter ASC
                 "#,
                 section.id
             )
@@ -465,7 +487,7 @@ pub async fn fetch_test_results_by_id(pool: &PgPool, test_id: i32) -> Result<Opt
     // Fetch bonus items
     let bonus_items = sqlx::query!(
         "SELECT id, test_id, name, score, achieved FROM bonus_items WHERE test_id = $1
-        ORDER BY id ASC",
+        ORDER BY insert_counter ASC",
         test_id
     )
     .fetch_all(pool)
@@ -495,24 +517,34 @@ pub async fn fetch_test_results_by_id(pool: &PgPool, test_id: i32) -> Result<Opt
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
 /// Grab all the tests that a given testee has taken, by their testee id. 
-/// By virtue of there being a testee, they have taken at least one test.
+/// If the testee does not exist, returns an error. If there are no tests, returns None.
 pub async fn fetch_testee_tests_by_id(
     pool: &PgPool, 
-    testee_id: i32
+    testee_id: Uuid
 ) -> Result<Option<Vec<FullTestSummary>>, TestError> {
 
-    let testee = match fetch_testee_by_id(pool, testee_id).await? {
-        Some(data) => data,
-        None => return Ok(None),
-    };
+    let testee = fetch_testee_by_id(pool, testee_id)
+        .await? 
+        .ok_or_else(|| TestError::InternalServerError(format!("No testee available with that ID.")))?;
 
-    // By virtue of there being a testee, they have taken at least one test.
-    Ok(Some(sqlx::query!(
+    let testee_tests: Vec<FullTestSummary> = sqlx::query!(
         "
-        SELECT test_id, test_name, test_date, achieved_score, minimum_percent, max_score, is_passing, failure_explanation 
-        FROM test_metadata 
-        WHERE testee_id = $1
-        ORDER BY test_date DESC
+        SELECT 
+            tm.test_id, 
+            tm.test_name, 
+            tm.test_date, 
+            tm.achieved_score, 
+            tm.minimum_percent, 
+            tm.max_score, 
+            tm.is_passing, 
+            tm.failure_explanation,
+            u.id,
+            u.first_name, 
+            u.last_name
+        FROM test_metadata tm
+        JOIN users u ON tm.proctor_id = u.id
+        WHERE tm.testee_id = $1
+        ORDER BY tm.test_date DESC
         ",
         testee.id
     )
@@ -523,6 +555,7 @@ pub async fn fetch_testee_tests_by_id(
         test_id: record.test_id, 
         test_date: record.test_date,
         test_name: record.test_name,
+        proctor: Proctor { id: record.id, first_name: record.first_name, last_name: record.last_name },
         grade_summary: TestGradeSummary {
             achieved_score: record.achieved_score,
             achieved_percent: record.achieved_score as f32 / record.max_score as f32,
@@ -532,7 +565,10 @@ pub async fn fetch_testee_tests_by_id(
             failure_explanation: record.failure_explanation
         }
     }
-    ).collect()))
+    ).collect();
+
+    // Return None if no tests
+    Ok((!testee_tests.is_empty()).then_some(testee_tests))
 
 }
 
@@ -541,7 +577,7 @@ pub async fn fetch_testee_tests_by_id(
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
 /// Fetch a testee from the testees table by their id
-pub async fn fetch_testee_by_id(pool: &PgPool, testee_id: i32) -> Result<Option<Testee>, TestError> {
+pub async fn fetch_testee_by_id(pool: &PgPool, testee_id: Uuid) -> Result<Option<Testee>, TestError> {
     let testee = sqlx::query_as!(
         Testee,
         "SELECT id, first_name, last_name, email FROM testees WHERE id = $1",
@@ -578,7 +614,7 @@ pub async fn create_testee(pool: &PgPool, first_name: &str, last_name: &str, ema
 // Enqueue Testee
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
-pub async fn enqueue_testee(pool: &PgPool, testee_id: i32, test_definition_index: i32) -> Result<(), TestError> {
+pub async fn enqueue_testee(pool: &PgPool, testee_id: Uuid, test_definition_index: i32) -> Result<(), TestError> {
     sqlx::query!(
         "INSERT INTO queue (testee_id, test_definition_index)
         VALUES ($1, $2)
@@ -601,7 +637,7 @@ pub async fn enqueue_testee(pool: &PgPool, testee_id: i32, test_definition_index
 /// If a testee_id is given, remove that person, (or throw an error if not found)
 pub async fn dequeue_testee(
     pool: &PgPool,
-    testee_id: Option<i32>,
+    testee_id: Option<Uuid>,
     test_definition_index: Option<i32>,
 ) -> Result<Option<(Testee, i32)>, TestError> {
 
@@ -700,4 +736,65 @@ pub async fn retrieve_queue(pool: &PgPool) -> Result<Vec<(Testee, i32)>, TestErr
     }).collect();
 
     Ok(queue)
+}
+
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
+// Send Email
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
+
+/// Given a testee_id and smtp_config, will generate an email containing all of the 
+pub async fn send_email(
+    pool: &PgPool,
+    smtp_mailer: &AsyncSmtpTransport<Tokio1Executor>, 
+    smtp_config: SMTPConfig,
+    testee_id: Uuid,
+    server_root_url: String,
+) -> Result<lettre::transport::smtp::response::Response, TestError> {
+
+    let testee = fetch_testee_by_id(pool, testee_id)
+        .await?
+        .ok_or_else(|| TestError::InternalServerError("No testee with that ID found.".to_string()))?;
+
+    let testee_tests: Option<Vec<FullTestSummary>> = fetch_testee_tests_by_id(pool, testee_id)
+        .await?;
+
+    // Create the HTML email body
+    let email_body: String = match testee_tests {
+        Some(tests) => {
+            let mut body = String::new();
+            body.push_str("<h1>Dancexam Test Results</h1>");
+            body.push_str("<p>Thank you for taking a test with us. You can access your most recent test results below.</p>");
+            body.push_str("<table style=\"width:100%; border-collapse: collapse;\">");
+            body.push_str("<tr><th style=\"border: 1px solid black; padding: 8px;\">Test Name</th><th style=\"border: 1px solid black; padding: 8px;\">Test Date</th><th style=\"border: 1px solid black; padding: 8px;\">Proctor</th><th style=\"border: 1px solid black; padding: 8px;\">Access Test</th></tr>");
+
+            for test in tests {
+                body.push_str(&format!(
+                    "<tr><td style=\"border: 1px solid black; padding: 8px;\">{}</td><td style=\"border: 1px solid black; padding: 8px;\">{}</td><td style=\"border: 1px solid black; padding: 8px;\">{} {}</td><td style=\"border: 1px solid black; padding: 8px;\"><a href=\"{}/test-results/{}\">View Results</a></td></tr>",
+                    test.test_name,
+                    test.test_date.format("%Y-%m-%d %H:%M:%S"),
+                    test.proctor.first_name,
+                    test.proctor.last_name,
+                    server_root_url,
+                    test.test_id,
+                ));
+            }
+
+            body.push_str("</table>");
+            body
+        },
+        _ => "<h1>You have no test results available. If someone didn't manually activate email sending for you, something is wrong.</h1>".to_string(),
+    };
+
+    let email = Message::builder()
+        .from(smtp_config.user_email.parse().map_err(|e| TestError::InternalServerError(format!("Error: Unable to parse SMTP config user_email \"{}\": {}", smtp_config.user_email, e)))?)
+        .to(testee.email.parse().map_err(|e| TestError::InternalServerError(format!("Error: Unable to parse testee email \"{}\": {}", testee.email, e)))?)
+        .subject("Your Dancexam Results")
+        .header(ContentType::TEXT_HTML)
+        .body(email_body)
+        .map_err(|e| TestError::InternalServerError(format!("Error: Unable create email: {}", e)))?;
+
+    // Send the email
+    smtp_mailer.send(email)
+        .await
+        .map_err(|e| TestError::InternalServerError(format!("Error: Unable to send email: {}", e)))
 }

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, first_name, last_name, email FROM testees WHERE id = $1",
+  "query": "\n        SELECT id, first_name, last_name \n        FROM users \n        WHERE id = $1\n        ",
   "describe": {
     "columns": [
       {
@@ -11,17 +11,12 @@
       {
         "ordinal": 1,
         "name": "first_name",
-        "type_info": "Text"
+        "type_info": "Varchar"
       },
       {
         "ordinal": 2,
         "name": "last_name",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 3,
-        "name": "email",
-        "type_info": "Text"
+        "type_info": "Varchar"
       }
     ],
     "parameters": {
@@ -32,9 +27,8 @@
     "nullable": [
       false,
       false,
-      false,
       false
     ]
   },
-  "hash": "b7ce034defb6412226150a016420e3e32f24908f31c90523eaf5219c9430bc85"
+  "hash": "642ea2d38411de7d48c8448783b464f143efc8ec34149cd5431c1856691dfa9f"
 }

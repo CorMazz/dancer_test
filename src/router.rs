@@ -24,7 +24,6 @@ pub fn create_router(app_state: Arc<AppState>) -> Router {
         .route("/administer-test/:test_index", get(get_test_page).post(post_test_form))
         .route("/private/grade-test/:test_index", post(post_grade_test))
         // .route("/api/v1/test-results/:test_id", get(get_json_test_results))
-        .route("/test-results/:test_index", get(get_test_results))
         .route("/search-testee", get(get_search_testee_form))
         .route("/test-summaries/:testee_id", get(get_test_summaries))
         .route("/queue/dequeue", delete(delete_dequeue))
@@ -39,7 +38,7 @@ pub fn create_router(app_state: Arc<AppState>) -> Router {
         .route("/login", get(get_login_page).post(post_login_form))
         .route("/queue", get(get_queue).post(post_queue))
         .route("/private/user-dropdown", get(get_user_dropdown)) 
-
+        .route("/test-results/:test_id", get(get_test_results))
     .route_layer(middleware::from_fn_with_state(app_state.clone(), check_auth_middleware))
     // Anything above this line checks if the user is logged in and adds an AuthStatus extension to the request
 

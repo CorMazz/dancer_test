@@ -2,6 +2,12 @@
 DEMO_MODE_ACTIVE=false
 SIGNUP_LICENSING_KEY=coryisthebest
 
+# Set to empty strings after the equal sign if not enabling email functionality
+SMTP_SERVER_HOST=smtp.gmail.com
+SMTP_USER_LOGIN=
+SMTP_USER_PASSWORD=
+SMTP_USER_EMAIL=
+
 POSTGRES_HOST=127.0.0.1
 POSTGRES_PORT=6500
 POSTGRES_USER=

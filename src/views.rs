@@ -2,12 +2,14 @@ use std::{collections::HashMap, sync::Arc};
 
 use askama_axum::Template; // bring trait in scope
 use axum::{
-    extract::{Path, Query, State}, http::{HeaderMap, StatusCode}, response::{Html, IntoResponse, Redirect}, Extension, Form, Json
+    extract::{Host, Path, Query, State}, http::{HeaderMap, StatusCode}, response::{Html, IntoResponse, Redirect}, Extension, Form, Json
 };
 use axum_extra::extract::CookieJar;
 use chrono::NaiveDateTime;
+use lettre::{transport::smtp::authentication::Credentials, AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor};
 use serde::Deserialize;
 use serde_json::json;
+use uuid::Uuid;
 
 use crate::{
     auth::{
@@ -15,8 +17,8 @@ use crate::{
         middleware::{AuthError, AuthStatus},
         model::User
     }, exam::{
-        handlers::{create_testee, dequeue_testee, enqueue_testee, fetch_test_results_by_id, fetch_testee_by_id, fetch_testee_tests_by_id, parse_test_form_data, retrieve_queue, save_test_to_database, search_for_testee, TestError}, 
-        models::{FullTestSummary, Test, TestGradeSummary, Testee}
+        handlers::{create_testee, dequeue_testee, enqueue_testee, fetch_test_results_by_id, fetch_testee_by_id, fetch_testee_tests_by_id, parse_test_form_data, retrieve_queue, save_test_to_database, search_for_testee, send_email, TestError}, 
+        models::{FullTestSummary, Proctor, Test, TestGradeSummary, Testee}
     }, filters, AppState
 };
 
@@ -262,17 +264,34 @@ pub async fn get_test_page(
     }
 }
 
+/// Handles parsing the test form, saving the graded test to the database, and emailing test results to the testee.
 pub async fn post_test_form(
     State(data): State<Arc<AppState>>,
+    Extension(auth_status): Extension<AuthStatus>,
     Path(test_index): Path<i32>,
+    Host(server_root_url): Host,
     Form(test): Form<HashMap<String, String>>,
 ) -> impl IntoResponse {
 
+    let proctor = match auth_status {
+        AuthStatus::Authorized(user) => Proctor { id: user.user.id, first_name: user.user.first_name, last_name: user.user.last_name},
+        AuthStatus::Unauthorized(e) => return error_response(&format!("Unauthorized: {:?}", e)).into_response()
+    };
+
     if let Some(test_definition) = data.test_configurations.tests.get(test_index as usize) {
-        match parse_test_form_data(test, test_definition.clone()) {
+        match parse_test_form_data(test, test_definition.clone(), Some(proctor)) {
             Ok(graded_test) => {
                 match save_test_to_database(&data.db, graded_test).await {
-                    Ok(_) => Redirect::to("/dashboard").into_response(),
+                    Ok(testee_id) => {
+                        if let (Some(smtp_config), Some(smtp_mailer)) = (data.smtp_config.clone(), data.smtp_mailer.clone()) {
+                            tokio::spawn(async move {
+                                if let Err(e) = send_email(&data.db, &smtp_mailer, smtp_config, testee_id, server_root_url).await {
+                                    eprintln!("Failed to send email: {:?}", e);
+                                }
+                            });
+                        };
+                        Redirect::to("/dashboard").into_response()
+                    },
                     Err(e) => error_response(&format!("Error saving test to database: {:?}", e)).into_response()
                 }
             },
@@ -292,6 +311,8 @@ pub async fn post_test_form(
 pub struct GradeTestTemplate {
     grade_summary: TestGradeSummary,
     test_date: Option<NaiveDateTime>,
+    proctor_first_name: Option<String>,
+    proctor_last_name: Option<String>,
 }
 
 /// Used to grade a test on the fly.
@@ -301,7 +322,7 @@ pub async fn post_grade_test(
     Form(test): Form<HashMap<String, String>>,
 ) -> impl IntoResponse {
     if let Some(test_definition) = data.test_configurations.tests.get(test_index as usize) {
-        match parse_test_form_data(test, test_definition.clone()) {
+        match parse_test_form_data(test, test_definition.clone(), None) {
             Ok(mut parsed_test) => {
                 
                 match parsed_test.grade() {
@@ -316,8 +337,11 @@ pub async fn post_grade_test(
 
                 let template = GradeTestTemplate {
                     grade_summary,
-                    test_date: None // Feed in no test date because we don't need the current date when administering a test
+                     // Feed in None for the following stuff because we don't need it when administering a test
                     // Since this function is used to grade a test on the fly
+                    test_date: None,
+                    proctor_first_name: None,
+                    proctor_last_name: None
                 };
 
                 return (StatusCode::OK, Html(template.render().unwrap())).into_response()
@@ -366,7 +390,7 @@ pub struct GradedTestTemplate {
 
 pub async fn get_test_results(
     State(data): State<Arc<AppState>>,
-    Path(test_id): Path<i32>,
+    Path(test_id): Path<Uuid>,
 ) -> impl IntoResponse {
     match fetch_test_results_by_id(&data.db, test_id).await {
         Ok(Some(test)) => {
@@ -378,7 +402,7 @@ pub async fn get_test_results(
 
             let test_summary = match test.full_summary() {
                 Ok(summary) => Some(summary),
-                Err(e) => return error_response(&format!("Error summarizing test in post_grade_test function: {:?}", e)).into_response()
+                Err(e) => return error_response(&format!("Error summarizing test in get_test_results function: {:?}", e)).into_response()
             };
 
             let template = GradedTestTemplate {
@@ -449,7 +473,7 @@ pub struct TestSummariesTemplate {
 
 pub async fn get_test_summaries(
     State(data): State<Arc<AppState>>,
-    Path(testee_id): Path<i32>,
+    Path(testee_id): Path<Uuid>,
 ) -> impl IntoResponse {
 
     let option_test_summaries = match fetch_testee_tests_by_id(&data.db, testee_id).await {
@@ -559,7 +583,7 @@ pub async fn post_queue(
 
 #[derive(Deserialize, Debug)]
 pub struct DequeueParams {
-    testee_id: Option<i32>,
+    testee_id: Option<Uuid>,
     test_definition_index: Option<i32>,
 }
 
@@ -600,3 +624,48 @@ pub async fn delete_dequeue(
 
     (StatusCode::OK, Html("")).into_response()
 }
+
+// #######################################################################################################################################################
+// get send email
+// #######################################################################################################################################################
+
+
+// /// This is intended to enable you to manually force the server to send someone an email with links to their results.
+// pub async fn post_send_email(State(data): State<Arc<AppState>>) -> impl IntoResponse {
+    
+//     let smtp_config = match &data.smtp_config {
+//         Some(config) => config,
+//         None => return (StatusCode::OK, error_response("SMTP not set up. No email functionality available."))
+//     };
+
+//     // Create the email message
+//     let email = Message::builder()
+//         .from(smtp_config.user_email.parse().unwrap())
+//         .to("paulrcreamer@gmail.com".parse().unwrap()) // Change this to the actual recipient's email
+//         .subject("Test Email")
+//         .body("This is a test email sent using Lettre. Paul if you see this, this means the email functionality is coming together".to_string())
+//         .unwrap();
+
+//     // Set up the SMTP transport
+//     let creds = Credentials::new(
+//         smtp_config.user_login.clone(),
+//         smtp_config.user_password.clone(),
+//     );
+
+//     let mailer: AsyncSmtpTransport<Tokio1Executor> = AsyncSmtpTransport::<Tokio1Executor>::relay(&smtp_config.server_host)
+//         .unwrap()
+//         .credentials(creds)
+//         .build();
+
+//     // Send the email
+//     match mailer.send(email).await {
+//         Ok(_) => {
+//             println!("Email sent successfully!");
+//             return (StatusCode::OK, error_response("Email sent."))
+//         }
+//         Err(e) => {
+//             eprintln!("Failed to send email: {:?}", e);
+//             return (StatusCode::OK, error_response("Email not sent."))
+//         }
+//     }
+// }
