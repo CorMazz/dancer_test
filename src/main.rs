@@ -6,8 +6,10 @@ mod filters;
 mod exam;
 
 use config::SecretsConfig;
-use exam::{handlers::parse_test_definition, models::TestDefinitionYaml};
-use std::sync::Arc;
+use exam::{handlers::parse_test_definition, models::{SMTPConfig, TestDefinitionYaml}};
+use lettre::{transport::smtp::authentication::Credentials, AsyncSmtpTransport, Tokio1Executor};
+use lettre::transport::smtp::PoolConfig;
+use std::{sync::Arc, time::Duration};
 
 use axum::http::{
     header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
@@ -23,6 +25,8 @@ pub struct AppState {
     db: Pool<Postgres>,
     env: SecretsConfig,
     redis_client: Client,
+    smtp_config: Option<SMTPConfig>,
+    smtp_mailer: Option<AsyncSmtpTransport<Tokio1Executor>>,
     test_configurations: TestDefinitionYaml,
 }
 
@@ -33,6 +37,79 @@ async fn main() {
     dotenv().ok();
 
     let config = SecretsConfig::init();
+
+    let smtp_config = match (
+        &config.smtp_server_host,
+        &config.smtp_user_login,
+        &config.smtp_user_password,
+        &config.smtp_user_email,
+    ) {
+        (host, user, password, email) if host.is_empty() && user.is_empty() && password.is_empty() && email.is_empty() => {
+            println!("\nEmail functionality disabled since all SMTP environment variables were left blank.");
+            None
+        },
+        (host, _, _, _) if host.is_empty() => {
+            println!("\nEmail functionality disabled since the SMTP_SERVER_HOST environment variable was left blank.");
+            None
+        },
+        (_, user, _, _) if user.is_empty() => {
+            println!("\nEmail functionality disabled since the SMTP_USER_LOGIN environment variable was left blank.");
+            None
+        },
+        (_, _, password, _) if password.is_empty() => {
+            println!("\nEmail functionality disabled since the SMTP_USER_PASSWORD environment variable was left blank.");
+            None
+        },
+        (_, _, _, email) if email.is_empty() => {
+            println!("\nEmail functionality disabled since the SMTP_USER_EMAIL environment variable was left blank.");
+            None
+        },
+        (host, user, password, email) if !host.is_empty() && !user.is_empty() && !password.is_empty() && !email.is_empty() => {
+            
+            println!("\nEmail functionality is enabled with the following settings:\n\tServer: {}\n\tUsername: {}\n\tEmail: {}\n", host, user, email);
+            
+            Some(SMTPConfig {
+                server_host: host.to_string(),
+                user_login: user.to_string(),
+                user_password: password.to_string(),
+                user_email: email.to_string(),
+            })
+        },
+        _ => {
+            panic!("Something odd is happening in the SMTP settings creation. Ensure you're feeding strings in as the environment variables.");
+        },
+    };
+
+    // I can't figure out how to make this more idiomatic. 
+    // Create the SMTP transport connection pool
+    let smtp_mailer: Option<AsyncSmtpTransport<Tokio1Executor>> = match &smtp_config {
+        Some(config) => {
+            let creds = Credentials::new(
+                config.user_login.clone(),
+                config.user_password.clone(),
+            );
+
+            match AsyncSmtpTransport::<Tokio1Executor>::relay(&config.server_host) {
+                Ok(transport) => Some(
+                    transport
+                    .credentials(creds)
+                    .pool_config(
+                        PoolConfig::new()
+                        .max_size(10)
+                        .idle_timeout(Duration::from_secs(60))
+                    )
+                    .build()
+                ),
+                Err(e) => {
+                    eprintln!("Error: Unable to connect to email server: {}", e);
+                    None
+                }
+            }
+
+        },
+        None => None, // This feels wrong and like I could make it less verbose.
+    };
+
 
     let tests = parse_test_definition("test_definitions.yaml").expect("Error parsing test_definition.yaml");
 
@@ -77,6 +154,8 @@ async fn main() {
     let app = create_router(Arc::new(AppState {
         db: pool.clone(),
         env: config.clone(),
+        smtp_config,
+        smtp_mailer,
         redis_client: redis_client.clone(),
         test_configurations: tests,
     }))

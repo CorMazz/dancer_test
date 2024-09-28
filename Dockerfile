@@ -19,6 +19,10 @@ WORKDIR /app
 # Install host build dependencies.
 RUN apk add --no-cache clang lld musl-dev git
 
+ENV SQLX_OFFLINE=true
+
+RUN cargo install sqlx-cli --version 0.8.1 --no-default-features --features postgres
+
 # Build the application.
 # Leverage a cache mount to /usr/local/cargo/registry/
 # for downloaded dependencies, a cache mount to /usr/local/cargo/git/db
@@ -28,10 +32,6 @@ RUN apk add --no-cache clang lld musl-dev git
 # source code into the container. Once built, copy the executable to an
 # output directory before the cache mounted /app/target is unmounted.
 
-ENV SQLX_OFFLINE=true
-
-RUN cargo install sqlx-cli --version 0.8.1 --no-default-features --features postgres
-
 RUN --mount=type=bind,source=src,target=src \
     --mount=type=bind,source=templates,target=templates \
     --mount=type=bind,source=.sqlx,target=.sqlx \
@@ -40,7 +40,7 @@ RUN --mount=type=bind,source=src,target=src \
     --mount=type=cache,target=/app/target/ \
     --mount=type=cache,target=/usr/local/cargo/git/db \
     --mount=type=cache,target=/usr/local/cargo/registry/ \ 
-    cargo build --locked --release && \
+    cargo build --locked --release -vv && \
     cp ./target/release/$APP_NAME /bin/server
     
 

@@ -1,17 +1,17 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, test_id, name, score, achieved FROM bonus_items WHERE test_id = $1\n        ORDER BY id ASC",
+  "query": "SELECT id, test_id, name, score, achieved FROM bonus_items WHERE test_id = $1\n        ORDER BY insert_counter ASC",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
         "name": "id",
-        "type_info": "Int4"
+        "type_info": "Uuid"
       },
       {
         "ordinal": 1,
         "name": "test_id",
-        "type_info": "Int4"
+        "type_info": "Uuid"
       },
       {
         "ordinal": 2,
@@ -31,7 +31,7 @@
     ],
     "parameters": {
       "Left": [
-        "Int4"
+        "Uuid"
       ]
     },
     "nullable": [
@@ -42,5 +42,5 @@
       false
     ]
   },
-  "hash": "aede8edbc60381f44efca1a77fbd7e246cc6c0d0c1323f845fae918e4cc9049b"
+  "hash": "1510d9dd13dac536c0b5f8d3b49aa1902e2df56cb6a9c650417b7ac07bbd7c73"
 }

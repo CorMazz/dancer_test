@@ -11,6 +11,11 @@ pub struct SecretsConfig {
     pub redis_url: String,
     pub client_origin: String,
 
+    pub smtp_server_host: String,
+    pub smtp_user_login: String,
+    pub smtp_user_password: String,
+    pub smtp_user_email: String,
+
     pub access_token_private_key: String,
     pub access_token_public_key: String,
     pub access_token_expires_in: String,
@@ -31,6 +36,11 @@ impl SecretsConfig {
         let redis_url = get_env_var("REDIS_URL");
         let client_origin = get_env_var("CLIENT_ORIGIN");
 
+        let smtp_server_host = get_env_var("SMTP_SERVER_HOST");
+        let smtp_user_login = get_env_var("SMTP_USER_LOGIN");
+        let smtp_user_password = get_env_var("SMTP_USER_PASSWORD");
+        let smtp_user_email = get_env_var("SMTP_USER_EMAIL");
+
         let access_token_private_key = get_env_var("ACCESS_TOKEN_PRIVATE_KEY");
         let access_token_public_key = get_env_var("ACCESS_TOKEN_PUBLIC_KEY");
         let access_token_expires_in = get_env_var("ACCESS_TOKEN_EXPIRED_IN");
@@ -48,6 +58,10 @@ impl SecretsConfig {
             database_url,
             redis_url,
             client_origin,
+            smtp_server_host,
+            smtp_user_login,
+            smtp_user_password,
+            smtp_user_email,
             access_token_private_key,
             access_token_public_key,
             refresh_token_private_key,
