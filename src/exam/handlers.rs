@@ -117,15 +117,15 @@ pub fn parse_test_form_data(test: HashMap<String, String>, mut test_template: Te
                         }
                         },
 
-                        (Err(e), _, _, _, _, _) => eprintln!("Failed to parse table index key '{}': {:?}", key, e),
-                        (_, Err(e), _, _, _, _) => eprintln!("Failed to parse section index from key '{}': {:?}", key, e),
-                        (_, _, Err(e), _, _, _) => eprintln!("Failed to parse item index from key'{}': {:?}", key, e),
-                        (_, _, _, Err(e), _, _) => eprintln!("Failed to parse scoring category index from key '{}': {:?}", key, e),
-                        (_, _, _, _, Err(e), _) => eprintln!("Failed to parse scoring category label index from value '{}': {:?}", value, e),
-                        (_, _, _, _, _, Err(e)) => eprintln!("Failed to parse score from value '{}': {:?}", value, e),
+                        (Err(e), _, _, _, _, _) => return Err(TestError::InternalServerError(format!("Failed to parse table index key '{}': {:?}", key, e))),
+                        (_, Err(e), _, _, _, _) => return Err(TestError::InternalServerError(format!("Failed to parse section index from key '{}': {:?}", key, e))),
+                        (_, _, Err(e), _, _, _) => return Err(TestError::InternalServerError(format!("Failed to parse item index from key'{}': {:?}", key, e))),
+                        (_, _, _, Err(e), _, _) => return Err(TestError::InternalServerError(format!("Failed to parse scoring category index from key '{}': {:?}", key, e))),
+                        (_, _, _, _, Err(e), _) => return Err(TestError::InternalServerError(format!("Failed to parse scoring category label index from value '{}': {:?}", value, e))),
+                        (_, _, _, _, _, Err(e)) => return Err(TestError::InternalServerError(format!("Failed to parse score from value '{}': {:?}", value, e))),
                     }
                 }
-                _ => eprintln!("The key '{}' and value '{}' should be formatted as follows 'table_index---0---section_index---0---item_index---0---scoring_category_index---1': 'scoring_category_value_index---0---points---1'", key, value),
+                _ => return Err(TestError::InternalServerError(format!("The key '{}' and value '{}' should be formatted as follows 'table_index---0---section_index---0---item_index---0---scoring_category_index---1': 'scoring_category_value_index---0---points---1'", key, value))),
             }
         } else if key.starts_with("bonus_index") {
             if let Some(bonus_items) = &mut test_template.bonus_items {
@@ -136,11 +136,11 @@ pub fn parse_test_form_data(test: HashMap<String, String>, mut test_template: Te
                             (Ok(bonus_index), Ok(_)) => {
                                 let _ = bonus_items[bonus_index].achieved.insert(true);
                             },
-                            (Err(e), _) => eprintln!("Failed to parse bonus index from key '{}': {:?}", key, e),
-                            (_, Err(e)) => eprintln!("Failed to parse points from value '{}': {:?}", value, e),
+                            (Err(e), _) => return Err(TestError::InternalServerError(format!("Failed to parse bonus index from key '{}': {:?}", key, e))),
+                            (_, Err(e)) => return Err(TestError::InternalServerError(format!("Failed to parse points from value '{}': {:?}", value, e))),
                         }
                     }
-                    _ => eprintln!("The key '{}' should be formatted as 'bonus_index---<index>', but got '{}'", key, key),
+                    _ => return Err(TestError::InternalServerError(format!("The key '{}' should be formatted as 'bonus_index---<index>', but got '{}'", key, key))),
                 }
             }
         } else {
