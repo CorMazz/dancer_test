@@ -26,8 +26,8 @@ jobs:
         with:
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/dancexam-server:latest
-          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/dancexam-server:latest
-          cache-to: type=inline
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   deploy:
     runs-on: ubuntu-latest

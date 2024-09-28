@@ -32,6 +32,15 @@
                     <input type="email" name="email" id="email" required 
                         class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                 </div>
+
+                {% if signup_key_required %}
+                    <!-- Sign-up Key -->
+                    <div>
+                        <label for="signup_key" class="block text-sm font-medium text-gray-700">Sign-up Key</label>
+                        <input type="signup_key" name="signup_key" id="signup_key" required 
+                            class="mt-1 p-2 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                {% endif %}
                 
                 <!-- Test Type (Radio Buttons) -->
                 <div>
