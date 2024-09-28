@@ -36,22 +36,29 @@
                 <!-- Test Type (Radio Buttons) -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Test Type</label>
-                    <div class="mt-2 flex items-center">
-                        {% for test_name in test_names %}
-                            <div class="flex items-center mr-2">
+                    <div class="mt-2 flex flex-col items-center">
+                        <div class="flex items-center mr-2">
+                            {% for test_name in test_names %}   
                                 {# This loop index corresponds to the test_index in the parsed test definition Vec #}
-                                <input type="radio" name="test_definition_index" id="{{ loop.index0 }}"" value="{{ loop.index0 }}" required 
-                                    class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500">
-                                <label for="{{ loop.index0 }}" class="ml-2 block text-sm font-medium text-gray-700">{{ test_name }}</label>
-                            </div>
-                        {% endfor %}
+                                <div class="mx-2">
+                                    <input type="radio" name="test_definition_index" id="{{ loop.index0 }}"" value="{{ loop.index0 }}" required 
+                                        class="hidden peer">
+                                    <label 
+                                        for="{{ loop.index0 }}" 
+                                        class="inline-flex items-center justify-center w-full h-12 p-2 text-sm font-medium text-gray-900 bg-white border-2 border-gray-300 rounded-lg cursor-pointer peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-transparent hover:bg-gray-100 hover:shadow-sm transition duration-300"
+                                        >
+                                        {{ test_name }}
+                                    </label>
+                                </div>
+                            {% endfor %}
+                        </div>
                     </div>
                 </div>
                 
                 <!-- Submit Button -->
                 <div>
                     <button type="submit" 
-                            class="{% if is_demo_mode %}bg-gray-300 text-gray-900{% else %}text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500{% endif %}inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md"
+                            class="{% if is_demo_mode %}bg-gray-300 text-gray-900{% else %}text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500{% endif %}inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md"
                             {% if is_demo_mode %}disabled{% else %}{% endif %}>
                         {% if is_demo_mode %}Submission Disabled for Demo{% else %}Join Queue{% endif %}
                     </button>
@@ -92,7 +99,7 @@
                         hx-target="#primary-content"
                         hx-confirm="Administer Test for {{ testee.first_name }} {{testee.last_name}}?"
                         hx-push-url="true"
-                        class="text-indigo-600 hover:text-indigo-900"
+                        class="text-blue-600 hover:text-blue-900"
                         {% if is_demo_mode %}disabled{% else %}{% endif %}
                         >Administer Test</button> 
                         <span>|</span>

@@ -12,7 +12,11 @@
 
     <!-- Add Test Definition Cards -->
     {% for test_name in test_names %}
-      <a href="/administer-test/{{ loop.index0 }}" class="bg-gray-200 hover:bg-gray-300 transition duration-300 rounded-lg shadow-lg p-6 flex-1 md:mr-2">
+      <a 
+        href="/administer-test/{{ loop.index0 }}" 
+        hx-boost="true" hx-select="#primary-content" hx-target="#primary-content" hx-swap="outerHTML"
+        class="bg-gray-200 hover:bg-gray-300 transition duration-300 rounded-lg shadow-lg p-6 flex-1 md:mr-2"
+      >
         <h5 class="text-xl font-semibold text-gray-800">{{ test_name }}</h5>
         <p class="mt-2 text-gray-600">Administer this test.</p>
       </a>

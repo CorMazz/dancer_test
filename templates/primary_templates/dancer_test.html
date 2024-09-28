@@ -23,8 +23,11 @@
 
             
             <div class="hidden sm:block justify-center">
+                
+                {# Show the graded test template #}
                 {% match test_summary %}
                     {% when Some with (summary) %}
+                    {# Define variables that the test_grade template needs #}
                     {% let grade_summary = summary.grade_summary.clone() %}
                     {% let test_date = Some(summary.test_date.clone()) %}
                     {% let proctor_first_name = Some(summary.proctor.first_name.clone()) %}
@@ -32,6 +35,7 @@
                     <!-- Test Results Section -->
                         {% include "../partial_templates/test_grade.html" %} 
 
+                    {# If it's not a graded test, optionally show the live test grading section. #}
                     {% when None %}
 
                         {% if test.metadata.config_settings.live_grading %}
@@ -44,7 +48,12 @@
                         {% endif %}
 
                         <div class="flex flex-col text-center">
-                            <input type="submit" value={% if is_demo_mode %}"Submission Disabled for Demo"{% else %}Submit{% endif %} class="{% if is_demo_mode %}bg-gray-300 text-gray-900{% else %}bg-blue-500 hover:bg-blue-700 text-white{% endif %} mx-auto font-bold py-2 px-4 mb-4 rounded" {% if is_demo_mode %}disabled{% else %}{% endif %}>
+                            <input 
+                                type="submit" 
+                                value={% if is_demo_mode %}"Submission Disabled for Demo"{% else %}Submit{% endif %}
+                                class="{% if is_demo_mode %}bg-gray-300 text-gray-900{% else %}bg-blue-500 hover:bg-blue-700 text-white{% endif %} mx-auto font-bold py-2 px-4 mb-4 rounded" {% if is_demo_mode %}disabled{% else %}{% endif %}
+                                hx-post="/administer-test/{{ test_index }}" hx-select="#primary-content" hx-target="#primary-content" hx-swap="outerHTML" hx-push-url="true" hx-confirm="Confirm submission"
+                            >                        
                         </div>
                 {% endmatch %}
 
