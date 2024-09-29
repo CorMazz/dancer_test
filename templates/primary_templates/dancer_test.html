@@ -50,8 +50,8 @@
                         <div class="flex flex-col text-center">
                             <input 
                                 type="submit" 
-                                value={% if is_demo_mode %}"Submission Disabled for Demo"{% else %}Submit{% endif %}
-                                class="{% if is_demo_mode %}bg-gray-300 text-gray-900{% else %}bg-blue-500 hover:bg-blue-700 text-white{% endif %} mx-auto font-bold py-2 px-4 mb-4 rounded" {% if is_demo_mode %}disabled{% else %}{% endif %}
+                                value={% if is_demo_mode %}"Submission Disabled for Demo"{% else %}Submit Test{% endif %}
+                                class="{% if is_demo_mode %}bg-gray-300 text-gray-900{% else %}bg-blue-500 hover:bg-blue-700 text-white{% endif %} w-full font-bold py-2 px-4 mb-4 rounded" {% if is_demo_mode %}disabled{% else %}{% endif %}
                                 hx-post="/administer-test/{{ test_index }}" hx-select="#primary-content" hx-target="#primary-content" hx-swap="outerHTML" hx-push-url="true" hx-confirm="Confirm submission"
                             >                        
                         </div>
