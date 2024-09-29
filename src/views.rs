@@ -567,7 +567,7 @@ pub struct EnqueueForm {
     first_name: String,
     last_name: String,
     email: String,
-    signup_key: String,
+    signup_key: Option<String>,
     test_definition_index: i32,
 }
 
@@ -579,7 +579,7 @@ pub async fn post_queue(
     let signup_key_required = data.env.queue_signup_key != "";
     
     if signup_key_required {
-        if user_info.signup_key != data.env.queue_signup_key {
+        if user_info.signup_key.unwrap_or_default() != data.env.queue_signup_key {
             return error_response("Invalid sign-up key. Refresh the page and try again.").into_response()
         }
     }

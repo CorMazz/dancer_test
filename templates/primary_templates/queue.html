@@ -11,7 +11,7 @@
 
         <div class="p-6">
             <h2 class="py-2 text-2xl font-bold">Join the Queue</h2>
-            <form action="/queue" method="post" class="space-y-4">
+            <form action="/queue" method="post" class="space-y-4" hx-boost="true" hx-select="#queue" hx-target="#queue" hx-swap="outerHTML">
                 <!-- First Name -->
                 <div>
                     <label for="first_name" class="block text-sm font-medium text-gray-700">First Name</label>
