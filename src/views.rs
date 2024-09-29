@@ -234,6 +234,7 @@ pub struct DancerTestPageTemplate {
     test_summary: Option<FullTestSummary>,
     test_index: i32, // Used for on the fly test grading
     is_demo_mode: bool,
+    email_functionality_active: bool,
 }
 
 #[derive(Deserialize)]
@@ -256,6 +257,7 @@ pub async fn get_test_page(
             test_summary: None,
             test_index,
             is_demo_mode: data.env.is_demo_mode,
+            email_functionality_active: data.smtp_config.is_some()
         };
         (StatusCode::OK, Html(template.render().unwrap()))
         
@@ -278,12 +280,22 @@ pub async fn post_test_form(
         AuthStatus::Unauthorized(e) => return error_response(&format!("Unauthorized: {:?}", e)).into_response()
     };
 
+    // By virtue of this existing, they want the email sent.
+    let testee_wants_email_sent = test.get("send_email_results").is_some();
+
     if let Some(test_definition) = data.test_configurations.tests.get(test_index as usize) {
         match parse_test_form_data(test, test_definition.clone(), Some(proctor)) {
             Ok(graded_test) => {
                 match save_test_to_database(&data.db, graded_test).await {
                     Ok(testee_id) => {
-                        if let (Some(smtp_config), Some(smtp_mailer)) = (data.smtp_config.clone(), data.smtp_mailer.clone()) {
+                        if let (
+                            Some(smtp_config), 
+                            Some(smtp_mailer), 
+                            true) = (
+                                data.smtp_config.clone(), 
+                                data.smtp_mailer.clone(),
+                                testee_wants_email_sent
+                            ) {
                             tokio::spawn(async move {
                                 if let Err(e) = send_email(&data.db, &smtp_mailer, smtp_config, testee_id, server_root_url).await {
                                     eprintln!("Failed to send email: {:?}", e);
@@ -385,7 +397,8 @@ pub struct GradedTestTemplate {
     test_summary: Option<FullTestSummary>,
     test_index: i32, // Unused for this template
     prefilled_user_info: PrefilledTestData,
-    is_demo_mode: bool
+    is_demo_mode: bool,
+    email_functionality_active: bool, // Unused for this template
 }
 
 pub async fn get_test_results(
@@ -410,7 +423,8 @@ pub async fn get_test_results(
                 prefilled_user_info,
                 test_index: -1,
                 test_summary,
-                is_demo_mode: data.env.is_demo_mode
+                is_demo_mode: data.env.is_demo_mode,
+                email_functionality_active: false,
             };
             match template.render() {
                 Ok(rendered) => Html(rendered).into_response(),
