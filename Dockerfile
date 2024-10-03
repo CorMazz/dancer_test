@@ -40,6 +40,7 @@ RUN --mount=type=bind,source=src,target=src \
     --mount=type=cache,target=/app/target/ \
     --mount=type=cache,target=/usr/local/cargo/git/db \
     --mount=type=cache,target=/usr/local/cargo/registry/ \ 
+    cargo test --release && \
     cargo build --locked --release -vv && \
     cp ./target/release/$APP_NAME /bin/server
     

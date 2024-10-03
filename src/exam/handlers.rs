@@ -52,11 +52,8 @@ impl From<serde_json::Error> for TestError {
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
 /// Read the test definition from a .yaml file
-pub fn parse_test_definition(file_path: &str) -> Result<TestDefinitionYaml, serde_yaml::Error> {
-    let mut file = File::open(file_path).expect(&format!("couldn't open file: {}", file_path));
-    let mut yaml_string = String::new();
-    file.read_to_string(&mut yaml_string).expect(&format!("Couldn't read file '{}' to string. This should work...", file_path));
-    serde_yaml::from_str(&yaml_string)
+pub fn parse_test_definition_from_str(yaml_string: &str) -> Result<TestDefinitionYaml, serde_yaml::Error> {
+    serde_yaml::from_str(yaml_string)
 }
 
 
@@ -793,4 +790,57 @@ pub async fn send_email(
     smtp_mailer.send(email)
         .await
         .map_err(|e| TestError::InternalServerError(format!("Error: Unable to send email: {}", e)))
+}
+
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
+// Unit Tests
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
+
+pub mod tests {
+    use super::*;
+
+    /// Define a string that represents a valid test in the test_definitions.yaml file.
+    pub fn setup_valid_test_str() -> String {
+        r#"
+        tests:
+            -
+                metadata:
+                    test_name: "Standard Leader Test"
+                    config_settings:
+                        live_grading: true
+                        show_point_values: true
+                    minimum_percent: 0.60
+                    max_score: 4
+        
+                tables:
+                    - sections:
+                        - name: "Pattern Scoring"
+                          scoring_categories:
+                            - name: "Footwork"
+                              values: ["Perfect", "Variation?", "Right Concept", "Nope"]
+                            - name: "Timing"
+                              values: ["On", "Off"]
+                          competencies:
+                            - name: "Starter Step"
+                              scores: 
+                                - [3, 2, 1, 0]
+                                - [1, 0]
+                              failing_score_labels: 
+                                - scoring_category_name: "Footwork"
+                                  values: ["Nope"]
+                "#.to_string()
+    }
+
+    /// This purely tests the parsing. Validation is tested in the models module. 
+    #[test]
+    fn test_test_definition_parsing() {
+        let result = parse_test_definition_from_str(
+            &setup_valid_test_str()
+        );
+        if result.is_err() {
+            dbg!(&result);
+            panic!();
+        }
+    }
+
 }
