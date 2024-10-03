@@ -6,10 +6,10 @@ mod filters;
 mod exam;
 
 use config::SecretsConfig;
-use exam::{handlers::parse_test_definition, models::{SMTPConfig, TestDefinitionYaml}};
+use exam::{handlers::parse_test_definition_from_str, models::{SMTPConfig, TestDefinitionYaml}};
 use lettre::{transport::smtp::authentication::Credentials, AsyncSmtpTransport, Tokio1Executor};
 use lettre::transport::smtp::PoolConfig;
-use std::{sync::Arc, time::Duration};
+use std::{fs::File, io::Read, sync::Arc, time::Duration};
 
 use axum::http::{
     header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
@@ -110,13 +110,19 @@ async fn main() {
         None => None, // This feels wrong and like I could make it less verbose.
     };
 
+    // Load in the test definitions
+    let file_path = "test_definitions.yaml";
+    let mut file = File::open(file_path).expect(&format!("couldn't open file: {}", file_path));
+    let mut yaml_string = String::new();
+    file.read_to_string(&mut yaml_string).expect(&format!("Couldn't read file '{}' to string. This should work...", file_path));
+    let mut tests = parse_test_definition_from_str(&yaml_string).expect("Error parsing test_definition.yaml");
 
-    let tests = parse_test_definition("test_definitions.yaml").expect("Error parsing test_definition.yaml");
-
-    for test in &tests.tests {
+    // Validate the test definitions
+    for test in &mut tests.tests {
         test.validate().expect("Invalid test definition");
     }
 
+    // Initialize postgres connections
     let pool = match PgPoolOptions::new()
         .max_connections(10)
         .connect(&config.database_url)
@@ -131,8 +137,6 @@ async fn main() {
             std::process::exit(1);
         }
     };
-
-    // Determine if a new test was loaded
 
     let redis_client = match Client::open(config.redis_url.to_owned()) {
         Ok(client) => {

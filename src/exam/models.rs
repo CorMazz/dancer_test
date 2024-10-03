@@ -34,10 +34,13 @@ impl Test {
             .flat_map(|section| section.competencies.iter()) // Flatten to items to be graded
             .map(|item| {
                 item.scores.iter()
-                    .flat_map(|score| score.iter())
-                    .max()
-                    .cloned()
-                    .unwrap_or(0) // Get the max score for this item, or 0 if no scores
+                    .map(|score_list| {
+                        score_list.iter()
+                            .max()
+                            .cloned()
+                            .unwrap_or(0)
+                })
+                .sum::<i32>()
             })
             .sum() // Sum the max scores of all items
     }
@@ -181,6 +184,7 @@ impl Test {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct TestTable {
     pub test_id: Option<Uuid>,
     pub table_id: Option<Uuid>,
@@ -188,6 +192,7 @@ pub struct TestTable {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct TestSection {
     pub table_id: Option<Uuid>,
     pub name: String,
@@ -196,6 +201,8 @@ pub struct TestSection {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(deny_unknown_fields)]
+
 pub struct BonusItem {
     pub test_id: Option<Uuid>,
     pub name: String,
@@ -204,6 +211,8 @@ pub struct BonusItem {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(deny_unknown_fields)]
+
 pub struct Metadata {
     pub test_id: Option<Uuid>,
     pub test_name: String,
@@ -220,12 +229,14 @@ pub struct Metadata {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct TestConfig {
     pub live_grading: bool,
     pub show_point_values: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct ScoringCategory {
     pub section_id: Option<Uuid>,
     pub name: String,
@@ -234,6 +245,7 @@ pub struct ScoringCategory {
 
 /// This is used to hold the score labels that cause a failure
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct FailingScoreLabels {
     pub scoring_category_name: String,
     pub values: Vec<String>, 
@@ -247,6 +259,7 @@ pub struct AchievedScoreLabel {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct Competency {
     pub section_id: Option<Uuid>,
     pub name: String,
@@ -423,3 +436,82 @@ pub struct SMTPConfig {
 
 
 
+mod tests {
+    use super::*;
+    use crate::exam::{handlers::tests::setup_valid_test_str, handlers::parse_test_definition_from_str};
+
+    #[test]
+    fn test_test_calculate_max_score() {
+        let mut tests = parse_test_definition_from_str(
+            &setup_valid_test_str()
+        ).expect("If this fails then the prior test also failed");
+
+        // Use your eyeballs on the test definition and make sure the max score is properly calculated
+        assert_eq!(tests.tests[0].calculate_max_score(), 4);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_test_validation_incorrect_max_score() {
+        let mut tests = parse_test_definition_from_str(
+            &setup_valid_test_str()
+        ).expect("If this fails then the prior test also failed");
+        
+        // Edit the max score of the first test to be incorrect
+        tests.tests[0].metadata.max_score = -1;
+        
+        // Validate the test and hope it fails
+        let result = tests.tests[0].validate();
+        
+        if result.is_err() {
+            dbg!(&result);
+            panic!();
+        }
+    }
+
+    /// If the names of the failing score labels do not match the scoring categories for that section. Panic
+    #[test]
+    #[should_panic(expected = "Test successful")]
+    fn test_test_validation_invalid_score_labels() {
+        let mut tests = parse_test_definition_from_str(
+            &setup_valid_test_str()
+        ).expect("If this fails then the prior test also failed");
+
+        // Edit the failing score labels for a competency to not match
+        tests.tests[0].tables[0].sections[0].competencies[0].failing_score_labels.as_mut().unwrap()[0].scoring_category_name = "a;slfkal;".to_string();
+
+        // Validate the test and hope it fails
+        let result = tests.tests[0].validate();
+        
+        if result.is_err() {
+            dbg!(&result);
+            panic!("Test successful");
+        }
+
+    }
+
+    
+    #[test]
+    #[should_panic]
+    fn test_validate_score_labels_invalid_labels() {
+        todo!()
+    }
+
+
+    
+    #[test]
+    fn test_test_validation_valid_test() {
+        let tests = parse_test_definition_from_str(
+            &setup_valid_test_str()
+        ).expect("If this fails then the prior test also failed");
+
+        // Grab the first test and validate it
+        let result = tests.tests[0].validate();
+        
+        if result.is_err() {
+            dbg!(&result);
+            panic!();
+        }
+    }
+
+}
