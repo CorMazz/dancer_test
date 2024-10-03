@@ -456,7 +456,7 @@ mod tests {
         let mut tests = parse_test_definition_from_str(
             &setup_valid_test_str()
         ).expect("If this fails then the prior test also failed");
-
+        
         // Edit the max score of the first test to be incorrect
         tests.tests[0].metadata.max_score = -1;
         
@@ -469,9 +469,25 @@ mod tests {
         }
     }
 
+    /// If the names of the failing score labels do not match the scoring categories for that section. Panic
     #[test]
-    fn test_validate_score_labels_valid_labels() {
-        todo!()
+    #[should_panic(expected = "Test successful")]
+    fn test_test_validation_invalid_score_labels() {
+        let mut tests = parse_test_definition_from_str(
+            &setup_valid_test_str()
+        ).expect("If this fails then the prior test also failed");
+
+        // Edit the failing score labels for a competency to not match
+        tests.tests[0].tables[0].sections[0].competencies[0].failing_score_labels.as_mut().unwrap()[0].scoring_category_name = "a;slfkal;".to_string();
+
+        // Validate the test and hope it fails
+        let result = tests.tests[0].validate();
+        
+        if result.is_err() {
+            dbg!(&result);
+            panic!("Test successful");
+        }
+
     }
 
     

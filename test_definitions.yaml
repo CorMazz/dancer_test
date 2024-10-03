@@ -6,7 +6,7 @@ tests:
         live_grading: true
         show_point_values: true
       minimum_percent: 0.60
-      max_score: 87
+      max_score: 98
 
     tables:
       - sections:
@@ -204,10 +204,10 @@ tests:
     metadata:
       test_name: "Standard Follower Test"
       config_settings:
-        live_grading: false
-        show_point_values: false
+        live_grading: true
+        show_point_values: true
       minimum_percent: 0.60
-      max_score: 91
+      max_score: 101
 
     tables:
       - sections:
