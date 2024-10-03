@@ -181,6 +181,7 @@ impl Test {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct TestTable {
     pub test_id: Option<Uuid>,
     pub table_id: Option<Uuid>,
@@ -188,6 +189,7 @@ pub struct TestTable {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct TestSection {
     pub table_id: Option<Uuid>,
     pub name: String,
@@ -196,6 +198,8 @@ pub struct TestSection {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(deny_unknown_fields)]
+
 pub struct BonusItem {
     pub test_id: Option<Uuid>,
     pub name: String,
@@ -204,6 +208,8 @@ pub struct BonusItem {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(deny_unknown_fields)]
+
 pub struct Metadata {
     pub test_id: Option<Uuid>,
     pub test_name: String,
@@ -220,12 +226,14 @@ pub struct Metadata {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct TestConfig {
     pub live_grading: bool,
     pub show_point_values: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct ScoringCategory {
     pub section_id: Option<Uuid>,
     pub name: String,
@@ -234,6 +242,7 @@ pub struct ScoringCategory {
 
 /// This is used to hold the score labels that cause a failure
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct FailingScoreLabels {
     pub scoring_category_name: String,
     pub values: Vec<String>, 
@@ -247,6 +256,7 @@ pub struct AchievedScoreLabel {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct Competency {
     pub section_id: Option<Uuid>,
     pub name: String,
@@ -423,3 +433,66 @@ pub struct SMTPConfig {
 
 
 
+mod tests {
+    use super::*;
+    use crate::exam::{handlers::tests::setup_valid_test_str, handlers::parse_test_definition_from_str};
+
+    #[test]
+    fn test_test_calculate_max_score() {
+        let mut tests = parse_test_definition_from_str(
+            &setup_valid_test_str()
+        ).expect("If this fails then the prior test also failed");
+
+        // Use your eyeballs on the test definition and make sure the max score is properly calculated
+        assert_eq!(tests.tests[0].calculate_max_score(), 4);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_test_validation_incorrect_max_score() {
+        let mut tests = parse_test_definition_from_str(
+            &setup_valid_test_str()
+        ).expect("If this fails then the prior test also failed");
+
+        // Edit the max score of the first test to be incorrect
+        tests.tests[0].metadata.max_score = -1;
+        
+        // Validate the test and hope it fails
+        let result = tests.tests[0].validate();
+        
+        if result.is_err() {
+            dbg!(&result);
+            panic!();
+        }
+    }
+
+    #[test]
+    fn test_validate_score_labels_valid_labels() {
+        todo!()
+    }
+
+    
+    #[test]
+    #[should_panic]
+    fn test_validate_score_labels_invalid_labels() {
+        todo!()
+    }
+
+
+    
+    #[test]
+    fn test_test_validation_valid_test() {
+        let tests = parse_test_definition_from_str(
+            &setup_valid_test_str()
+        ).expect("If this fails then the prior test also failed");
+
+        // Grab the first test and validate it
+        let result = tests.tests[0].validate();
+        
+        if result.is_err() {
+            dbg!(&result);
+            panic!();
+        }
+    }
+
+}

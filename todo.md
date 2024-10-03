@@ -44,7 +44,4 @@
 
 
 ## Last Thing I Was Doing
-- Email is added. Once linode removes the email restriction I need to see if the urls work. If not, just leave them raw.
-- Have ChatGPT give me pretty email formatting. 
-- Refactor the failure reason to give the parts to make the desired sentence instead of storing the whole sentence, because I cannot add formatting within the sentence to the html
 
