@@ -810,7 +810,7 @@ pub mod tests {
                         live_grading: true
                         show_point_values: true
                     minimum_percent: 0.60
-                    max_score: 3
+                    max_score: 4
         
                 tables:
                     - sections:

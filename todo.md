@@ -44,4 +44,4 @@
 
 
 ## Last Thing I Was Doing
-
+Continue adding tests to the app and fixing bugs

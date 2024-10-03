@@ -34,10 +34,13 @@ impl Test {
             .flat_map(|section| section.competencies.iter()) // Flatten to items to be graded
             .map(|item| {
                 item.scores.iter()
-                    .flat_map(|score| score.iter())
-                    .max()
-                    .cloned()
-                    .unwrap_or(0) // Get the max score for this item, or 0 if no scores
+                    .map(|score_list| {
+                        score_list.iter()
+                            .max()
+                            .cloned()
+                            .unwrap_or(0)
+                })
+                .sum::<i32>()
             })
             .sum() // Sum the max scores of all items
     }
