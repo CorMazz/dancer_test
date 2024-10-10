@@ -5,9 +5,10 @@ use sqlx::{Error, PgPool};
 use uuid::Uuid;
 use std::{collections::HashMap, fs::File, io::Read};
 use crate::exam::models::{
-    AchievedScoreLabel, BonusItem, Competency, FailingScoreLabels, Metadata, ScoringCategory, Test, TestDefinitionYaml, TestSection, FullTestSummary, TestTable, Testee, TestGradeSummary, TestConfig, Proctor, SMTPConfig
+    AchievedScoreLabel, BonusItem, Competency, FailingScoreLabels, Metadata, ScoringCategory, Test, TestDefinitionYaml, TestSection, FullTestSummary, TestTable, Testee, TestGradeSummary, TestConfig, Proctor, SMTPConfig, TestListItem
 };
 use crate::filters;
+
 
 
 
@@ -335,6 +336,64 @@ pub async fn search_for_testee(
         }
     }
 
+}
+
+
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
+// Fetch Test Results by Name and Passing Status
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
+
+/// Grabs information on the tests which match a given set of test_names and is_passing. Used for the broad_test_summaries page.
+pub async fn fetch_tests_by_status(
+    pool: &PgPool,
+    test_names: &[String],  // Array of test names
+    is_passing_filter: Option<bool>,  // Optional filter for passing status
+) -> Result<Vec<TestListItem>, Error> {
+    let mut query = String::from(
+        "SELECT DISTINCT ON (tm.test_name, t.first_name, t.id)
+                tm.test_id, tm.test_date, tm.test_name, tm.is_passing, 
+                t.id as testee_id, t.first_name as testee_first_name, t.last_name as testee_last_name, t.email as testee_email
+         FROM test_metadata tm
+         JOIN testees t ON tm.testee_id = t.id
+         WHERE tm.test_name = ANY($1)"
+    );
+    
+    if let Some(_is_passing) = is_passing_filter {
+        query.push_str(" AND tm.is_passing = $2");
+    }
+    
+    query.push_str(" ORDER BY tm.test_name, t.first_name, t.id, tm.is_passing, tm.test_date DESC");
+
+
+    let tests = if let Some(is_passing) = is_passing_filter {
+        sqlx::query_as::<_, TestListItem>(&query)  
+            .bind(test_names)  
+            .bind(is_passing)  
+            .fetch_all(pool)
+            .await?
+    } else {
+        sqlx::query_as::<_, TestListItem>(&query)  
+            .bind(test_names)  
+            .fetch_all(pool)
+            .await?
+    };
+
+    Ok(tests)
+}
+
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
+// Fetch All Test Names
+// -------------------------------------------------------------------------------------------------------------------------------------------------------
+
+/// Used to grab all of the different test names that exist in the database so that users can explore their data.
+pub async fn fetch_unique_test_names(pool: &PgPool) -> Result<Vec<String>, sqlx::Error> {
+    let query = "SELECT DISTINCT test_name FROM test_metadata";
+    
+    let test_names: Vec<String> = sqlx::query_scalar(query)
+        .fetch_all(pool)
+        .await?;
+
+    Ok(test_names)
 }
 
 // -------------------------------------------------------------------------------------------------------------------------------------------------------

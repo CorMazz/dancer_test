@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
+use sqlx::prelude::FromRow;
 use uuid::Uuid;
 
 
@@ -417,6 +418,19 @@ pub struct TestGradeSummary {
     pub minimum_percent: f32,
     pub is_passing: bool,
     pub failure_explanation: Option<Vec<String>>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, FromRow)]
+/// Used to search who passed/failed in the get_tests_by_status function
+pub struct TestListItem {
+    pub test_id: Uuid,
+    pub test_date: NaiveDateTime,
+    pub test_name: String,
+    pub is_passing: bool,
+    pub testee_id: Uuid,
+    pub testee_first_name: String,
+    pub testee_last_name: String,
+    pub testee_email: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
