@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
+use sqlx::prelude::FromRow;
 use uuid::Uuid;
 
 
@@ -133,6 +134,15 @@ impl Test {
                     };
                 };
             };
+        }
+
+        // Score the bonus items
+        if let Some(bonus_items) = &self.bonus_items {
+            total_score += bonus_items
+                .iter()
+                .filter(|bonus_item| bonus_item.achieved.is_some_and(|x| x))
+                .map(|bonus_item| bonus_item.score)
+                .sum::<i32>();
         }
 
         // Check if the achieved percent is above the minimum percent
@@ -419,6 +429,19 @@ pub struct TestGradeSummary {
     pub failure_explanation: Option<Vec<String>>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, FromRow)]
+/// Used to search who passed/failed in the get_tests_by_status function
+pub struct TestListItem {
+    pub test_id: Uuid,
+    pub test_date: NaiveDateTime,
+    pub test_name: String,
+    pub is_passing: bool,
+    pub testee_id: Uuid,
+    pub testee_first_name: String,
+    pub testee_last_name: String,
+    pub testee_email: String,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Proctor {
     pub id: Uuid,
@@ -440,6 +463,56 @@ mod tests {
     use super::*;
     use crate::exam::{handlers::tests::setup_valid_test_str, handlers::parse_test_definition_from_str};
 
+
+    /// Define a string that represents a valid test to be graded in the test_definitions.yaml file.
+    /// You would never put an already graded test in the test_definitions.yaml file. 
+    pub fn setup_valid_graded_test_str() -> String {
+        r#"
+        tests:
+            -
+                metadata:
+                    test_name: "Standard Leader Test"
+                    config_settings:
+                        live_grading: true
+                        show_point_values: true
+                    minimum_percent: 0.60
+                    max_score: 4
+        
+                tables:
+                    - sections:
+                        - name: "Pattern Scoring"
+                          scoring_categories:
+                            - name: "Footwork"
+                              values: ["Perfect", "Variation?", "Right Concept", "Nope"]
+                            - name: "Timing"
+                              values: ["On", "Off"]
+                          competencies:
+                            - name: "Starter Step"
+                              scores: 
+                                - [3, 2, 1, 0]
+                                - [1, 0]
+                              achieved_scores:
+                                - 2
+                                - 1  
+                              achieved_score_labels:
+                                - scoring_category_name: "Footwork"
+                                  value: "Variation?"
+                                - scoring_category_name: "Timing"
+                                  value: "Off"
+                              failing_score_labels: 
+                                - scoring_category_name: "Footwork"
+                                  values: ["Nope"]
+                bonus_items: 
+                  - name: "No Thumbs"
+                    score: 1
+                  - name: "Clear Turn Signal"
+                    score: 1
+                  - name: "Swung Triple"
+                    score: 4
+                    achieved: True
+                "#.to_string()
+    }
+
     #[test]
     fn test_test_calculate_max_score() {
         let mut tests = parse_test_definition_from_str(
@@ -447,6 +520,7 @@ mod tests {
         ).expect("If this fails then the prior test also failed");
 
         // Use your eyeballs on the test definition and make sure the max score is properly calculated
+        // Remember bonus points don't count towards the max score.
         assert_eq!(tests.tests[0].calculate_max_score(), 4);
     }
 
@@ -490,15 +564,6 @@ mod tests {
 
     }
 
-    
-    #[test]
-    #[should_panic]
-    fn test_validate_score_labels_invalid_labels() {
-        todo!()
-    }
-
-
-    
     #[test]
     fn test_test_validation_valid_test() {
         let tests = parse_test_definition_from_str(
@@ -513,5 +578,29 @@ mod tests {
             panic!();
         }
     }
+
+    #[test]
+    fn test_test_grading() {
+        let mut tests = parse_test_definition_from_str(
+            &setup_valid_graded_test_str()
+        ).expect("If this fails then the graded test definition is incorrect.");
+
+        tests.tests[0].validate().expect("If this fails then the graded test definition is incorrect.");
+
+        // Grab the first test and grade it
+        let result = tests.tests[0].grade();
+
+        match result {
+            Err(e) => {
+            dbg!(&e);
+            panic!();
+        },
+          Ok((grade, is_passing, _failure_explanation)) => {
+            assert_eq!(grade, 7);
+            assert!(is_passing);
+          },
+        }
+    }
+
 
 }
