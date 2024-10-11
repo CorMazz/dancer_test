@@ -887,6 +887,14 @@ pub mod tests {
                               failing_score_labels: 
                                 - scoring_category_name: "Footwork"
                                   values: ["Nope"]
+
+                bonus_items: 
+                  - name: "No Thumbs"
+                    score: 1
+                  - name: "Clear Turn Signal"
+                    score: 1
+                  - name: "Swung Triple"
+                    score: 4
                 "#.to_string()
     }
 
