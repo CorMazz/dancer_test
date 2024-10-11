@@ -9,6 +9,7 @@
         id="first_name"
         name="first_name"
         class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" {% match prefilled_user_info.first_name %}{% when Some with (data) %}value="{{ data }}"{% when None %}{% endmatch %}
+        pattern="[A-Za-z\s\-]+" title="Only alphabetic characters, spaces, and hyphens are allowed" maxlength="50"
         required
         {% match test.metadata.is_graded %}{% when Some with (_) %}readonly{% when None %}{% endmatch %}
         >
@@ -22,6 +23,7 @@
         id="last_name"
         name="last_name"
         class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" {% match prefilled_user_info.last_name %}{% when Some with (data) %}value="{{ data }}"{% when None %}{% endmatch %}
+        pattern="[A-Za-z\s\-]+" title="Only alphabetic characters, spaces, and hyphens are allowed" maxlength="50"
         required
         {% match test.metadata.is_graded %}{% when Some with (_) %}readonly{% when None %}{% endmatch %}
         >

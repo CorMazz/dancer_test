@@ -1,9 +1,8 @@
 # Todo List
 
 ## Required TODO
-- Add HTMX functionality to everything
-- Send emails to testees once their tests are graded
-- Figure out how to export the passing/failing test results so front of house can confirm class attendance
+
+
 
 
 
@@ -20,17 +19,6 @@
     - Frontend the submit button can be re-enabled by the user and used to submit forms. This is a security vulnerability.
 - Add functionality to require a licensing code to enter the queue
 
-- Test this in the validate_failing_header_labels
-    // Create a hashmap of the header labels so that we can correspond failing score labels on the graded item to the true header labels
-    let mut score_label_hm: HashMap<String, Vec<String>> = HashMap::new();
-    for score_label in score_labels {
-        if let Some(duplicate_name) = score_label_hm.insert(score_label.name.clone(), score_label.values.clone()) {
-            return Err(format!(
-                "On the test named '{},' the scoring category name '{:#?}' is not unique within its section.",
-                test_name, duplicate_name
-            ))
-        };
-    }
 
 ## Would be Nice TODO
 - Refactor the error handling to use the anyhow crate (I started this, it removes some of the nuance of my error handling...)
@@ -39,11 +27,13 @@
 - Add a command upon the server restarting to clear the queue. 
 - Add a command to clear the queue after a certain amount of time.
 - Put emails on the test summaries page since the email is the primary key for a testee
-- Add an option to not send the users an email after taking a test
 - Add an option to manually send a user an email
+- Figure out how to export the passing/failing test results so front of house can confirm class attendance
+- Add pagination for the testee search and the broad result search
+- Add the ability to change the name and email for a testee after they get created (actually, the name of a testee already gets changed if a different name for an email is submitted)
+- Add the ability to change what testee a test belongs to. 
 
 
 ## Last Thing I Was Doing
 When no results are available, ensure that it tells users that no results match the given filters.
 Otherwise, test that results page and then make it pretty.
-
