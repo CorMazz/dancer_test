@@ -36,7 +36,6 @@ For more information, visit [corradomazzarelli.com](https://www.corradomazzarell
 - Thanks to all contributors and users for their support and feedback.
 - Special thanks to the Greenville Westies for their consistent feedback and requests to make this a better app. 
 
-
 ### Note from Cory
 
 This application is containerized, and was also developed in a dev container. Everything within the .devcontainer folder defines the configuration
@@ -59,6 +58,9 @@ To build the two environments locally:
 
 `
 ENV_FILE=.env_prod DOCKER_PORT_MAPPING=7000 SERVER_PORT=8000 PG_ADMIN_DOCKER_PORT_MAPPING=7001 docker-compose -p dancexam-prod up --build
+`
+
+`
 ENV_FILE=.env_demo DOCKER_PORT_MAPPING=7002 SERVER_PORT=8000 PG_ADMIN_DOCKER_PORT_MAPPING=7003 docker-compose -p dancexam-demo up --build
 `
 
@@ -66,4 +68,4 @@ ENV_FILE=.env_demo DOCKER_PORT_MAPPING=7002 SERVER_PORT=8000 PG_ADMIN_DOCKER_POR
 
 ### Deploying The Application
 
-This app has a CI/CD pipeline. Any push to master rebuilds the docker container with the new source code and if the build is successful, pulls the new image and runs it on the Linode server hosting the current instances of the app.
+This app has a CI/CD pipeline. Any push to master rebuilds the docker container with the new source code and if the build/unit tests are successful, pulls the new image and runs it on the Linode server hosting the current instances of the app.

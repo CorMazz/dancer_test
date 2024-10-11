@@ -463,7 +463,6 @@ mod tests {
     use super::*;
     use crate::exam::{handlers::tests::setup_valid_test_str, handlers::parse_test_definition_from_str};
 
-
     /// Define a string that represents a valid test to be graded in the test_definitions.yaml file.
     /// You would never put an already graded test in the test_definitions.yaml file. 
     pub fn setup_valid_graded_test_str() -> String {
@@ -520,6 +519,7 @@ mod tests {
         ).expect("If this fails then the prior test also failed");
 
         // Use your eyeballs on the test definition and make sure the max score is properly calculated
+
         // Remember bonus points don't count towards the max score.
         assert_eq!(tests.tests[0].calculate_max_score(), 4);
     }
@@ -579,6 +579,7 @@ mod tests {
         }
     }
 
+
     #[test]
     fn test_test_grading() {
         let mut tests = parse_test_definition_from_str(
@@ -601,6 +602,4 @@ mod tests {
           },
         }
     }
-
-
 }
