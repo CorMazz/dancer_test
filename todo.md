@@ -44,4 +44,6 @@
 
 
 ## Last Thing I Was Doing
-Continue adding tests to the app and fixing bugs
+When no results are available, ensure that it tells users that no results match the given filters.
+Otherwise, test that results page and then make it pretty.
+

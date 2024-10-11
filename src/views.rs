@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, default, sync::Arc};
 
 use askama_axum::Template; // bring trait in scope
 use axum::{
@@ -17,8 +17,8 @@ use crate::{
         middleware::{AuthError, AuthStatus},
         model::User
     }, exam::{
-        handlers::{create_testee, dequeue_testee, enqueue_testee, fetch_test_results_by_id, fetch_testee_by_id, fetch_testee_tests_by_id, parse_test_form_data, retrieve_queue, save_test_to_database, search_for_testee, send_email, TestError}, 
-        models::{FullTestSummary, Proctor, Test, TestGradeSummary, Testee}
+        handlers::{create_testee, dequeue_testee, enqueue_testee, fetch_test_results_by_id, fetch_testee_by_id, fetch_testee_tests_by_id, fetch_tests_by_status, fetch_unique_test_names, parse_test_form_data, retrieve_queue, save_test_to_database, search_for_testee, send_email, TestError}, 
+        models::{FullTestSummary, Proctor, Test, TestGradeSummary, TestListItem, Testee}
     }, filters, AppState
 };
 
@@ -512,6 +512,65 @@ pub async fn get_test_summaries(
     };
     (StatusCode::OK, Html(template.render().unwrap())).into_response()
 }
+
+// #######################################################################################################################################################
+// broad_test_results.html
+// #######################################################################################################################################################
+
+#[derive(Template)]
+#[template(path = "./primary_templates/broad_test_results.html")] 
+pub struct BroadTestResultsTemplate {
+    test_names: Vec<String>,
+    test_list_items: Option<Vec<TestListItem>>,
+}
+
+#[derive(Deserialize)]
+pub struct TestFilterQuery {
+    #[serde(default)]
+    test_names: Vec<String>,
+
+    pass_filter: Option<String>,
+}
+
+pub async fn get_broad_test_results(
+    State(data): State<Arc<AppState>>,
+    axum_extra::extract::Query(form_data): axum_extra::extract::Query<TestFilterQuery>,
+) -> impl IntoResponse {
+    
+    let mut test_names = match fetch_unique_test_names(&data.db).await {
+        Ok(names) => names,
+        Err(e) => return error_response(&e.to_string()).into_response()
+    };
+    test_names.sort();
+
+    
+    // Convert this to an option or bool because the form returns strings and we need a bool
+    let is_passing_filter = match form_data.pass_filter {
+        Some(data) => match data.to_lowercase().as_str() {
+            "passing" => Some(true),
+            "failing" => Some(false),
+            "both" => None,
+            _ => return error_response("An unexpected form value was submitted. You're trying to mess with the website.").into_response()
+        },
+        None => None
+    };
+
+    let test_list_items = match form_data.test_names.is_empty() {
+        false => match fetch_tests_by_status(&data.db, &form_data.test_names, is_passing_filter).await {
+            Ok(vec) => Some(vec),
+            Err(e) => return error_response(&e.to_string()).into_response()
+        },
+        true => None,
+    };
+
+    let template = BroadTestResultsTemplate {
+        test_names: test_names,
+        test_list_items
+    };
+
+    (StatusCode::OK, Html(template.render().unwrap())).into_response()
+}
+
 
 // #######################################################################################################################################################
 // queue.html
