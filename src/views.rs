@@ -537,10 +537,11 @@ pub async fn get_broad_test_results(
     axum_extra::extract::Query(form_data): axum_extra::extract::Query<TestFilterQuery>,
 ) -> impl IntoResponse {
     
-    let test_names = match fetch_unique_test_names(&data.db).await {
+    let mut test_names = match fetch_unique_test_names(&data.db).await {
         Ok(names) => names,
         Err(e) => return error_response(&e.to_string()).into_response()
     };
+    test_names.sort();
 
     
     // Convert this to an option or bool because the form returns strings and we need a bool

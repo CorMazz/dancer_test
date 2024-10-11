@@ -5,23 +5,26 @@
 {% block content %}
 
 <div id="broad-test-results-widget" class="text-center mt-4 mx-4 border-gray-100 bg-gray-50 shadow-lg rounded-lg p-6 hover:bg-gray-100 hover:shadow-xl transition duration-300">
-   
-    <form method="get" action="/broad-test-results" class="mb-6">
-        <button id="dropdownTestNamesButton" data-dropdown-toggle="dropdownTestNames" class="inline-flex items-center px-4 py-2 text-sm font-medium text-center text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800" type="button">Select Test Names</button>
-
-        <!-- Make this into a dropdown checkbox menu -->
-        <div id="dropdownTestNames" class="z-10 hidden bg-white rounded-lg shadow w-60 dark:bg-gray-700">
-            <ul class="h-48 px-3 pb-3 overflow-y-auto text-sm text-gray-700 dark:text-gray-200" aria-labelledby="dropdownTestNamesButton">
+    <h1 class="py-2 text-2xl font-bold">Broad Result Search</h1>
+    <form method="get" action="/broad-test-results" hx-boost="true" hx-select="#search-results" hx-target="#search-results" hx-swap="outerHTML" class="mb-6">
+        {% if test_names.len() == 0 %}
+            <p>You have no tests in the database yet. Submit some tests and then come back here.</p>
+        {% else %}
+            <h2 class="block mb-2 text-lg font-bold">Test Type Filter</h2>
+            <!-- Standard checkbox list for 4 or fewer test names -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-2 justify-center items-center">
                 {% for test_name in test_names %}
-                <li>
-                    <div class="flex items-center p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-600">
-                        <input id="checkbox_{{ loop.index0 }}" name="test_names" type="checkbox" value="{{ test_name }}" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
-                        <label for="checkbox_{{ loop.index0 }}" class="w-full ms-2 text-sm font-medium text-gray-900 rounded dark:text-gray-300">{{ test_name }}</label>
-                    </div>
-                </li>
+                <div class="peer-checked:flex items-center justify-center">
+                    <!-- Checkbox input -->
+                    <input id="checkbox_{{ loop.index0 }}" name="test_names" type="checkbox" value="{{ test_name }}" class="peer hidden">
+                    <!-- Label with border and rounded corners -->
+                    <label for="checkbox_{{ loop.index0 }}" class="flex justify-center items-center w-full p-2 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg cursor-pointer dark:bg-gray-600 dark:text-gray-300 dark:border-gray-500 peer-checked:border-blue-500 peer-checked:border-4 transition-colors">
+                        {{ test_name }}
+                    </label>
+                </div>
                 {% endfor %}
-            </ul>
-        </div>
+            </div>
+        {% endif %}
 
 
         <label for="pass_filter" class="block mb-2 text-lg font-bold">Pass/Fail Filter:</label>
@@ -32,13 +35,13 @@
         </select>
 
         <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition duration-300">
-            Search Testees
+            Search Results
         </button>
     </form>
 
 
 
-
+    <div id="search-results" class="rounded-lg overflow-hidden">
     {% match test_list_items %}
     
         {% when Some with (items) %}
@@ -47,13 +50,13 @@
                 <p>No data found matching the given parameters</p>
             {% else %}
 
-                <table class="bg-white w-full mx-1 table-fixed">
+                <table class="bg-white w-full mx-1 table-fixed rounded-lg">
                     <thead class="sticky top-0 bg-white z-10">
                         <!-- Create the Overall Scoring Category Headers -->
                         <tr>
-                                <th class="lg:text-4xl py-2">Testee Name</th>
-                                <th class="lg:text-4xl py-2">Test Name</th>
-                                <th class="lg:text-4xl py-2">Pass Status</th>
+                                <th class="lg:text-2xl py-2">Testee Name</th>
+                                <th class="lg:text-2xl py-2">Test Name</th>
+                                <th class="lg:text-2xl py-2">Pass Status</th>
                                 
                         </tr>
                     </thead>
@@ -61,28 +64,34 @@
                     <tbody>
 
                             {% for item in items %}
-                            <tr>
-                                <td class="py-2 px-4 border-b font-bold sm:text-sm md:text-xl lg:text-2xl text-right hover:underline">
+                           
+                            <tr class="{% if item.is_passing %}border-b bg-green-100 hover:bg-green-200{% else %}border-b bg-red-100 hover:bg-red-200{% endif %}">
+                                <td class="py-2 px-4 border-b sm:text-sm md:text-xl text-center underline hover:text-blue-600">
                                     <a href="/test-summaries/{{ item.testee_id }}" hx-boost="true" hx-select="#primary-content" hx-target="#primary-content" hx-swap="outerHTML">
                                         {{ item.testee_first_name }} {{ item.testee_last_name }}
                                     </a> 
                                 </td>
-                                <td class="py-2 px-4 border-b font-bold sm:text-sm md:text-xl lg:text-2xl text-right hover:underline">
+                                <td class="py-2 px-4 border-b sm:text-sm md:text-xl text-center underline hover:text-blue-600">
                                     <a href="/test-results/{{ item.test_id }}" hx-boost="true" hx-select="#primary-content" hx-target="#primary-content" hx-swap="outerHTML">
                                         {{ item.test_name }}
                                     </a>
                                 </td>
-                                <td class="py-2 px-4 border-b font-bold sm:text-sm md:text-xl lg:text-2xl text-right hover:underline">
+                                <td class="py-2 px-4 border-b sm:text-sm md:text-xl text-center">
                                     {% if item.is_passing %}<span class="text-green-700 font-bold">Pass</span>{% else %} <span class="text-red-700 font-bold">Fail</span>{% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
                         
                     </tbody>
+                </table>
+
             {% endif %}
 
         {% when None %}
         <p class="hidden">Nothing has been searched yet.</p>
         {% endmatch %}
+
+
+</div>
 </div>
 {% endblock %}
