@@ -383,3 +383,99 @@ tests:
         score: 2
       - name: "Swung Triple"
         score: 4
+
+# #######################################################################################################
+# # Example Test 1
+# #######################################################################################################
+#   -
+#     metadata:
+#       test_name: "Standard Example Test 1"
+#       config_settings:
+#         live_grading: true
+#         show_point_values: true
+#       minimum_percent: 0.60
+#       max_score: 4
+
+#     tables:
+#       - sections:
+#         - name: "Follower Pattern Scoring"
+#           scoring_categories:
+#             - name: "Footwork"
+#               values: ["Perfect", "Right Concept", "Nope"]
+#             - name: "Timing"
+#               values: ["On", "Off"]
+#             - name: "Shaping"
+#               values: ["Shaped", "Flat"]
+#           competencies:
+#             - name: "Left Side Pass"
+#               scores: 
+#                 - [2, 1, 0]
+#                 - [1, 0]
+#                 - [1, 0]
+#               failing_score_labels:
+#                 - scoring_category_name: "Footwork"
+#                   values: ["Nope"]
+
+# #######################################################################################################
+# # Example Test 2
+# #######################################################################################################
+#   -
+#     metadata:
+#       test_name: "Standard Example Test 2"
+#       config_settings:
+#         live_grading: true
+#         show_point_values: true
+#       minimum_percent: 0.60
+#       max_score: 4
+
+#     tables:
+#       - sections:
+#         - name: "Follower Pattern Scoring"
+#           scoring_categories:
+#             - name: "Footwork"
+#               values: ["Perfect", "Right Concept", "Nope"]
+#             - name: "Timing"
+#               values: ["On", "Off"]
+#             - name: "Shaping"
+#               values: ["Shaped", "Flat"]
+#           competencies:
+#             - name: "Left Side Pass"
+#               scores: 
+#                 - [2, 1, 0]
+#                 - [1, 0]
+#                 - [1, 0]
+#               failing_score_labels:
+#                 - scoring_category_name: "Footwork"
+#                   values: ["Nope"]
+
+# #######################################################################################################
+# # Example Test 3
+# #######################################################################################################
+#   -
+#     metadata:
+#       test_name: "Standard Example Test 3"
+#       config_settings:
+#         live_grading: true
+#         show_point_values: true
+#       minimum_percent: 0.60
+#       max_score: 4
+
+#     tables:
+#       - sections:
+#         - name: "Follower Pattern Scoring"
+#           scoring_categories:
+#             - name: "Footwork"
+#               values: ["Perfect", "Right Concept", "Nope"]
+#             - name: "Timing"
+#               values: ["On", "Off"]
+#             - name: "Shaping"
+#               values: ["Shaped", "Flat"]
+#           competencies:
+#             - name: "Left Side Pass"
+#               scores: 
+#                 - [2, 1, 0]
+#                 - [1, 0]
+#                 - [1, 0]
+#               failing_score_labels:
+#                 - scoring_category_name: "Footwork"
+#                   values: ["Nope"]
