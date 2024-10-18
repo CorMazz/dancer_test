@@ -42,27 +42,34 @@
                     </div>
                 {% endif %}
                 
-                <!-- Test Type (Radio Buttons) -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Test Type</label>
-                    <div class="mt-2 flex flex-col items-center">
-                        <div class="flex items-center mr-2">
-                            {% for test_name in test_names %}   
-                                {# This loop index corresponds to the test_index in the parsed test definition Vec #}
-                                <div class="mx-2">
-                                    <input type="radio" name="test_definition_index" id="{{ loop.index0 }}"" value="{{ loop.index0 }}" required 
-                                        class="hidden peer">
-                                    <label 
-                                        for="{{ loop.index0 }}" 
-                                        class="inline-flex items-center justify-center w-full h-12 p-2 text-sm font-medium text-gray-900 bg-white border-2 border-gray-300 rounded-lg cursor-pointer peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-transparent hover:bg-gray-100 hover:shadow-sm transition duration-300"
-                                        >
-                                        {{ test_name }}
-                                    </label>
-                                </div>
-                            {% endfor %}
-                        </div>
+            <!-- Test Type (Radio Buttons) -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Test Type</label>
+                <div class="mt-2 flex flex-col items-center w-full">
+                    <div class="flex flex-wrap items-center w-full">
+                        {% for test_name in test_names %}   
+                            {# This loop index corresponds to the test_index in the parsed test definition Vec #}
+                            <div class="flex-1 basis-1/2 min-w-[150px] mx-2 my-2">
+                                <input 
+                                    type="radio" 
+                                    name="test_definition_index" 
+                                    id="{{ loop.index0 }}" 
+                                    value="{{ loop.index0 }}" 
+                                    required 
+                                    class="hidden peer"
+                                >
+                                <label 
+                                    for="{{ loop.index0 }}" 
+                                    class="inline-flex items-center justify-center w-full h-12 p-2 text-sm font-medium text-gray-900 bg-white border-2 border-gray-300 rounded-lg cursor-pointer peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-transparent hover:bg-gray-100 hover:shadow-sm transition duration-300"
+                                >
+                                    {{ test_name }}
+                                </label>
+                            </div>
+                        {% endfor %}
                     </div>
                 </div>
+            </div>
+
                 
                 <!-- Submit Button -->
                 <div>
