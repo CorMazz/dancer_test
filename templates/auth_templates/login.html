@@ -39,6 +39,20 @@
                         class="w-full text-center py-3 rounded bg-green-500 text-white hover:bg-green-700 focus:outline-none my-1"
                     >Login</button>
                 </form>
+                {% if google_oauth_enabled %}
+                    <a
+                        href="/auth/google"
+                        class="w-full flex items-center justify-center gap-2 py-3 px-4 rounded border border-gray-300 shadow-sm hover:bg-gray-50 font-medium"
+                    >
+                        <svg class="w-5 h-5" viewBox="0 0 533.5 544.3" xmlns="http://www.w3.org/2000/svg">
+                            <path fill="#4285f4" d="M533.5 278.4c0-18.6-1.5-37-4.7-54.9H272v103.9h146.9c-6.4 34.7-25.6 64.1-54.6 83.6v68.9h88.3c51.6-47.5 80.9-117.6 80.9-201.5z"/>
+                            <path fill="#34a853" d="M272 544.3c73.6 0 135.3-24.3 180.4-65.9l-88.3-68.9c-24.5 16.5-55.6 26-92.1 26-70.7 0-130.7-47.8-152.1-112.1H28.1v70.5C72.9 480.7 165.8 544.3 272 544.3z"/>
+                            <path fill="#fbbc04" d="M119.9 323.4c-10.1-29.6-10.1-61.2 0-90.8V161.8H28.1c-34.2 68.4-34.2 149.6 0 218.1l91.8-56.5z"/>
+                            <path fill="#ea4335" d="M272 107.1c39.9 0 75.8 13.7 104.1 40.8l78-78C401.6 25 343.2 0 272 0 165.8 0 72.9 63.6 28.1 161.8l91.8 70.8C141.3 154.9 201.3 107.1 272 107.1z"/>
+                        </svg>
+                        Sign in with Google
+                    </a>
+                {% endif %}
 
                 <div class="text-center text-sm text-grey-dark mt-4">
                     By logging in, you agree to the 

@@ -13,7 +13,8 @@
 	// "forwardPorts": [5432],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "cargo install sqlx-cli && cargo install cargo-watch && sqlx database create && sqlx migrate run"
+	
+	"postCreateCommand": "sudo chown -R $(whoami) /usr/local/cargo && sqlx database create && sqlx migrate run"
 
 
 	// Configure tool-specific properties.

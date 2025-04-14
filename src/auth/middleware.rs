@@ -32,6 +32,9 @@ pub enum AuthError {
     ExpiredSession,
     InvalidUser,
     InvalidLicensingKey,
+    CSRFTokenMismatch,
+    OAuthError(Option<String>),
+    AccountNotFound,
 }
 
 // impl AuthError {
