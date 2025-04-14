@@ -12,6 +12,14 @@ SMTP_USER_LOGIN=
 SMTP_USER_PASSWORD=
 SMTP_USER_EMAIL=
 
+# Set to empty strings after the equal sign if not enabling Google OAuth functionality
+GOOGLE_OAUTH_CLIENT_ID=""
+GOOGLE_OAUTH_CLIENT_SECRET=""
+GOOGLE_OAUTH_AUTH_URI="https://accounts.google.com/o/oauth2/auth"
+GOOGLE_OAUTH_REDIRECT_URI=""
+GOOGLE_OAUTH_TOKEN_URI="https://oauth2.googleapis.com/token"
+
+
 POSTGRES_HOST=127.0.0.1
 POSTGRES_PORT=6500
 POSTGRES_USER=

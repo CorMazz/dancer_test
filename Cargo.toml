@@ -14,8 +14,10 @@ chrono = { version = "0.4.38", features = ["serde"] }
 dotenv = "0.15.0"
 jsonwebtoken = "9.3.0"
 lettre = { version = "0.11.9", default-features = false, features = ["smtp-transport", "pool", "tokio1", "tokio1-rustls-tls", "builder", ] }
+oauth2 = "5.0.0"
 rand_core = { version = "0.6.4", features = ["getrandom"] }
 redis = { version = "0.25.4", features = ["aio", "tokio-comp"] }
+reqwest = { version = "0.12.15", features = ["json"] }
 serde = { version = "1.0.204", features = ["derive"] }
 serde_json = "1.0.120"
 serde_yaml = "0.9.34"
