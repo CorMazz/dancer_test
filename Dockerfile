@@ -6,7 +6,7 @@
 
 # Want to help us make this template better? Share your feedback here: https://forms.gle/ybq9Krt8jtBL3iCk7
 
-ARG RUST_VERSION=1.80.1
+ARG RUST_VERSION=1.87.0
 ARG APP_NAME=dancer_test
 
 ################################################################################
@@ -17,7 +17,7 @@ ARG APP_NAME
 WORKDIR /app
 
 # Install host build dependencies.
-RUN apk add --no-cache clang lld musl-dev git
+RUN apk add --no-cache clang lld musl-dev git 
 
 ENV SQLX_OFFLINE=true
 
